@@ -92,7 +92,7 @@ export function ItemTable({ category, sellingPrice, showTableHeader = true }: It
 
   return (
     <>
-    <div className="flex items-center justify-between -mt-6 -mx-6 mb-4 p-6 pb-0">
+    <div className="flex items-center justify-between mb-4">
         <div/>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -145,7 +145,7 @@ export function ItemTable({ category, sellingPrice, showTableHeader = true }: It
           </DialogContent>
         </Dialog>
       </div>
-      <div className="-mx-6 -mt-6 border-t">
+      <div className="border rounded-lg overflow-hidden">
         <Table>
           {showTableHeader && (
             <TableHeader>
