@@ -41,6 +41,43 @@ export function ScaleCalculator() {
   const [customerName, setCustomerName] = React.useState("");
   const [weighingSets, setWeighingSets] = React.useState<WeighingSet[]>([]);
 
+  React.useEffect(() => {
+    // Only run on client
+    try {
+      const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedState) {
+        const { customerName, weighingSets } = JSON.parse(savedState);
+        setCustomerName(customerName);
+        setWeighingSets(weighingSets);
+      } else {
+        // If no saved state, initialize with one default entry
+        setWeighingSets([
+          {
+            id: uuidv4(),
+            driverName: "",
+            plate: "",
+            gross: "",
+            boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
+            totalNet: 0,
+          },
+        ]);
+      }
+    } catch (error) {
+       console.error("Failed to auto-load state from localStorage", error);
+       // Fallback to default if local storage fails
+       setWeighingSets([
+        {
+          id: uuidv4(),
+          driverName: "",
+          plate: "",
+          gross: "",
+          boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
+          totalNet: 0,
+        },
+      ]);
+    }
+  }, []);
+
   const saveStateToLocalStorage = () => {
     try {
       const stateToSave = {
@@ -89,43 +126,6 @@ export function ScaleCalculator() {
       });
     }
   };
-  
-  React.useEffect(() => {
-    // Auto-load on initial component mount only on client-side
-    try {
-      const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (savedState) {
-        const { customerName, weighingSets } = JSON.parse(savedState);
-        setCustomerName(customerName);
-        setWeighingSets(weighingSets);
-      } else {
-        // If no saved state, initialize with one default entry
-        setWeighingSets([
-          {
-            id: uuidv4(),
-            driverName: "",
-            plate: "",
-            gross: "",
-            boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
-            totalNet: 0,
-          },
-        ]);
-      }
-    } catch (error) {
-       console.error("Failed to auto-load state from localStorage", error);
-       // Fallback to default if local storage fails
-       setWeighingSets([
-        {
-          id: uuidv4(),
-          driverName: "",
-          plate: "",
-          gross: "",
-          boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
-          totalNet: 0,
-        },
-      ]);
-    }
-  }, []);
 
 
   const handleSetTextChange = (
@@ -286,6 +286,12 @@ export function ScaleCalculator() {
 
   return (
     <div id="scale-calculator-printable-area" className="space-y-4">
+        <div className="flex items-center justify-between mb-4">
+            <Button variant="outline">Manual</Button>
+            <h1 className="text-xl font-bold text-center">Pesagem Avulsa</h1>
+            <Button variant="outline">Eletrônica</Button>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="customer-name">Nome do Cliente</Label>
           <Input
@@ -439,5 +445,3 @@ export function ScaleCalculator() {
     </div>
   );
 }
-
-    
