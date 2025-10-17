@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'Inox PriceCalc',
-  description: 'Calculadora de preços para produtos de aço inoxidável',
+  title: 'Balança',
+  description: 'Calculadora de Pesagem',
 };
 
 export default function RootLayout({
