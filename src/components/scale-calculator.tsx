@@ -315,9 +315,9 @@ export function ScaleCalculator() {
   return (
     <div id="scale-calculator-printable-area" className="space-y-4">
         <div className="flex items-center justify-between mb-4">
-            <Button variant={weighingMode === 'manual' ? 'default' : 'outline'} onClick={() => setWeighingMode('manual')}>Manual</Button>
+            <Button variant={weighingMode === 'manual' ? 'default' : 'ghost'} onClick={() => setWeighingMode('manual')}>Manual</Button>
             <h1 className="text-xl font-bold text-center">Pesagem Avulsa</h1>
-            <Button variant={weighingMode === 'electronic' ? 'default' : 'outline'} onClick={() => setWeighingMode('electronic')}>Eletrônica</Button>
+            <Button variant={weighingMode === 'electronic' ? 'default' : 'ghost'} onClick={() => setWeighingMode('electronic')}>Eletrônica</Button>
         </div>
 
         <div className="space-y-2">
@@ -487,5 +487,3 @@ export function ScaleCalculator() {
     </div>
   );
 }
-
-    
