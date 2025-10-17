@@ -44,31 +44,16 @@ export function ScaleCalculator() {
 
 
   React.useEffect(() => {
-    // This effect should only run once on the client after hydration
-    if (weighingSets.length === 0) {
-      try {
-        const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (savedState) {
-          const { customerName, weighingSets: savedSets } = JSON.parse(savedState);
-          setCustomerName(customerName);
-          setWeighingSets(savedSets);
-        } else {
-          // If no saved state, initialize with one default entry
-          setWeighingSets([
-            {
-              id: uuidv4(),
-              driverName: "",
-              plate: "",
-              gross: "",
-              boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
-              totalNet: 0,
-            },
-          ]);
-        }
-      } catch (error) {
-         console.error("Failed to auto-load state from localStorage", error);
-         // Fallback to default if local storage fails
-         setWeighingSets([
+    if (weighingSets.length > 0) return;
+
+    try {
+      const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedState) {
+        const { customerName, weighingSets: savedSets } = JSON.parse(savedState);
+        setCustomerName(customerName);
+        setWeighingSets(savedSets);
+      } else {
+        setWeighingSets([
           {
             id: uuidv4(),
             driverName: "",
@@ -79,6 +64,18 @@ export function ScaleCalculator() {
           },
         ]);
       }
+    } catch (error) {
+       console.error("Failed to auto-load state from localStorage", error);
+       setWeighingSets([
+        {
+          id: uuidv4(),
+          driverName: "",
+          plate: "",
+          gross: "",
+          boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
+          totalNet: 0,
+        },
+      ]);
     }
   }, []);
 
@@ -314,7 +311,7 @@ export function ScaleCalculator() {
 
   return (
     <div id="scale-calculator-printable-area" className="space-y-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 print:hidden">
             <Button variant={weighingMode === 'manual' ? 'default' : 'ghost'} onClick={() => setWeighingMode('manual')}>Manual</Button>
             <h1 className="text-xl font-bold text-center">Pesagem Avulsa</h1>
             <Button variant={weighingMode === 'electronic' ? 'default' : 'ghost'} onClick={() => setWeighingMode('electronic')}>Eletrônica</Button>
@@ -342,7 +339,7 @@ export function ScaleCalculator() {
                 </Button>
               )}
             </CardHeader>
-            <CardContent className="space-y-3 p-3 pt-0">
+            <CardContent className="space-y-3 p-3 pt-0 print:pb-2">
                 <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-2">
                         <Label htmlFor={`driver-name-${set.id}`} className="text-xs text-muted-foreground">Motorista</Label>
@@ -375,7 +372,7 @@ export function ScaleCalculator() {
                             placeholder="Peso inicial"
                         />
                         {weighingMode === 'electronic' && (
-                            <Button variant="outline" size="icon" onClick={() => handleFetchWeight(set.id, 'gross')} className="h-10 w-10 shrink-0">
+                            <Button variant="outline" size="icon" onClick={() => handleFetchWeight(set.id, 'gross')} className="h-10 w-10 shrink-0 print:hidden">
                                 <Weight className="h-5 w-5"/>
                             </Button>
                         )}
@@ -409,7 +406,7 @@ export function ScaleCalculator() {
                               placeholder="Peso"
                             />
                             {weighingMode === 'electronic' && (
-                                <Button variant="outline" size="icon" onClick={() => handleFetchWeight(set.id, 'tare', box.id)} className="h-10 w-10 shrink-0">
+                                <Button variant="outline" size="icon" onClick={() => handleFetchWeight(set.id, 'tare', box.id)} className="h-10 w-10 shrink-0 print:hidden">
                                     <Weight className="h-5 w-5"/>
                                 </Button>
                             )}
@@ -487,3 +484,7 @@ export function ScaleCalculator() {
     </div>
   );
 }
+
+    
+
+    
