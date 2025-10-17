@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "./ui/button";
-import { PlusCircle, Trash2, Printer, Save, Download } from "lucide-react";
+import { PlusCircle, Trash2, Printer, Save, Download, Weight } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { Separator } from "./ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -40,18 +40,35 @@ export function ScaleCalculator() {
   const { toast } = useToast();
   const [customerName, setCustomerName] = React.useState("");
   const [weighingSets, setWeighingSets] = React.useState<WeighingSet[]>([]);
+  const [weighingMode, setWeighingMode] = React.useState<'manual' | 'electronic'>('manual');
+
 
   React.useEffect(() => {
-    // Only run on client
-    try {
-      const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (savedState) {
-        const { customerName, weighingSets } = JSON.parse(savedState);
-        setCustomerName(customerName);
-        setWeighingSets(weighingSets);
-      } else {
-        // If no saved state, initialize with one default entry
-        setWeighingSets([
+    // This effect should only run once on the client after hydration
+    if (weighingSets.length === 0) {
+      try {
+        const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (savedState) {
+          const { customerName, weighingSets: savedSets } = JSON.parse(savedState);
+          setCustomerName(customerName);
+          setWeighingSets(savedSets);
+        } else {
+          // If no saved state, initialize with one default entry
+          setWeighingSets([
+            {
+              id: uuidv4(),
+              driverName: "",
+              plate: "",
+              gross: "",
+              boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
+              totalNet: 0,
+            },
+          ]);
+        }
+      } catch (error) {
+         console.error("Failed to auto-load state from localStorage", error);
+         // Fallback to default if local storage fails
+         setWeighingSets([
           {
             id: uuidv4(),
             driverName: "",
@@ -62,19 +79,6 @@ export function ScaleCalculator() {
           },
         ]);
       }
-    } catch (error) {
-       console.error("Failed to auto-load state from localStorage", error);
-       // Fallback to default if local storage fails
-       setWeighingSets([
-        {
-          id: uuidv4(),
-          driverName: "",
-          plate: "",
-          gross: "",
-          boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
-          totalNet: 0,
-        },
-      ]);
     }
   }, []);
 
@@ -177,6 +181,30 @@ export function ScaleCalculator() {
         if (set.id !== setId) return set;
         const updatedBoxes = set.boxes.map(box => 
           box.id === boxId ? { ...box, [field]: newValue } : box
+        );
+        return { ...set, boxes: updatedBoxes };
+      }));
+    }
+  };
+
+  const fetchWeightFromScale = () => {
+    // This is a placeholder function.
+    // In a real scenario, this would involve a network request to the scale's API.
+    const randomWeight = Math.random() * 5000 + 1000; // Simulate weight between 1000 and 6000 kg
+    return formatNumber(randomWeight).replace(".", "");
+  };
+  
+  const handleFetchWeight = (setId: string, field: 'gross' | 'tare', boxId?: string) => {
+    const weight = fetchWeightFromScale();
+    if (field === 'gross') {
+      setWeighingSets(prevSets => prevSets.map(set =>
+        set.id === setId ? { ...set, gross: weight } : set
+      ));
+    } else if (field === 'tare' && boxId) {
+      setWeighingSets(prevSets => prevSets.map(set => {
+        if (set.id !== setId) return set;
+        const updatedBoxes = set.boxes.map(box =>
+          box.id === boxId ? { ...box, tare: weight } : box
         );
         return { ...set, boxes: updatedBoxes };
       }));
@@ -287,9 +315,9 @@ export function ScaleCalculator() {
   return (
     <div id="scale-calculator-printable-area" className="space-y-4">
         <div className="flex items-center justify-between mb-4">
-            <Button variant="outline">Manual</Button>
+            <Button variant={weighingMode === 'manual' ? 'default' : 'outline'} onClick={() => setWeighingMode('manual')}>Manual</Button>
             <h1 className="text-xl font-bold text-center">Pesagem Avulsa</h1>
-            <Button variant="outline">Eletrônica</Button>
+            <Button variant={weighingMode === 'electronic' ? 'default' : 'outline'} onClick={() => setWeighingMode('electronic')}>Eletrônica</Button>
         </div>
 
         <div className="space-y-2">
@@ -335,16 +363,23 @@ export function ScaleCalculator() {
                         />
                     </div>
                 </div>
-                <div className="space-y-2">
+                 <div className="space-y-2">
                     <Label htmlFor={`gross-${set.id}`} className="text-xs text-muted-foreground">Bruto (kg)</Label>
-                    <Input
-                        id={`gross-${set.id}`}
-                        type="text"
-                        inputMode="decimal"
-                        value={set.gross}
-                        onChange={(e) => handleInputChange(e.target.value, set.id, "gross")}
-                        placeholder="Peso inicial"
-                    />
+                    <div className="flex items-center gap-2">
+                        <Input
+                            id={`gross-${set.id}`}
+                            type="text"
+                            inputMode="decimal"
+                            value={set.gross}
+                            onChange={(e) => handleInputChange(e.target.value, set.id, "gross")}
+                            placeholder="Peso inicial"
+                        />
+                        {weighingMode === 'electronic' && (
+                            <Button variant="outline" size="icon" onClick={() => handleFetchWeight(set.id, 'gross')} className="h-10 w-10 shrink-0">
+                                <Weight className="h-5 w-5"/>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
               {set.boxes.map((box) => (
@@ -364,14 +399,21 @@ export function ScaleCalculator() {
                   <div className="flex flex-wrap gap-2">
                       <div className="space-y-2 w-[calc(50%-0.25rem)]">
                         <Label htmlFor={`tare-${box.id}`} className="text-xs text-muted-foreground">Tara (kg)</Label>
-                        <Input
-                          id={`tare-${box.id}`}
-                          type="text"
-                          inputMode="decimal"
-                          value={box.tare}
-                          onChange={(e) => handleBoxInputChange(e.target.value, set.id, box.id, 'tare')}
-                          placeholder="Peso"
-                        />
+                        <div className="flex items-center gap-2">
+                            <Input
+                              id={`tare-${box.id}`}
+                              type="text"
+                              inputMode="decimal"
+                              value={box.tare}
+                              onChange={(e) => handleBoxInputChange(e.target.value, set.id, box.id, 'tare')}
+                              placeholder="Peso"
+                            />
+                            {weighingMode === 'electronic' && (
+                                <Button variant="outline" size="icon" onClick={() => handleFetchWeight(set.id, 'tare', box.id)} className="h-10 w-10 shrink-0">
+                                    <Weight className="h-5 w-5"/>
+                                </Button>
+                            )}
+                        </div>
                       </div>
                       <div className="space-y-2 w-[calc(50%-0.25rem)]">
                         <Label htmlFor={`discount-${box.id}`} className="text-xs text-muted-foreground">Desconto (kg)</Label>
@@ -445,3 +487,5 @@ export function ScaleCalculator() {
     </div>
   );
 }
+
+    
