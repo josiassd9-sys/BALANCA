@@ -39,16 +39,7 @@ const LOCAL_STORAGE_KEY = "scaleCalculatorState";
 export function ScaleCalculator() {
   const { toast } = useToast();
   const [customerName, setCustomerName] = React.useState("");
-  const [weighingSets, setWeighingSets] = React.useState<WeighingSet[]>([
-    {
-      id: uuidv4(),
-      driverName: "",
-      plate: "",
-      gross: "",
-      boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
-      totalNet: 0,
-    },
-  ]);
+  const [weighingSets, setWeighingSets] = React.useState<WeighingSet[]>([]);
 
   const saveStateToLocalStorage = () => {
     try {
@@ -100,16 +91,39 @@ export function ScaleCalculator() {
   };
   
   React.useEffect(() => {
-    // Auto-load on initial component mount
+    // Auto-load on initial component mount only on client-side
     try {
       const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (savedState) {
         const { customerName, weighingSets } = JSON.parse(savedState);
         setCustomerName(customerName);
         setWeighingSets(weighingSets);
+      } else {
+        // If no saved state, initialize with one default entry
+        setWeighingSets([
+          {
+            id: uuidv4(),
+            driverName: "",
+            plate: "",
+            gross: "",
+            boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
+            totalNet: 0,
+          },
+        ]);
       }
     } catch (error) {
        console.error("Failed to auto-load state from localStorage", error);
+       // Fallback to default if local storage fails
+       setWeighingSets([
+        {
+          id: uuidv4(),
+          driverName: "",
+          plate: "",
+          gross: "",
+          boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
+          totalNet: 0,
+        },
+      ]);
     }
   }, []);
 
@@ -266,6 +280,10 @@ export function ScaleCalculator() {
     }).format(value);
   };
 
+  if (weighingSets.length === 0) {
+    return null; // Or a loading indicator
+  }
+
   return (
     <div id="scale-calculator-printable-area" className="space-y-4">
         <div className="space-y-2">
@@ -421,7 +439,5 @@ export function ScaleCalculator() {
     </div>
   );
 }
-
-    
 
     
