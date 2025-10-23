@@ -308,44 +308,44 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
         <CardContent className="p-px print:p-0">
           <div className="w-full space-y-0.5">
             <div className="flex justify-between items-center">
-                  <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
-                   <div className="flex items-center gap-px rounded-full border bg-muted p-0.5 print:hidden">
-                      <TooltipProvider>
-                          <Tooltip>
-                              <TooltipTrigger asChild>
-                                  <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-full" onClick={() => setOperationType('loading')}>
-                                      <ArrowDownToLine className="h-4 w-4" />
-                                  </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Carregamento (Entrada)</p></TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                              <TooltipTrigger asChild>
-                                  <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-full" onClick={() => setOperationType('unloading')}>
-                                      <ArrowUpFromLine className="h-4 w-4" />
-                                  </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Descarregamento (Saída)</p></TooltipContent>
-                          </Tooltip>
-                      </TooltipProvider>
-                  </div>
+              <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
+              <div className="flex items-center gap-px rounded-full border bg-muted p-0.5 print:hidden">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-full" onClick={() => setOperationType('loading')}>
+                        <ArrowDownToLine className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Carregamento (Entrada)</p></TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-full" onClick={() => setOperationType('unloading')}>
+                        <ArrowUpFromLine className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Descarregamento (Saída)</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
+            </div>
             <div className="flex flex-col gap-0.5">
-                <Input id="cliente" value={headerData.client} onChange={e => handleHeaderChange('client', e.target.value)} className="h-8 print:hidden"/>
-                <span className="hidden print:block print:text-black">{headerData.client || 'N/A'}</span>
-                
-                 <div className="flex w-full items-end gap-0.5 text-xs sm:text-sm flex-nowrap">
-                    <div className="space-y-px flex-1 min-w-0">
-                        <Label htmlFor="motorista" className="text-xs sm:text-sm">Motorista</Label>
-                        <Input id="motorista" value={headerData.driver} onChange={e => handleHeaderChange('driver', e.target.value)} className="h-8 print:hidden text-sm"/>
-                        <span className="hidden print:block print:text-black">{headerData.driver || 'N/A'}</span>
-                    </div>
-                    <div className="space-y-px flex-none">
-                        <Label htmlFor="placa" className="text-xs sm:text-sm">Placa</Label>
-                        <Input id="placa" value={headerData.plate} onChange={e => handleHeaderChange('plate', e.target.value)} className="h-8 print:hidden text-sm text-center w-24"/>
-                        <span className="hidden print:block print:text-black">{headerData.plate || 'N/A'}</span>
-                    </div>
+              <Input id="cliente" value={headerData.client} onChange={e => handleHeaderChange('client', e.target.value)} className="h-8 print:hidden"/>
+              <span className="hidden print:block print:text-black">{headerData.client || 'N/A'}</span>
+              
+              <div className="flex w-full items-end gap-0.5 text-xs sm:text-sm flex-nowrap">
+                <div className="space-y-px flex-1 min-w-0">
+                  <Label htmlFor="motorista" className="text-xs sm:text-sm">Motorista</Label>
+                  <Input id="motorista" value={headerData.driver} onChange={e => handleHeaderChange('driver', e.target.value)} className="h-8 print:hidden text-sm"/>
+                  <span className="hidden print:block print:text-black">{headerData.driver || 'N/A'}</span>
                 </div>
+                <div className="space-y-px flex-none">
+                  <Label htmlFor="placa" className="text-xs sm:text-sm">Placa</Label>
+                  <Input id="placa" value={headerData.plate} onChange={e => handleHeaderChange('plate', e.target.value)} className="h-8 print:hidden text-sm text-center w-24"/>
+                  <span className="hidden print:block print:text-black">{headerData.plate || 'N/A'}</span>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -591,5 +591,3 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    
