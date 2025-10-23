@@ -1,490 +1,546 @@
 
 "use client";
 
-import * as React from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "./ui/button";
-import { PlusCircle, Trash2, Printer, Save, Download, Weight } from "lucide-react";
+import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { Separator } from "./ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
+import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "./ui/command";
+import { ScrollArea } from "./ui/scroll-area";
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
+import { cn } from "@/lib/utils";
 
-interface MaterialBox {
+type WeighingItem = {
+  id: string;
+  material: string;
+  bruto: number;
+  tara: number;
+  descontos: number;
+  liquido: number;
+};
+
+type WeighingSet = {
   id: string;
   name: string;
-  tare: string;
-  discount: string;
-  container: string;
-  net: number;
-}
+  items: WeighingItem[];
+  descontoCacamba: number;
+};
 
-interface WeighingSet {
-  id: string;
-  driverName: string;
-  plate: string;
-  gross: string;
-  boxes: MaterialBox[];
-  totalNet: number;
-}
+type OperationType = 'loading' | 'unloading';
+type WeighingMode = 'manual' | 'electronic';
 
-const LOCAL_STORAGE_KEY = "scaleCalculatorState";
+const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
+const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
-export function ScaleCalculator() {
+const ScaleCalculator = forwardRef((props, ref) => {
+  const [headerData, setHeaderData] = useState({
+    client: "",
+    plate: "",
+    driver: "",
+  });
+  const [weighingSets, setWeighingSets] = useState<WeighingSet[]>([]);
+  const [activeSetId, setActiveSetId] = useState<string | null>(null);
   const { toast } = useToast();
-  const [customerName, setCustomerName] = React.useState("");
-  const [weighingSets, setWeighingSets] = React.useState<WeighingSet[]>([]);
-  const [weighingMode, setWeighingMode] = React.useState<'manual' | 'electronic'>('manual');
+  const [operationType, setOperationType] = useState<OperationType>('loading');
+  const [weighingMode, setWeighingMode] = useState<WeighingMode>('manual');
 
-
-  React.useEffect(() => {
-    if (weighingSets.length > 0) return;
-
-    try {
-      const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (savedState) {
-        const { customerName, weighingSets: savedSets } = JSON.parse(savedState);
-        setCustomerName(customerName);
-        setWeighingSets(savedSets);
-      } else {
-        setWeighingSets([
-          {
-            id: uuidv4(),
-            driverName: "",
-            plate: "",
-            gross: "",
-            boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
-            totalNet: 0,
-          },
-        ]);
+  useEffect(() => {
+    const savedData = localStorage.getItem("scaleData");
+    if (savedData) {
+      try {
+        const { weighingSets: savedSets, headerData: savedHeader, operationType: savedOpType } = JSON.parse(savedData);
+        setWeighingSets(savedSets || [initialWeighingSet]);
+        setHeaderData(savedHeader || { client: "", plate: "", driver: "" });
+        setOperationType(savedOpType || 'loading');
+        setActiveSetId(savedSets[0]?.id || initialWeighingSet.id);
+      } catch (e) {
+        // Se houver erro no parsing, começa do zero
+        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA INOX" }] };
+        setWeighingSets([newSet]);
+        setActiveSetId(newSet.id);
       }
-    } catch (error) {
-       console.error("Failed to auto-load state from localStorage", error);
-       setWeighingSets([
-        {
-          id: uuidv4(),
-          driverName: "",
-          plate: "",
-          gross: "",
-          boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
-          totalNet: 0,
-        },
-      ]);
+    } else {
+      // Se não houver dados salvos, começa com um item inicial
+      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA INOX" }] };
+      setWeighingSets([newSet]);
+      setActiveSetId(newSet.id);
     }
   }, []);
 
-  const saveStateToLocalStorage = () => {
-    try {
-      const stateToSave = {
-        customerName,
-        weighingSets,
-      };
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
-      toast({
-        title: "Progresso Salvo!",
-        description: "Sua pesagem foi salva localmente no seu dispositivo.",
-      });
-    } catch (error) {
-      console.error("Failed to save state to localStorage", error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao Salvar",
-        description: "Não foi possível salvar os dados. O armazenamento local pode estar cheio ou indisponível.",
-      });
+  const handleHeaderChange = (field: keyof typeof headerData, value: string) => {
+    if (field === 'plate') {
+        let formattedValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+        setHeaderData(prev => ({ ...prev, [field]: formattedValue }));
+    } else {
+        setHeaderData(prev => ({ ...prev, [field]: value.toUpperCase() }));
     }
   };
 
-  const loadStateFromLocalStorage = () => {
-    try {
-      const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (savedState) {
-        const { customerName, weighingSets } = JSON.parse(savedState);
-        setCustomerName(customerName);
-        setWeighingSets(weighingSets);
-         toast({
-          title: "Dados Carregados",
-          description: "A última pesagem salva foi carregada.",
-        });
-      } else {
-        toast({
-            variant: "default",
-            title: "Nenhum dado salvo",
-            description: "Não há nenhuma pesagem salva para carregar.",
-        });
-      }
-    } catch (error) {
-      console.error("Failed to load state from localStorage", error);
-       toast({
-        variant: "destructive",
-        title: "Erro ao Carregar",
-        description: "Não foi possível carregar os dados salvos.",
-      });
-    }
-  };
-
-
-  const handleSetTextChange = (
-    value: string,
-    setId: string,
-    field: keyof Omit<WeighingSet, "boxes" | "totalNet" | "id" | "gross">
-  ) => {
-    setWeighingSets((prevSets) =>
-      prevSets.map((set) => {
-        if (set.id !== setId) return set;
-        return { ...set, [field]: value };
-      })
-    );
-  };
-  
-  const handleInputChange = (
-    value: string,
-    setId: string,
-    field: keyof Omit<WeighingSet, "boxes" | "totalNet" | "id" | "driverName" | "plate">,
-  ) => {
-    const sanitizedValue = value.replace(/[^0-9,]/g, "").replace(",", ".");
-    if (/^\d*\.?\d*$/.test(sanitizedValue)) {
-      const newValue = sanitizedValue.replace(".", ",");
-      setWeighingSets((prevSets) =>
-        prevSets.map((set) => {
-          if (set.id !== setId) return set;
-          return { ...set, [field]: newValue };
-        })
-      );
-    }
-  };
-  
-  const handleBoxInputChange = (value: string, setId: string, boxId: string, field: keyof Omit<MaterialBox, 'id' | 'net'>) => {
-    if (field === 'name') {
-      setWeighingSets(prevSets => prevSets.map(set => {
-        if (set.id !== setId) return set;
-        const updatedBoxes = set.boxes.map(box => 
-          box.id === boxId ? { ...box, name: value } : box
-        );
-        return { ...set, boxes: updatedBoxes };
-      }));
-      return;
-    }
-    
-    const sanitizedValue = value.replace(/[^0-9,]/g, "").replace(",", ".");
-    if (/^\d*\.?\d*$/.test(sanitizedValue)) {
-      const newValue = sanitizedValue.replace(".", ",");
-      setWeighingSets(prevSets => prevSets.map(set => {
-        if (set.id !== setId) return set;
-        const updatedBoxes = set.boxes.map(box => 
-          box.id === boxId ? { ...box, [field]: newValue } : box
-        );
-        return { ...set, boxes: updatedBoxes };
-      }));
-    }
-  };
-
-  const fetchWeightFromScale = () => {
-    // This is a placeholder function.
-    // In a real scenario, this would involve a network request to the scale's API.
-    const randomWeight = Math.random() * 5000 + 1000; // Simulate weight between 1000 and 6000 kg
-    return formatNumber(randomWeight).replace(".", "");
-  };
-  
-  const handleFetchWeight = (setId: string, field: 'gross' | 'tare', boxId?: string) => {
-    const weight = fetchWeightFromScale();
-    if (field === 'gross') {
-      setWeighingSets(prevSets => prevSets.map(set =>
-        set.id === setId ? { ...set, gross: weight } : set
-      ));
-    } else if (field === 'tare' && boxId) {
-      setWeighingSets(prevSets => prevSets.map(set => {
-        if (set.id !== setId) return set;
-        const updatedBoxes = set.boxes.map(box =>
-          box.id === boxId ? { ...box, tare: weight } : box
-        );
-        return { ...set, boxes: updatedBoxes };
-      }));
-    }
-  };
-
-
-  React.useEffect(() => {
-    setWeighingSets((prevSets) =>
-      prevSets.map((set) => {
-        let currentGross = parseFloat(set.gross.replace(",", ".")) || 0;
-        
-        const updatedBoxes = set.boxes.map((box, index) => {
-          const tare = parseFloat(box.tare.replace(",", ".")) || 0;
-          const discount = parseFloat(box.discount.replace(",", ".")) || 0;
-          const container = parseFloat(box.container.replace(",", ".")) || 0;
-
-          const grossForThisBox = index === 0 ? currentGross : parseFloat(set.boxes[index - 1].tare.replace(",", ".")) || 0;
-          
-          let net = 0;
-          if (grossForThisBox > 0 && tare > 0 && grossForThisBox >= tare) {
-              net = grossForThisBox - tare - discount - container;
-          }
-
-          return { ...box, net };
-        });
-
-        const totalNet = updatedBoxes.reduce((acc, box) => acc + (box.net > 0 ? box.net : 0), 0);
-        return { ...set, boxes: updatedBoxes, totalNet };
-      })
-    );
-  }, [JSON.stringify(weighingSets.map(s => ({ gross: s.gross, boxes: s.boxes.map(b => ({ tare: b.tare, discount: b.discount, container: b.container }))})))]);
-
-
-  const addMaterialBox = (setId: string) => {
-    setWeighingSets((prevSets) =>
-      prevSets.map((set) =>
-        set.id === setId
-          ? {
-              ...set,
-              boxes: [
-                ...set.boxes,
-                { id: uuidv4(), name: `Material ${set.boxes.length + 1}`, tare: "", discount: "", container: "", net: 0 },
-              ],
+  const handleInputChange = (setId: string, itemId: string, field: keyof WeighingItem, value: string) => {
+    const numValue = parseInt(value.replace(/\D/g, ''), 10) || 0;
+    setWeighingSets(prevSets =>
+      prevSets.map(set => {
+        if (set.id === setId) {
+          const newItems = set.items.map(item => {
+            if (item.id === itemId) {
+              const updatedItem = { ...item, [field]: numValue };
+              const bruto = updatedItem.bruto;
+              const tara = updatedItem.tara;
+              const descontos = updatedItem.descontos;
+              updatedItem.liquido = bruto - tara - descontos;
+              return updatedItem;
             }
-          : set
+            return item;
+          });
+          return { ...set, items: newItems };
+        }
+        return set;
+      })
+    );
+  };
+  
+  const handleMaterialChange = (setId: string, itemId: string, newMaterial: string) => {
+    setWeighingSets(prevSets =>
+      prevSets.map(set => {
+        if (set.id === setId) {
+          const newItems = set.items.map(item =>
+            item.id === itemId ? { ...item, material: newMaterial.toUpperCase() } : item
+          );
+          return { ...set, items: newItems };
+        }
+        return set;
+      })
+    );
+  };
+  
+  const handleSetNameChange = (setId: string, newName: string) => {
+    setWeighingSets(prevSets =>
+      prevSets.map(set =>
+        set.id === setId ? { ...set, name: newName.toUpperCase() } : set
       )
     );
   };
 
-  const removeMaterialBox = (setId: string, boxId: string) => {
-    setWeighingSets((prevSets) =>
-      prevSets.map((set) => {
-        if (set.id !== setId) return set;
-        const updatedBoxes = set.boxes.filter((box) => box.id !== boxId);
-        if (updatedBoxes.length === 0) {
-          return { ...set, boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }] };
+  const handleCacambaDiscount = (setId: string, value: string) => {
+     const numValue = parseInt(value.replace(/\D/g, ''), 10) || 0;
+     setWeighingSets(prev => prev.map(set => set.id === setId ? {...set, descontoCacamba: numValue} : set));
+  };
+  
+  const addNewMaterial = (setId: string) => {
+    setWeighingSets(prevSets =>
+      prevSets.map(set => {
+        if (set.id === setId) {
+          const lastItem = set.items[set.items.length - 1];
+          let newBruto = 0;
+          let newTara = 0;
+  
+          if (operationType === 'loading') {
+            newBruto = lastItem ? lastItem.tara : 0;
+          } else { 
+            if (lastItem) {
+              newTara = lastItem.bruto;
+            }
+          }
+           
+          const newItem: WeighingItem = {
+            id: uuidv4(),
+            material: "SUCATA INOX",
+            bruto: newBruto,
+            tara: newTara,
+            descontos: 0,
+            liquido: newBruto - newTara,
+          };
+          return { ...set, items: [...set.items, newItem] };
         }
-        return { ...set, boxes: updatedBoxes };
+        return set;
       })
     );
   };
+  
+  const addBitrem = () => {
+    if (weighingSets.length >= 2) return;
 
-  const addWeighingSet = () => {
-    setWeighingSets((prevSets) => [
-      ...prevSets,
-      {
+    const firstSet = weighingSets[0];
+    const firstItemOfFirstSet = firstSet.items[0];
+
+    if (!firstItemOfFirstSet) {
+        toast({
+            variant: "destructive",
+            title: "Primeira caçamba vazia",
+            description: "Adicione e pese pelo menos um material na Caçamba 1 antes de adicionar o bitrem.",
+        });
+        return;
+    }
+
+    const truckTara = firstItemOfFirstSet.tara;
+
+    const newSet: WeighingSet = {
         id: uuidv4(),
-        driverName: "",
-        plate: "",
-        gross: "",
-        boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
-        totalNet: 0,
-      },
-    ]);
+        name: "BITREM / CAÇAMBA 2",
+        items: [{
+            id: uuidv4(),
+            material: "SUCATA INOX",
+            bruto: 0,
+            tara: truckTara,
+            descontos: 0,
+            liquido: 0 - truckTara,
+        }],
+        descontoCacamba: 0
+    };
+
+    setWeighingSets(prev => [...prev, newSet]);
+    setActiveSetId(newSet.id);
   };
 
-  const removeWeighingSet = (setId: string) => {
-    setWeighingSets(prevSets => {
-        const updatedSets = prevSets.filter(set => set.id !== setId);
-        if (updatedSets.length === 0) {
-            return [{
-              id: uuidv4(),
-              driverName: "",
-              plate: "",
-              gross: "",
-              boxes: [{ id: uuidv4(), name: "Material 1", tare: "", discount: "", container: "", net: 0 }],
-              totalNet: 0,
-            }];
-        }
-        return updatedSets;
-    });
-  };
-
-  const grandTotalNet = weighingSets.reduce((acc, set) => acc + set.totalNet, 0);
-
-  const formatNumber = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
-  };
-
-  if (weighingSets.length === 0) {
-    return null; // Or a loading indicator
+  const handleClear = () => {
+    const newWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [{ ...initialItem, id: uuidv4(), material: "SUCATA INOX" }], descontoCacamba: 0 };
+    setWeighingSets([newWeighingSet]);
+    setActiveSetId(newWeighingSet.id);
+    setHeaderData({ client: "", plate: "", driver: "" });
   }
 
+  const handleSave = () => {
+      try {
+        localStorage.setItem("scaleData", JSON.stringify({weighingSets, headerData, operationType}));
+        toast({ title: "Pesagem Salva!", description: "Os dados da pesagem foram salvos localmente." });
+      } catch (e) {
+        toast({ variant: "destructive", title: "Erro ao Salvar", description: "Não foi possível salvar os dados." });
+      }
+  }
+
+  const handleLoad = () => {
+      try {
+          const savedData = localStorage.getItem("scaleData");
+          if (savedData) {
+              const { weighingSets, headerData, operationType } = JSON.parse(savedData);
+              setWeighingSets(weighingSets);
+              setHeaderData(headerData || { client: "", plate: "", driver: "" });
+              setOperationType(operationType || 'loading');
+              setActiveSetId(weighingSets[0]?.id || null);
+              toast({ title: "Dados Carregados", description: "A última pesagem salva foi carregada." });
+          } else {
+              toast({ variant: "destructive", title: "Nenhum Dado Salvo", description: "Não há dados de pesagem salvos para carregar." });
+          }
+      } catch (e) {
+          toast({ variant: "destructive", title: "Erro ao Carregar", description: "Não foi possível carregar os dados." });
+      }
+  }
+
+  const handlePrint = () => {
+    try {
+        localStorage.setItem("scaleData", JSON.stringify({ weighingSets, headerData, operationType }));
+        window.open('/balanca', '_blank');
+    } catch (e) {
+        toast({ variant: "destructive", title: "Erro ao Imprimir", description: "Não foi possível preparar os dados para impressão." });
+    }
+  }
+
+  const fetchWeightFromScale = async (setId: string, itemId: string, field: 'bruto' | 'tara') => {
+    // Simulação de busca de peso. Substituir pela lógica real de API.
+    const randomWeight = Math.floor(Math.random() * (5000 - 500 + 1) + 500);
+    handleInputChange(setId, itemId, field, randomWeight.toString());
+    toast({ title: "Peso Capturado", description: `Peso de ${randomWeight}kg aplicado ao campo ${field}.` });
+  };
+
+
+  useImperativeHandle(ref, () => ({
+    handleClear,
+    handleSave,
+    handleLoad,
+    handlePrint,
+  }));
+
+  const formatNumber = (num: number) => {
+    if (isNaN(num) || num === 0) return "";
+    return new Intl.NumberFormat('pt-BR', {useGrouping: false}).format(num);
+  }
+  
+  const grandTotalLiquido = weighingSets.reduce((total, set) => {
+    const setItemsTotal = set.items.reduce((acc, item) => acc + item.liquido, 0);
+    return total + (setItemsTotal - set.descontoCacamba);
+  }, 0);
+
   return (
-    <div id="scale-calculator-printable-area" className="space-y-4">
-        <div className="flex items-center justify-between mb-4 print:hidden">
-            <Button variant={weighingMode === 'manual' ? 'default' : 'ghost'} onClick={() => setWeighingMode('manual')}>Manual</Button>
-            <h1 className="text-xl font-bold text-center">Pesagem Avulsa</h1>
-            <Button variant={weighingMode === 'electronic' ? 'default' : 'ghost'} onClick={() => setWeighingMode('electronic')}>Eletrônica</Button>
-        </div>
+    <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
+      <div className="flex justify-between items-center mb-4 px-2 print:hidden">
+        <Button variant={weighingMode === 'manual' ? 'default' : 'ghost'} onClick={() => setWeighingMode('manual')}>Manual</Button>
+        <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
+        <Button variant={weighingMode === 'electronic' ? 'default' : 'ghost'} onClick={() => setWeighingMode('electronic')}>Eletrônica</Button>
+      </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="customer-name">Nome do Cliente</Label>
-          <Input
-            id="customer-name"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            placeholder="Digite o nome do cliente"
-          />
-        </div>
-
-        {weighingSets.map((set, setIndex) => (
-          <Card key={set.id} className="bg-card/50 pt-2 print:shadow-none print:border-border">
-            <CardHeader className="flex-row items-center justify-between pt-2 pb-2">
-                <div className="space-y-1 flex-1">
-                    <CardTitle className="text-lg">Pesagem {setIndex + 1}</CardTitle>
-                </div>
-              {weighingSets.length > 1 && (
-                <Button variant="ghost" size="icon" onClick={() => removeWeighingSet(set.id)} className="print:hidden h-8 w-8">
-                  <Trash2 className="text-destructive"/>
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-3 p-3 pt-0 print:pb-2">
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-2">
-                        <Label htmlFor={`driver-name-${set.id}`} className="text-xs text-muted-foreground">Motorista</Label>
-                        <Input
-                            id={`driver-name-${set.id}`}
-                            value={set.driverName}
-                            onChange={(e) => handleSetTextChange(e.target.value, set.id, "driverName")}
-                            placeholder="Nome"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor={`plate-${set.id}`} className="text-xs text-muted-foreground">Placa</Label>
-                        <Input
-                            id={`plate-${set.id}`}
-                            value={set.plate}
-                            onChange={(e) => handleSetTextChange(e.target.value, set.id, "plate")}
-                            placeholder="Placa"
-                        />
-                    </div>
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor={`gross-${set.id}`} className="text-xs text-muted-foreground">Bruto (kg)</Label>
-                    <div className="flex items-center gap-2">
-                        <Input
-                            id={`gross-${set.id}`}
-                            type="text"
-                            inputMode="decimal"
-                            value={set.gross}
-                            onChange={(e) => handleInputChange(e.target.value, set.id, "gross")}
-                            placeholder="Peso inicial"
-                        />
-                        {weighingMode === 'electronic' && (
-                            <Button variant="outline" size="icon" onClick={() => handleFetchWeight(set.id, 'gross')} className="h-10 w-10 shrink-0 print:hidden">
-                                <Weight className="h-5 w-5"/>
-                            </Button>
-                        )}
-                    </div>
-                </div>
-
-              {set.boxes.map((box) => (
-                <div key={box.id} className="space-y-3 rounded-lg border bg-background p-3 relative print:border-border">
-                  <div className="flex items-center justify-between">
-                    <Input 
-                      value={box.name}
-                      onChange={(e) => handleBoxInputChange(e.target.value, set.id, box.id, 'name')}
-                      className="text-base font-semibold border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto bg-transparent w-full"
-                    />
-                    {set.boxes.length > 1 && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 print:hidden" onClick={() => removeMaterialBox(set.id, box.id)}>
-                          <Trash2 className="text-destructive h-4 w-4"/>
-                      </Button>
-                    )}
+      <Card className="mb-px print:border-none print:shadow-none print:p-0">
+        <CardContent className="p-px print:p-0">
+          <div className="w-full space-y-0.5">
+            <div className="flex justify-between items-center">
+                  <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
+                   <div className="flex items-center gap-px rounded-full border bg-muted p-0.5 print:hidden">
+                      <TooltipProvider>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-full" onClick={() => setOperationType('loading')}>
+                                      <ArrowDownToLine className="h-4 w-4" />
+                                  </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Carregamento (Entrada)</p></TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-full" onClick={() => setOperationType('unloading')}>
+                                      <ArrowUpFromLine className="h-4 w-4" />
+                                  </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Descarregamento (Saída)</p></TooltipContent>
+                          </Tooltip>
+                      </TooltipProvider>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                      <div className="space-y-2 w-[calc(50%-0.25rem)]">
-                        <Label htmlFor={`tare-${box.id}`} className="text-xs text-muted-foreground">Tara (kg)</Label>
-                        <div className="flex items-center gap-2">
-                            <Input
-                              id={`tare-${box.id}`}
-                              type="text"
-                              inputMode="decimal"
-                              value={box.tare}
-                              onChange={(e) => handleBoxInputChange(e.target.value, set.id, box.id, 'tare')}
-                              placeholder="Peso"
+              </div>
+            <div className="flex flex-col gap-0.5">
+                <Input id="cliente" value={headerData.client} onChange={e => handleHeaderChange('client', e.target.value)} className="h-8 print:hidden"/>
+                <span className="hidden print:block print:text-black">{headerData.client || 'N/A'}</span>
+                
+                 <div className="flex w-full items-end gap-0.5 text-xs sm:text-sm flex-nowrap">
+                    <div className="space-y-px flex-1 min-w-0">
+                        <Label htmlFor="motorista" className="text-xs sm:text-sm">Motorista</Label>
+                        <Input id="motorista" value={headerData.driver} onChange={e => handleHeaderChange('driver', e.target.value)} className="h-8 print:hidden text-sm"/>
+                        <span className="hidden print:block print:text-black">{headerData.driver || 'N/A'}</span>
+                    </div>
+                    <div className="space-y-px flex-none">
+                        <Label htmlFor="placa" className="text-xs sm:text-sm">Placa</Label>
+                        <Input id="placa" value={headerData.plate} onChange={e => handleHeaderChange('plate', e.target.value)} className="h-8 print:hidden text-sm text-center w-24"/>
+                        <span className="hidden print:block print:text-black">{headerData.plate || 'N/A'}</span>
+                    </div>
+                </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {weighingSets.map((set, setIndex) => {
+         const subtotalLiquido = set.items.reduce((acc, item) => acc + item.liquido, 0);
+         const totalLiquidoSet = subtotalLiquido - set.descontoCacamba;
+
+         return (
+          <Card key={set.id} className="mb-px print:border-none print:shadow-none print:p-0 print:mb-0.5">
+            <CardHeader className="p-px flex flex-row items-center justify-between print:p-0 print:mb-0.5">
+              <Input 
+                value={set.name}
+                onChange={(e) => handleSetNameChange(set.id, e.target.value)}
+                className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto"
+              />
+              <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={() => addNewMaterial(set.id)} className="h-8 w-8 print:hidden">
+                            <PlusCircle className="h-5 w-5" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Adicionar Material</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
+              {/* Mobile Layout */}
+              <div className="sm:hidden">
+                  {set.items.map((item, itemIndex) => {
+                      return (
+                      <div key={item.id} className="border-b p-0.5 space-y-0.5">
+                          <div className="space-y-px">
+                            <Label className="text-xs text-muted-foreground">Material</Label>
+                             <Input
+                              value={item.material}
+                              onValueChange={(newMaterial) => handleMaterialChange(set.id, item.id, newMaterial)}
+                              className="w-full justify-between h-8"
                             />
-                            {weighingMode === 'electronic' && (
-                                <Button variant="outline" size="icon" onClick={() => handleFetchWeight(set.id, 'tare', box.id)} className="h-10 w-10 shrink-0 print:hidden">
-                                    <Weight className="h-5 w-5"/>
-                                </Button>
-                            )}
-                        </div>
-                      </div>
-                      <div className="space-y-2 w-[calc(50%-0.25rem)]">
-                        <Label htmlFor={`discount-${box.id}`} className="text-xs text-muted-foreground">Desconto (kg)</Label>
-                        <Input
-                          id={`discount-${box.id}`}
-                          type="text"
-                          inputMode="decimal"
-                          value={box.discount}
-                          onChange={(e) => handleBoxInputChange(e.target.value, set.id, box.id, 'discount')}
-                          placeholder="Lixo, outros"
-                        />
-                      </div>
-                      <div className="space-y-2 w-[calc(50%-0.25rem)]">
-                        <Label htmlFor={`container-${box.id}`} className="text-xs text-muted-foreground">Caçamba (kg)</Label>
-                        <Input
-                          id={`container-${box.id}`}
-                          type="text"
-                          inputMode="decimal"
-                          value={box.container}
-                          onChange={(e) => handleBoxInputChange(e.target.value, set.id, box.id, 'container')}
-                          placeholder="Peso"
-                        />
-                      </div>
-                      <div className="space-y-2 w-[calc(50%-0.25rem)]">
-                          <Label className="text-accent-price font-semibold text-xs">Peso Líquido</Label>
-                          <div className="w-full rounded-md border border-accent-price/50 bg-accent-price/10 px-3 py-2 text-sm font-bold text-accent-price h-10 flex items-center print:bg-transparent print:border-accent-price">
-                              {formatNumber(box.net)} kg
+                          </div>
+                          <div className="grid grid-cols-4 gap-0.5">
+                              <div className="space-y-px">
+                                  <Label className="text-xs text-muted-foreground">Bruto (kg)</Label>
+                                  <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.bruto)} onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)} className="text-right h-8 print:hidden w-full" />
+                                   <span className="hidden print:block text-right print:text-black">{formatNumber(item.bruto)}</span>
+                              </div>
+                               <div className="space-y-px">
+                                  <Label className="text-xs text-muted-foreground">Tara (kg)</Label>
+                                   <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.tara)} onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)} className="text-right h-8 print:hidden w-full" />
+                                   <span className="hidden print:block text-right print:text-black">{formatNumber(item.tara)}</span>
+                              </div>
+                               <div className="space-y-px">
+                                  <Label className="text-xs text-muted-foreground">A/L (kg)</Label>
+                                  <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.descontos)} onChange={(e) => handleInputChange(set.id, item.id, 'descontos', e.target.value)} className="text-right h-8 print:hidden w-full" />
+                                   <span className="hidden print:block text-right print:text-black">{formatNumber(item.descontos)}</span>
+                              </div>
+                               <div className="space-y-px">
+                                  <Label className="text-xs text-muted-foreground">Líquido (kg)</Label>
+                                  <div className="h-8 flex items-center justify-end font-semibold">
+                                      <span className="print:text-black">{formatNumber(item.liquido)}</span>
+                                  </div>
+                              </div>
                           </div>
                       </div>
-                  </div>
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={() => addMaterialBox(set.id)} className="gap-2 print:hidden h-9">
-                <PlusCircle className="h-4 w-4"/>
-                Adicionar Material
-              </Button>
+                  )})}
+              </div>
+              {/* Desktop Layout */}
+              <Table className="hidden sm:table table-fixed">
+                <TableHeader>
+                   <TableRow className="print:text-black">
+                    <TableHead className="w-[30%]">Material</TableHead>
+                    <TableHead className="text-right w-[17.5%]">Bruto (kg)</TableHead>
+                    <TableHead className="text-right w-[17.5%]">Tara (kg)</TableHead>
+                    <TableHead className="text-right w-[17.5%]">A/L (kg)</TableHead>
+                    <TableHead className="text-right font-semibold w-[17.5%]">Líquido (kg)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {set.items.map((item, itemIndex) => {
+                      return (
+                    <TableRow key={item.id} className="print:text-black">
+                      <TableCell className="w-[30%] font-medium p-0 sm:p-px">
+                           <Input
+                              value={item.material}
+                              onChange={(e) => handleMaterialChange(set.id, item.id, e.target.value)}
+                              className="w-full justify-between h-8"
+                            />
+                      </TableCell>
+                      <TableCell className="w-[17.5%] p-0 sm:p-px">
+                            <div className="flex items-center justify-end gap-1">
+                                {weighingMode === 'electronic' && (
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 print:hidden" onClick={() => fetchWeightFromScale(set.id, item.id, 'bruto')}>
+                                        <Weight className="h-4 w-4" />
+                                    </Button>
+                                )}
+                                <Input
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="0"
+                                value={formatNumber(item.bruto)}
+                                onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)}
+                                className="text-right h-8 print:hidden w-24"
+                                />
+                            </div>
+                            <span className="hidden print:block text-right print:text-black">{formatNumber(item.bruto)}</span>
+                      </TableCell>
+                      <TableCell className="w-[17.5%] p-0 sm:p-px">
+                            <div className="flex items-center justify-end gap-1">
+                                {weighingMode === 'electronic' && (
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 print:hidden" onClick={() => fetchWeightFromScale(set.id, item.id, 'tara')}>
+                                        <Weight className="h-4 w-4" />
+                                    </Button>
+                                )}
+                                <Input
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="0"
+                                value={formatNumber(item.tara)}
+                                onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)}
+                                className="text-right h-8 print:hidden w-24"
+                                />
+                            </div>
+                            <span className="hidden print:block text-right print:text-black">{formatNumber(item.tara)}</span>
+                      </TableCell>
+                      <TableCell className="w-[17.5%] p-0 sm:p-px">
+                            <div className="flex justify-end">
+                                <Input
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="0"
+                                value={formatNumber(item.descontos)}
+                                onChange={(e) => handleInputChange(set.id, item.id, 'descontos', e.target.value)}
+                                className="text-right h-8 print:hidden w-24"
+                                />
+                            </div>
+                            <span className="hidden print:block text-right print:text-black">{formatNumber(item.descontos)}</span>
+                      </TableCell>
+                      <TableCell className="w-[17.5%] text-right font-semibold p-0 sm:p-px">
+                            <div className="h-8 sm:h-full flex items-center justify-end">
+                                <span className="print:text-black">{formatNumber(item.liquido)}</span>
+                            </div>
+                      </TableCell>
+                    </TableRow>
+                  )})}
+                </TableBody>
+              </Table>
+            </CardContent>
+            <CardContent className="p-px border-t print:border-t print:border-border print:p-0 print:pt-0.5">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-1">
+                     <div className="flex items-center gap-0.5">
+                         <Label htmlFor={`desconto-cacamba-${set.id}`} className="shrink-0 text-sm md:text-base">Caçamba (kg)</Label>
+                         <Input
+                             id={`desconto-cacamba-${set.id}`}
+                             type="text"
+                             inputMode="decimal"
+                             placeholder="0"
+                             value={formatNumber(set.descontoCacamba)}
+                             onChange={(e) => handleCacambaDiscount(set.id, e.target.value)}
+                             className="h-8 text-right print:hidden flex-1 min-w-[90px] w-14"
+                          />
+                          <span className="hidden print:block font-semibold print:text-black">{formatNumber(set.descontoCacamba)}</span>
+                     </div>
+                     <div className="text-right flex-shrink-0">
+                         <p className="text-sm text-muted-foreground">Subtotal</p>
+                         <p className="text-lg font-bold print:text-black">{formatNumber(subtotalLiquido)} kg</p>
+                     </div>
+                      <div className="text-right flex-shrink-0">
+                         <p className="text-sm text-muted-foreground">{setIndex === 0 ? "Caçamba 1" : "Bitrem / Caçamba 2"}</p>
+                         <p className="text-xl font-bold text-primary print:text-black">{formatNumber(totalLiquidoSet)} kg</p>
+                     </div>
+                 </div>
             </CardContent>
           </Card>
-        ))}
+        );
+      })}
 
-        <div className="flex flex-col gap-2 print:hidden">
-            <Button variant="secondary" onClick={addWeighingSet} className="gap-2 h-9">
-                <PlusCircle className="h-4 w-4" />
-                Adicionar Pesagem (Bitrem)
-            </Button>
+      {weighingSets.length < 2 && (
+        <div className="flex justify-center my-px print:hidden">
+          <Button variant="secondary" onClick={addBitrem} size="sm" className="h-8 px-2"><Tractor className="mr-2 h-4 w-4" /> + Bitrem / Caçamba 2</Button>
         </div>
+      )}
 
-        <Separator />
-
-        <div className="flex justify-end items-center gap-4 pt-2">
-            <h3 className="text-lg font-semibold">Total Geral Líquido:</h3>
-            <div className="text-2xl font-bold text-primary min-w-[150px] text-right">
-                {formatNumber(grandTotalNet)} kg
+      <Card className="mt-px bg-primary/10 border-primary/20 print:border print:border-accent-price print:shadow-none print:p-0.5">
+         <CardContent className="p-px flex justify-end items-center">
+             <div className="text-right">
+                <p className="text-lg font-semibold text-primary print:text-2xl print:mb-0.5">Peso Líquido Total</p>
+                <p className="text-4xl font-bold text-primary print:text-black">{new Intl.NumberFormat('pt-BR').format(grandTotalLiquido)} kg</p>
             </div>
-        </div>
-
-        <div className="flex justify-end flex-wrap pt-2 gap-2 print:hidden">
-            <Button onClick={saveStateToLocalStorage} className="gap-2" variant="outline">
-                <Save />
-                Salvar Progresso
-            </Button>
-             <Button onClick={loadStateFromLocalStorage} className="gap-2" variant="outline">
-                <Download />
-                Carregar Última Pesagem
-            </Button>
-            <Button onClick={() => window.print()} className="gap-2">
-                <Printer />
-                Imprimir / Salvar PDF
-            </Button>
-        </div>
+         </CardContent>
+      </Card>
+      <div className="flex items-center gap-1 justify-center pt-1 print:hidden">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={handleClear} variant="outline" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Limpar Tudo</p></TooltipContent>
+          </Tooltip>
+            <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={handleSave} variant="outline" size="icon" className="h-8 w-8"><Save className="h-4 w-4"/></Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Salvar Pesagem</p></TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={handleLoad} variant="outline" size="icon" className="h-8 w-8"><ArrowUpFromLine className="h-4 w-4"/></Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Carregar Última Pesagem</p></TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={handlePrint} variant="outline" size="icon" className="h-8 w-8"><Printer className="h-4 w-4" /></Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Imprimir / Salvar PDF</p></TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     </div>
   );
-}
+});
+ScaleCalculator.displayName = 'ScaleCalculator';
 
-    
-
-    
+export default ScaleCalculator;
