@@ -306,16 +306,16 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-full" onClick={() => setOperationType('loading')}>
-                        <ArrowDownToLine className="h-4 w-4" />
+                      <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('loading')}>
+                        <ArrowDownToLine className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent><p>Carregamento (Entrada)</p></TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="icon" className="h-7 w-7 rounded-full" onClick={() => setOperationType('unloading')}>
-                        <ArrowUpFromLine className="h-4 w-4" />
+                      <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('unloading')}>
+                        <ArrowUpFromLine className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent><p>Descarregamento (Saída)</p></TooltipContent>
@@ -584,5 +584,3 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    
