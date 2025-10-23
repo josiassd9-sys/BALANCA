@@ -574,7 +574,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
           <Tooltip>
             <TooltipTrigger asChild>
               <Button onClick={handleLoad} variant="outline" size="icon" className="h-8 w-8"><ArrowUpFromLine className="h-4 w-4"/></Button>
-            </TooltipTrigger>
+            </tooltipTrigger>
             <TooltipContent><p>Carregar Última Pesagem</p></TooltipContent>
           </Tooltip>
           <Tooltip>
@@ -591,3 +591,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
