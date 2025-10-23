@@ -289,6 +289,11 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
     return total + (setItemsTotal - set.descontoCacamba);
   }, 0);
 
+  const firstSet = weighingSets.length > 0 ? weighingSets[0] : null;
+  const firstItem = firstSet && firstSet.items.length > 0 ? firstSet.items[0] : null;
+  const initialWeightField = operationType === 'loading' ? 'tara' : 'bruto';
+  const initialWeightValue = firstItem ? firstItem[initialWeightField] : 0;
+
   return (
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
       <div className="flex justify-between items-center mb-4 px-2 print:hidden">
@@ -333,10 +338,29 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   <Input id="motorista" value={headerData.driver} onChange={e => handleHeaderChange('driver', e.target.value)} className="h-8 print:hidden text-sm"/>
                   <span className="hidden print:block print:text-black">{headerData.driver || 'N/A'}</span>
                 </div>
-                <div className="space-y-px flex-none">
+                <div className="space-y-px flex-none w-24">
                   <Label htmlFor="placa" className="text-xs sm:text-sm">Placa</Label>
-                  <Input id="placa" value={headerData.plate} onChange={e => handleHeaderChange('plate', e.target.value)} className="h-8 print:hidden text-sm text-center w-24"/>
+                  <Input id="placa" value={headerData.plate} onChange={e => handleHeaderChange('plate', e.target.value)} className="h-8 print:hidden text-sm text-center"/>
                   <span className="hidden print:block print:text-black">{headerData.plate || 'N/A'}</span>
+                </div>
+                 <div className="space-y-px flex-none w-28">
+                    <Label className="text-xs sm:text-sm">{operationType === 'loading' ? 'Tara (kg)' : 'Bruto (kg)'}</Label>
+                    {weighingMode === 'electronic' ? (
+                        <Button variant="outline" className="h-8 w-full justify-between" onClick={() => firstSet && firstItem && handleFetchLiveWeight(firstSet.id, firstItem.id, initialWeightField)}>
+                            <span>{formatNumber(initialWeightValue) || "Buscar"}</span>
+                            {isScaleDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                        </Button>
+                    ) : (
+                        <Input 
+                            type="text" 
+                            inputMode="decimal" 
+                            placeholder="0" 
+                            value={formatNumber(initialWeightValue)} 
+                            onChange={(e) => firstSet && firstItem && handleInputChange(firstSet.id, firstItem.id, initialWeightField, e.target.value)} 
+                            className="text-right h-8 print:hidden w-full" 
+                        />
+                    )}
+                    <span className="hidden print:block text-right print:text-black">{formatNumber(initialWeightValue)}</span>
                 </div>
               </div>
             </div>
@@ -584,3 +608,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
