@@ -1,0 +1,82 @@
+/**
+ * @file Firestore Security Rules for Inox PriceCalc.
+ *
+ * Core Philosophy:
+ * This ruleset provides public read access to item catalogs, categories, and universal settings.
+ * Writes to `scale_data` are allowed without authentication, simulating a trusted device,
+ * however, writes to other collections are denied. In a production environment, writes to
+ * scale_data must be authenticated using a trusted source such as a service account
+ * to prevent malicious actors from writing arbitrary data.
+ *
+ * Data Structure:
+ * - /inox_item_categories/{inoxItemCategoryId}: Stores item categories (e.g., tubes, sheets).
+ * - /inox_items/{inoxItemId}: Stores individual items with specifications and pricing.
+ * - /universal_settings/{universalSettingsId}: Stores global cost and margin settings.
+ * - /scale_data/{scaleDataId}: Stores real-time data from the live scale.
+ *
+ * Key Security Decisions:
+ * - Public read access for item catalogs and settings.
+ * - Unrestricted write access to scale data in this Prototyping phase.
+ * - No user authentication is required for reading.
+ * - No user-specific data or ownership to manage.
+ * - No validation of data types or schema beyond required fields.
+ *
+ * Denormalization for Authorization:
+ * Not applicable, as there is no user-specific data requiring authorization.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows public read access to inox item categories.
+     * @path /inox_item_categories/{inoxItemCategoryId}
+     * @allow (get, list) Publicly accessible.
+     * @deny (create, update, delete) No write access granted.
+     * @principle Allows public read access for item categories.
+     */
+    match /inox_item_categories/{inoxItemCategoryId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Allows public read access to inox items.
+     * @path /inox_items/{inoxItemId}
+     * @allow (get, list) Publicly accessible.
+     * @deny (create, update, delete) No write access granted.
+     * @principle Allows public read access for inox items.
+     */
+    match /inox_items/{inoxItemId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Allows public read access to universal settings.
+     * @path /universal_settings/{universalSettingsId}
+     * @allow (get, list) Publicly accessible.
+     * @deny (create, update, delete) No write access granted.
+     * @principle Allows public read access for universal settings.
+     */
+    match /universal_settings/{universalSettingsId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Allows unauthenticated writes to scale data for prototyping.
+     * @path /scale_data/{scaleDataId}
+     * @allow (create, update, delete) All writes allowed in prototyping.
+     * @allow (get, list) Publicly accessible.
+     * @principle Allows unauthenticated writes to simulate a trusted device.
+     *
+     * @security WARNING: In a production environment, you MUST restrict write access to
+     * authenticated sources using a service account or similar mechanism to prevent abuse.
+     */
+    match /scale_data/{scaleDataId} {
+      allow get, list: if true;
+      allow create, update, delete: if true;
+    }
+  }
+}

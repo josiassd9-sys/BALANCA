@@ -1,0 +1,212 @@
+{
+  "entities": {
+    "InoxItemCategory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InoxItemCategory",
+      "type": "object",
+      "description": "Represents a category of stainless steel items (e.g., tubes, sheets).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the category."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category (e.g., 'Tubes', 'Sheets')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A more detailed description of items within this category."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "InoxItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InoxItem",
+      "type": "object",
+      "description": "Represents a specific stainless steel item with its specifications and pricing.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the item."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to InoxItemCategory. (Relationship: InoxItemCategory 1:N InoxItem)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the item (e.g., 'Tube 1/2\" OD')."
+        },
+        "od": {
+          "type": "number",
+          "description": "Outer diameter of the item."
+        },
+        "wallThickness": {
+          "type": "number",
+          "description": "Wall thickness of the item."
+        },
+        "weightPerMeter": {
+          "type": "number",
+          "description": "Calculated weight per meter of the item."
+        },
+        "costPrice": {
+          "type": "number",
+          "description": "Cost price of the item per meter. This will be overridden by the universal settings if it is enabled."
+        },
+        "marginPercentage": {
+          "type": "number",
+          "description": "Margin percentage applied to the cost price.  This will be overridden by the universal settings if it is enabled."
+        },
+        "sellingPrice": {
+          "type": "number",
+          "description": "Calculated selling price of the item per meter."
+        }
+      },
+      "required": [
+        "id",
+        "categoryId",
+        "name",
+        "costPrice",
+        "marginPercentage"
+      ]
+    },
+    "UniversalSettings": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UniversalSettings",
+      "type": "object",
+      "description": "Represents the universal cost and margin settings that apply to all items.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the settings (only one set of settings exists)."
+        },
+        "costPrice": {
+          "type": "number",
+          "description": "Universal cost price to be applied to all items."
+        },
+        "marginPercentage": {
+          "type": "number",
+          "description": "Universal margin percentage to be applied to all items."
+        },
+        "applyUniversally": {
+          "type": "boolean",
+          "description": "Flag to indicate whether the universal settings should be applied."
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "ScaleData": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ScaleData",
+      "type": "object",
+      "description": "Represents the data captured from the live scale.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the scale reading."
+        },
+        "grossWeight": {
+          "type": "number",
+          "description": "The gross weight value received from the scale."
+        },
+        "tareWeight": {
+          "type": "number",
+          "description": "The tare weight value received from the scale."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of when the weight was recorded.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "grossWeight",
+        "tareWeight",
+        "timestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/inox_item_categories/{inoxItemCategoryId}",
+        "definition": {
+          "entityName": "InoxItemCategory",
+          "schema": {
+            "$ref": "#/backend/entities/InoxItemCategory"
+          },
+          "description": "Stores categories of stainless steel items.",
+          "params": [
+            {
+              "name": "inoxItemCategoryId",
+              "description": "The unique identifier of the inox item category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/inox_items/{inoxItemId}",
+        "definition": {
+          "entityName": "InoxItem",
+          "schema": {
+            "$ref": "#/backend/entities/InoxItem"
+          },
+          "description": "Stores specific stainless steel items with their specifications and pricing.",
+          "params": [
+            {
+              "name": "inoxItemId",
+              "description": "The unique identifier of the inox item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/universal_settings/{universalSettingsId}",
+        "definition": {
+          "entityName": "UniversalSettings",
+          "schema": {
+            "$ref": "#/backend/entities/UniversalSettings"
+          },
+          "description": "Stores the universal cost and margin settings that apply to all items.",
+          "params": [
+            {
+              "name": "universalSettingsId",
+              "description": "The unique identifier of the universal settings document (should be a single document ID)."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/scale_data/{scaleDataId}",
+        "definition": {
+          "entityName": "ScaleData",
+          "schema": {
+            "$ref": "#/backend/entities/ScaleData"
+          },
+          "description": "Stores data captured from the live scale, including gross weight, tare weight, and timestamp.",
+          "params": [
+            {
+              "name": "scaleDataId",
+              "description": "The unique identifier for each scale data entry."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the Inox PriceCalc application, focusing on stainless steel item catalogs, weight/price calculations, and real-time updates, with a dedicated live scale integration. The design adheres to the core principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Queries are not Filters).\n\n**Authorization Independence (Denormalization):** Authorization Independence is achieved through denormalization. There's no need for user-specific private data. Access to item categories, items and universal settings is global so authentication is not required for read operations. The `ScaleData` is intended to be written by a trusted device, application, or cloud function (that authenticates with a service account). Therefore, there is no user-specific data or ownership to manage.\n\n**Structural Segregation:** The structure segregates different data types into separate collections, each with a homogeneous security posture. `InoxItemCategory`, `InoxItem`, and `UniversalSettings` are at the root level and publicly accessible.\n\n**Access Modeling:** Data is modeled for clarity and consistency. Path-based ownership is not required because there's no user-owned data.\n\n**QAPs (Queries are not Filters):** The design enables secure `list` operations. Because roles and ownership is not relevant, QAP is less of a factor in this design.\n\n**Live Scale Integration:**\nA dedicated `scale_data` collection stores readings from the live scale. Since the scale writes data, the database needs to validate the integrity of the data. This can be done with an intermediate cloud function that processes the input from the scale, authenticates with a service account, sanitizes the input, and writes to Firestore.\n\n**Invariants:** Timestamps are included in `ScaleData` to record the time of each weight reading. The structure can be expanded with Firebase Functions Triggers. For example, adding a trigger that watches for changes in `InoxItem` and automatically recalculates the `sellingPrice` to keep it consistent."
+  }
+}
