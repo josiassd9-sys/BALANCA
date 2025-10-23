@@ -1,4 +1,4 @@
-import { ScaleCalculator } from "@/components/scale-calculator";
+import ScaleCalculator from "@/components/scale-calculator";
 
 export default function Home() {
   return (
