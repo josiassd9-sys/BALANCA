@@ -56,18 +56,22 @@ const ScaleCalculator = forwardRef((props, ref) => {
     if (savedData) {
       try {
         const { weighingSets: savedSets, headerData: savedHeader, operationType: savedOpType } = JSON.parse(savedData);
-        setWeighingSets(savedSets || [initialWeighingSet]);
+        setWeighingSets(savedSets || []);
         setHeaderData(savedHeader || { client: "", plate: "", driver: "" });
         setOperationType(savedOpType || 'loading');
-        setActiveSetId(savedSets[0]?.id || initialWeighingSet.id);
+        if (savedSets && savedSets.length > 0) {
+            setActiveSetId(savedSets[0]?.id);
+        } else {
+            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA INOX" }] };
+            setWeighingSets([newSet]);
+            setActiveSetId(newSet.id);
+        }
       } catch (e) {
-        // Se houver erro no parsing, começa do zero
         const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA INOX" }] };
         setWeighingSets([newSet]);
         setActiveSetId(newSet.id);
       }
-    } else {
-      // Se não houver dados salvos, começa com um item inicial
+    } else if (weighingSets.length === 0) {
       const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA INOX" }] };
       setWeighingSets([newSet]);
       setActiveSetId(newSet.id);
@@ -356,7 +360,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
                             <Label className="text-xs text-muted-foreground">Material</Label>
                              <Input
                               value={item.material}
-                              onValueChange={(newMaterial) => handleMaterialChange(set.id, item.id, newMaterial)}
+                              onChange={(e) => handleMaterialChange(set.id, item.id, e.target.value)}
                               className="w-full justify-between h-8"
                             />
                           </div>
@@ -544,3 +548,5 @@ const ScaleCalculator = forwardRef((props, ref) => {
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
