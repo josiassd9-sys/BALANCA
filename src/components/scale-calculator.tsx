@@ -170,10 +170,10 @@ const ScaleCalculator = forwardRef((props, ref) => {
             newItem = {
               id: uuidv4(),
               material: "SUCATA INOX",
-              bruto: lastItem.tara, // Bruto do novo é a tara do anterior
-              tara: 0, // Zera para a nova pesagem
+              bruto: 0,
+              tara: lastItem.bruto, // Bruto do novo é a tara do anterior
               descontos: 0,
-              liquido: lastItem.tara,
+              liquido: 0,
             };
           }
            
