@@ -152,29 +152,33 @@ const ScaleCalculator = forwardRef((props, ref) => {
       prevSets.map(set => {
         if (set.id === setId) {
           const lastItem = set.items[set.items.length - 1];
-          let newBruto = 0;
-          let newTara = 0;
-  
+          if (!lastItem) return set; // Não pode adicionar se não houver um primeiro item
+          
+          let newItem: WeighingItem;
+
           if (operationType === 'loading') {
-            // Em carregamento, a TARA do novo item é o BRUTO do item anterior.
-            newTara = lastItem ? lastItem.bruto : 0;
-            // O bruto do novo item começa em zero, para ser pesado depois.
-            newBruto = 0; 
+            // Lógica de CARREGAMENTO (venda): Bruto anterior vira Tara do novo.
+            newItem = {
+              id: uuidv4(),
+              material: "SUCATA INOX",
+              bruto: 0, // Bruto do novo item começa em zero, a ser pesado
+              tara: lastItem.bruto, // A TARA do novo é o BRUTO do anterior
+              descontos: 0,
+              liquido: 0 - lastItem.bruto,
+            };
           } else { 
-            // Em descarregamento, a TARA do novo item é o BRUTO do item anterior.
-            if (lastItem) {
-              newTara = lastItem.bruto;
-            }
+            // Lógica de DESCARREGAMENTO (compra): Bruto anterior vira Tara do novo.
+            // Esta lógica está correta: o peso com menos material (tara anterior) se torna o bruto do proximo.
+            newItem = {
+              id: uuidv4(),
+              material: "SUCATA INOX",
+              bruto: lastItem.tara, 
+              tara: 0,
+              descontos: 0,
+              liquido: lastItem.tara,
+            };
           }
            
-          const newItem: WeighingItem = {
-            id: uuidv4(),
-            material: "SUCATA INOX",
-            bruto: newBruto,
-            tara: newTara,
-            descontos: 0,
-            liquido: newBruto - newTara,
-          };
           return { ...set, items: [...set.items, newItem] };
         }
         return set;
@@ -319,7 +323,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                         <ArrowDownToLine className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent><p>Carregamento (Entrada)</p></TooltipContent>
+                    <TooltipContent><p>Carregamento (Venda / Saída de Material)</p></TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -327,7 +331,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                         <ArrowUpFromLine className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent><p>Descarregamento (Saída)</p></TooltipContent>
+                    <TooltipContent><p>Descarregamento (Compra / Entrada de Material)</p></TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
@@ -612,5 +616,3 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    
