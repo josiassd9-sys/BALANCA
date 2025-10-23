@@ -1,24 +1,18 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef, useMemo } from "react";
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
 import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2 } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "./ui/command";
-import { ScrollArea } from "./ui/scroll-area";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
-import { cn } from "@/lib/utils";
 import { doc } from "firebase/firestore";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
-
 
 type WeighingItem = {
   id: string;
@@ -66,7 +60,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
     [firestore]
   );
   const { data: liveScaleData, isLoading: isScaleDataLoading } = useDoc<ScaleData>(scaleDataRef);
-
 
   useEffect(() => {
     const savedData = localStorage.getItem("scaleData");
@@ -225,7 +218,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
     setWeighingSets([newWeighingSet]);
     setActiveSetId(newWeighingSet.id);
     setHeaderData({ client: "", plate: "", driver: "" });
-  }
+  };
 
   const handleSave = () => {
       try {
@@ -234,7 +227,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
       } catch (e) {
         toast({ variant: "destructive", title: "Erro ao Salvar", description: "Não foi possível salvar os dados." });
       }
-  }
+  };
 
   const handleLoad = () => {
       try {
@@ -252,7 +245,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       } catch (e) {
           toast({ variant: "destructive", title: "Erro ao Carregar", description: "Não foi possível carregar os dados." });
       }
-  }
+  };
 
   const handlePrint = () => {
     try {
@@ -261,7 +254,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
     } catch (e) {
         toast({ variant: "destructive", title: "Erro ao Imprimir", description: "Não foi possível preparar os dados para impressão." });
     }
-  }
+  };
 
   const handleFetchLiveWeight = (setId: string, itemId: string, field: 'bruto' | 'tara') => {
     if (isScaleDataLoading) {
@@ -289,7 +282,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   const formatNumber = (num: number) => {
     if (isNaN(num) || num === 0) return "";
     return new Intl.NumberFormat('pt-BR', {useGrouping: false}).format(num);
-  }
+  };
   
   const grandTotalLiquido = weighingSets.reduce((total, set) => {
     const setItemsTotal = set.items.reduce((acc, item) => acc + item.liquido, 0);
@@ -378,7 +371,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
             <CardContent className="p-0 overflow-x-auto">
               {/* Mobile Layout */}
               <div className="sm:hidden">
-                  {set.items.map((item, itemIndex) => {
+                  {set.items.map((item) => {
                       return (
                       <div key={item.id} className="border-b p-0.5 space-y-0.5">
                           <div className="space-y-px">
@@ -441,7 +434,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {set.items.map((item, itemIndex) => {
+                  {set.items.map((item) => {
                       return (
                     <TableRow key={item.id} className="print:text-black">
                       <TableCell className="w-[30%] font-medium p-0 sm:p-px">
@@ -568,13 +561,13 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
             <Tooltip>
             <TooltipTrigger asChild>
               <Button onClick={handleSave} variant="outline" size="icon" className="h-8 w-8"><Save className="h-4 w-4"/></Button>
-            </tooltipTrigger>
+            </TooltipTrigger>
             <TooltipContent><p>Salvar Pesagem</p></TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button onClick={handleLoad} variant="outline" size="icon" className="h-8 w-8"><ArrowUpFromLine className="h-4 w-4"/></Button>
-            </tooltipTrigger>
+            </TooltipTrigger>
             <TooltipContent><p>Carregar Última Pesagem</p></TooltipContent>
           </Tooltip>
           <Tooltip>
