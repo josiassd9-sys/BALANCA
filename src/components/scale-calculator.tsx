@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from "react";
+import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef, useMemo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "./ui/button";
@@ -10,12 +10,15 @@ import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
-import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight } from "lucide-react";
+import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "./ui/command";
 import { ScrollArea } from "./ui/scroll-area";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { cn } from "@/lib/utils";
+import { doc } from "firebase/firestore";
+import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+
 
 type WeighingItem = {
   id: string;
@@ -32,6 +35,12 @@ type WeighingSet = {
   items: WeighingItem[];
   descontoCacamba: number;
 };
+
+type ScaleData = {
+  grossWeight: number;
+  tareWeight: number;
+  timestamp: Date;
+}
 
 type OperationType = 'loading' | 'unloading';
 type WeighingMode = 'manual' | 'electronic';
@@ -50,6 +59,14 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const { toast } = useToast();
   const [operationType, setOperationType] = useState<OperationType>('loading');
   const [weighingMode, setWeighingMode] = useState<WeighingMode>('manual');
+
+  const firestore = useFirestore();
+  const scaleDataRef = useMemoFirebase(
+    () => firestore ? doc(firestore, "scale_data", "live") : null,
+    [firestore]
+  );
+  const { data: liveScaleData, isLoading: isScaleDataLoading } = useDoc<ScaleData>(scaleDataRef);
+
 
   useEffect(() => {
     const savedData = localStorage.getItem("scaleData");
@@ -225,7 +242,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
           if (savedData) {
               const { weighingSets, headerData, operationType } = JSON.parse(savedData);
               setWeighingSets(weighingSets);
-              setHeaderData(headerData || { client: "", plate: "", driver: "" });
+setHeaderData(headerData || { client: "", plate: "", driver: "" });
               setOperationType(operationType || 'loading');
               setActiveSetId(weighingSets[0]?.id || null);
               toast({ title: "Dados Carregados", description: "A última pesagem salva foi carregada." });
@@ -246,11 +263,19 @@ const ScaleCalculator = forwardRef((props, ref) => {
     }
   }
 
-  const fetchWeightFromScale = async (setId: string, itemId: string, field: 'bruto' | 'tara') => {
-    // Simulação de busca de peso. Substituir pela lógica real de API.
-    const randomWeight = Math.floor(Math.random() * (5000 - 500 + 1) + 500);
-    handleInputChange(setId, itemId, field, randomWeight.toString());
-    toast({ title: "Peso Capturado", description: `Peso de ${randomWeight}kg aplicado ao campo ${field}.` });
+  const handleFetchLiveWeight = (setId: string, itemId: string, field: 'bruto' | 'tara') => {
+    if (isScaleDataLoading) {
+      toast({ title: "Aguardando balança...", description: "Buscando dados da balança." });
+      return;
+    }
+    if (!liveScaleData) {
+      toast({ variant: "destructive", title: "Balança Offline", description: "Não foi possível obter o peso da balança. Verifique a conexão." });
+      return;
+    }
+
+    const weight = liveScaleData.grossWeight || 0;
+    handleInputChange(setId, itemId, field, weight.toString());
+    toast({ title: "Peso Capturado!", description: `Peso de ${weight}kg aplicado ao campo ${field}.` });
   };
 
 
@@ -367,12 +392,26 @@ const ScaleCalculator = forwardRef((props, ref) => {
                           <div className="grid grid-cols-4 gap-0.5">
                               <div className="space-y-px">
                                   <Label className="text-xs text-muted-foreground">Bruto (kg)</Label>
-                                  <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.bruto)} onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)} className="text-right h-8 print:hidden w-full" />
+                                  {weighingMode === 'electronic' ? (
+                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
+                                          <span>{formatNumber(item.bruto) || "Buscar"}</span>
+                                          {isScaleDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                                     </Button>
+                                  ) : (
+                                    <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.bruto)} onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)} className="text-right h-8 print:hidden w-full" />
+                                  )}
                                    <span className="hidden print:block text-right print:text-black">{formatNumber(item.bruto)}</span>
                               </div>
                                <div className="space-y-px">
                                   <Label className="text-xs text-muted-foreground">Tara (kg)</Label>
-                                   <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.tara)} onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)} className="text-right h-8 print:hidden w-full" />
+                                    {weighingMode === 'electronic' ? (
+                                         <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
+                                              <span>{formatNumber(item.tara) || "Buscar"}</span>
+                                              {isScaleDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                                         </Button>
+                                    ) : (
+                                      <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.tara)} onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)} className="text-right h-8 print:hidden w-full" />
+                                    )}
                                    <span className="hidden print:block text-right print:text-black">{formatNumber(item.tara)}</span>
                               </div>
                                <div className="space-y-px">
@@ -414,37 +453,41 @@ const ScaleCalculator = forwardRef((props, ref) => {
                       </TableCell>
                       <TableCell className="w-[17.5%] p-0 sm:p-px">
                             <div className="flex items-center justify-end gap-1">
-                                {weighingMode === 'electronic' && (
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 print:hidden" onClick={() => fetchWeightFromScale(set.id, item.id, 'bruto')}>
-                                        <Weight className="h-4 w-4" />
+                                {weighingMode === 'electronic' ? (
+                                    <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
+                                        <span>{formatNumber(item.bruto) || "Buscar Peso"}</span>
+                                        {isScaleDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
                                     </Button>
+                                ) : (
+                                  <Input
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="0"
+                                    value={formatNumber(item.bruto)}
+                                    onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)}
+                                    className="text-right h-8 print:hidden w-24"
+                                  />
                                 )}
-                                <Input
-                                type="text"
-                                inputMode="decimal"
-                                placeholder="0"
-                                value={formatNumber(item.bruto)}
-                                onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)}
-                                className="text-right h-8 print:hidden w-24"
-                                />
                             </div>
                             <span className="hidden print:block text-right print:text-black">{formatNumber(item.bruto)}</span>
                       </TableCell>
                       <TableCell className="w-[17.5%] p-0 sm:p-px">
                             <div className="flex items-center justify-end gap-1">
-                                {weighingMode === 'electronic' && (
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 print:hidden" onClick={() => fetchWeightFromScale(set.id, item.id, 'tara')}>
-                                        <Weight className="h-4 w-4" />
+                                {weighingMode === 'electronic' ? (
+                                    <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
+                                        <span>{formatNumber(item.tara) || "Buscar Peso"}</span>
+                                        {isScaleDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
                                     </Button>
+                                ) : (
+                                  <Input
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder="0"
+                                  value={formatNumber(item.tara)}
+                                  onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)}
+                                  className="text-right h-8 print:hidden w-24"
+                                  />
                                 )}
-                                <Input
-                                type="text"
-                                inputMode="decimal"
-                                placeholder="0"
-                                value={formatNumber(item.tara)}
-                                onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)}
-                                className="text-right h-8 print:hidden w-24"
-                                />
                             </div>
                             <span className="hidden print:block text-right print:text-black">{formatNumber(item.tara)}</span>
                       </TableCell>
@@ -525,7 +568,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
             <Tooltip>
             <TooltipTrigger asChild>
               <Button onClick={handleSave} variant="outline" size="icon" className="h-8 w-8"><Save className="h-4 w-4"/></Button>
-            </TooltipTrigger>
+            </tooltipTrigger>
             <TooltipContent><p>Salvar Pesagem</p></TooltipContent>
           </Tooltip>
           <Tooltip>
