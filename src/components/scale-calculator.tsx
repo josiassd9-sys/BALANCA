@@ -156,8 +156,12 @@ const ScaleCalculator = forwardRef((props, ref) => {
           let newTara = 0;
   
           if (operationType === 'loading') {
+            // Em carregamento, o BRUTO do novo item é a TARA do item anterior.
             newBruto = lastItem ? lastItem.tara : 0;
+            // A tara do novo item começa em zero, para ser pesada depois.
+            newTara = 0; 
           } else { 
+            // Em descarregamento, a TARA do novo item é o BRUTO do item anterior.
             if (lastItem) {
               newTara = lastItem.bruto;
             }
