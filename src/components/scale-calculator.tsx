@@ -152,23 +152,20 @@ const ScaleCalculator = forwardRef((props, ref) => {
       prevSets.map(set => {
         if (set.id === setId) {
           const lastItem = set.items[set.items.length - 1];
-          if (!lastItem) return set; // Não pode adicionar se não houver um primeiro item
+          if (!lastItem) return set;
           
           let newItem: WeighingItem;
 
           if (operationType === 'loading') {
-            // Lógica de CARREGAMENTO (venda): Bruto anterior vira Tara do novo.
             newItem = {
               id: uuidv4(),
               material: "SUCATA INOX",
-              bruto: 0, // Bruto do novo item começa em zero, a ser pesado
-              tara: lastItem.bruto, // A TARA do novo é o BRUTO do anterior
+              bruto: 0,
+              tara: lastItem.bruto,
               descontos: 0,
               liquido: 0 - lastItem.bruto,
             };
           } else { 
-            // Lógica de DESCARREGAMENTO (compra): Bruto anterior vira Tara do novo.
-            // Esta lógica está correta: o peso com menos material (tara anterior) se torna o bruto do proximo.
             newItem = {
               id: uuidv4(),
               material: "SUCATA INOX",
@@ -320,7 +317,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('loading')}>
-                        <ArrowDownToLine className="h-5 w-5" />
+                        <ArrowUpFromLine className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent><p>Carregamento (Venda / Saída de Material)</p></TooltipContent>
@@ -328,7 +325,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('unloading')}>
-                        <ArrowUpFromLine className="h-5 w-5" />
+                        <ArrowDownToLine className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent><p>Descarregamento (Compra / Entrada de Material)</p></TooltipContent>
@@ -616,3 +613,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
