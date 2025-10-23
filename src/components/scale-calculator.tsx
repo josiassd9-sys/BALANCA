@@ -171,7 +171,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
               id: uuidv4(),
               material: "SUCATA INOX",
               bruto: 0,
-              tara: lastItem.bruto, // Bruto do novo é a tara do anterior
+              tara: lastItem.bruto,
               descontos: 0,
               liquido: 0,
             };
@@ -303,6 +303,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   return (
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
       <div className="flex justify-between items-center mb-4 px-2 print:hidden">
+        <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
         <TooltipProvider>
           <ToggleGroup 
             type="single" 
@@ -331,8 +332,6 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
             </Tooltip>
           </ToggleGroup>
         </TooltipProvider>
-        <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
-        <div></div>
       </div>
 
       <Card className="mb-px print:border-none print:shadow-none print:p-0">
