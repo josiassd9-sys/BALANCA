@@ -32,8 +32,7 @@ type WeighingSet = {
 };
 
 type ScaleData = {
-  grossWeight: number;
-  tareWeight: number;
+  peso: number; // Updated to 'peso' to match balanca.js script
   timestamp: Date;
 }
 
@@ -57,7 +56,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
 
   const firestore = useFirestore();
   const scaleDataRef = useMemoFirebase(
-    () => firestore ? doc(firestore, "scale_data", "live") : null,
+    () => firestore ? doc(firestore, "pesagens", "live") : null,
     [firestore]
   );
   const { data: liveScaleData, isLoading: isScaleDataLoading } = useDoc<ScaleData>(scaleDataRef);
@@ -158,7 +157,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
           let newItem: WeighingItem;
 
           if (operationType === 'loading') { // Venda - Carregamento
-            newItem = {
+             newItem = {
               id: uuidv4(),
               material: "SUCATA INOX",
               bruto: 0,
@@ -272,7 +271,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       return;
     }
 
-    const weight = liveScaleData.grossWeight || 0;
+    const weight = liveScaleData.peso || 0;
     handleInputChange(setId, itemId, field, weight.toString());
     toast({ title: "Peso Capturado!", description: `Peso de ${weight}kg aplicado ao campo ${field}.` });
   };

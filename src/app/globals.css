@@ -96,8 +96,8 @@
     background: white !important;
     color: black !important;
   }
-  #scale-calculator-printable-area {
-    h1, h2, h3, h4, div, label, input, span {
+  #printable-ticket-body, #scale-calculator-printable-area {
+    h1, h2, h3, h4, div, label, input, span, p, th, td {
       color: black !important;
     }
     input {
@@ -106,5 +106,3 @@
     }
   }
 }
-
-    
