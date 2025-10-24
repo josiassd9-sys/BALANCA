@@ -1,33 +1,32 @@
 /**
- * @fileoverview Firestore Security Rules for the Inox PriceCalc application.
+ * @file Firebase Security Rules for Inox PriceCalc
  *
- * Core Philosophy:
- * This ruleset provides open read access to item catalogs and settings,
- * assuming no user-specific private data is stored. Write access to
- * `scale_data` is denied at the rules level, presuming it is handled by a
- * trusted source.
+ * @description This ruleset provides basic security for the Inox PriceCalc application.
+ * All core catalog data (item categories, items, and universal settings) is publicly readable.
+ * Scale data is writeable by a trusted source (e.g., a Cloud Function authenticated with a service account).
  *
- * Data Structure:
- * - /inox_item_categories/{inoxItemCategoryId}: Stores item categories.
- * - /inox_items/{inoxItemId}: Stores specific stainless steel items.
- * - /universal_settings/{universalSettingsId}: Stores universal settings.
- * - /scale_data/{scaleDataId}: Stores data from the live scale.
+ * @dataStructure
+ * - `/inox_item_categories/{inoxItemCategoryId}`: Stores categories of stainless steel items.
+ * - `/inox_items/{inoxItemId}`: Stores specific stainless steel items with their specifications and pricing.
+ * - `/universal_settings/{universalSettingsId}`: Stores the universal cost and margin settings.
+ * - `/scale_data/{scaleDataId}`: Stores live scale data.
  *
- * Key Security Decisions:
- * - Public read access is granted for all item catalogs and settings.
- * - Write access to `scale_data` is denied at the rules level,
- *   recommending a trusted backend for data entry.
+ * @keySecurityDecisions
+ * - Read access to item categories, items, and universal settings is public.
+ * - Write access to scale data is not user-dependent and will be handled by a trusted source.
+ * - No user-specific private data exists in this model.
+ * - Listing of collections is generally allowed for prototyping and quick access to all documents.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows public read access to inox item categories.
+     * @description Manages access to stainless steel item categories.
      * @path /inox_item_categories/{inoxItemCategoryId}
-     * @allow (get, list) Any unauthenticated user can read item categories.
+     * @allow (get, list) All users can read item categories.
      * @deny (create, update, delete) No user can create, update, or delete item categories directly.
-     * @principle Grants public read access to all item categories and restricts write access.
+     * @principle Allows public read access to item categories.
      */
     match /inox_item_categories/{inoxItemCategoryId} {
       allow get, list: if true;
@@ -35,11 +34,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows public read access to inox items.
+     * @description Manages access to specific stainless steel items.
      * @path /inox_items/{inoxItemId}
-     * @allow (get, list) Any unauthenticated user can read inox items.
-     * @deny (create, update, delete) No user can create, update, or delete inox items directly.
-     * @principle Grants public read access to all items and restricts write access.
+     * @allow (get, list) All users can read item details.
+     * @deny (create, update, delete) No user can create, update, or delete items directly.
+     * @principle Allows public read access to item details.
      */
     match /inox_items/{inoxItemId} {
       allow get, list: if true;
@@ -47,11 +46,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows public read access to universal settings.
+     * @description Manages access to universal settings.
      * @path /universal_settings/{universalSettingsId}
-     * @allow (get, list) Any unauthenticated user can read universal settings.
+     * @allow (get, list) All users can read universal settings.
      * @deny (create, update, delete) No user can create, update, or delete universal settings directly.
-     * @principle Grants public read access to universal settings and restricts write access.
+     * @principle Allows public read access to universal settings.
      */
     match /universal_settings/{universalSettingsId} {
       allow get, list: if true;
@@ -59,14 +58,28 @@ service cloud.firestore {
     }
 
     /**
-     * @description Denies all direct access to scale data. Data should be written by a trusted source.
+     * @description Manages access to live scale data.
      * @path /scale_data/{scaleDataId}
-     * @allow None. Data writes should be managed by a trusted backend.
-     * @deny (get, list, create, update, delete) All operations are denied.
-     * @principle Restricts all direct access to scale data, expecting a trusted backend service to manage it.
+     * @allow (get, list) All users can read scale data.
+     * @deny (create, update, delete) No user can create, update, or delete scale data directly.
+     * @principle Allows public read access to scale data.
      */
     match /scale_data/{scaleDataId} {
-      allow get, list, create, update, delete: if false;
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description This match statement has been added because the error log provided specifies that the app attempts to read the document at /pesagens/live.
+     * As there is no information regarding the schema of documents held under `pesagens` this access is open to all users for prototyping purposes.
+     * @path /pesagens/live
+     * @allow (get) All users can read scale data.
+     * @deny (create, update, delete, list) No user can create, update, or delete scale data directly.
+     * @principle Allows public read access to scale data.
+     */
+    match /pesagens/live {
+      allow get: if true;
+      allow create, update, delete, list: if false;
     }
   }
 }
