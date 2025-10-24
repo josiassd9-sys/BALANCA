@@ -1,35 +1,33 @@
 /**
- * @file Firebase Security Rules for Inox PriceCalc
- *
- * @description This ruleset provides basic read access to product catalogs and enforces write access only via
- * authenticated service accounts or trusted cloud functions.
+ * @fileoverview Firestore Security Rules for the Inox PriceCalc application.
  *
  * Core Philosophy:
- * - Provides open read access to product catalogs (categories, items, settings).
- * - Protects write access to the live scale data collection to prevent unauthorized modifications.
- *   A trusted backend service or function should be used to write scale data.
+ * This ruleset provides open read access to item catalogs and settings,
+ * assuming no user-specific private data is stored. Write access to
+ * `scale_data` is denied at the rules level, presuming it is handled by a
+ * trusted source.
  *
  * Data Structure:
- * - /inox_item_categories/{inoxItemCategoryId}: Stores item categories (e.g., tubes, sheets).
- * - /inox_items/{inoxItemId}: Stores individual product information.
- * - /universal_settings/{universalSettingsId}: Contains global pricing settings.
- * - /scale_data/{scaleDataId}: Stores live scale readings.
+ * - /inox_item_categories/{inoxItemCategoryId}: Stores item categories.
+ * - /inox_items/{inoxItemId}: Stores specific stainless steel items.
+ * - /universal_settings/{universalSettingsId}: Stores universal settings.
+ * - /scale_data/{scaleDataId}: Stores data from the live scale.
  *
  * Key Security Decisions:
- * - No user-specific data or ownership, so path-based ownership is not applied.
- * - Read access is generally open to allow for easy data retrieval.
- * - Write access to `scale_data` is denied to all clients to protect data integrity.
+ * - Public read access is granted for all item catalogs and settings.
+ * - Write access to `scale_data` is denied at the rules level,
+ *   recommending a trusted backend for data entry.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows anyone to read inox item categories. Writes are denied.
+     * @description Allows public read access to inox item categories.
      * @path /inox_item_categories/{inoxItemCategoryId}
-     * @allow (get, list): if true
-     * @deny (create, update, delete): Always
-     * @principle Allows public read access to item categories.
+     * @allow (get, list) Any unauthenticated user can read item categories.
+     * @deny (create, update, delete) No user can create, update, or delete item categories directly.
+     * @principle Grants public read access to all item categories and restricts write access.
      */
     match /inox_item_categories/{inoxItemCategoryId} {
       allow get, list: if true;
@@ -37,11 +35,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows anyone to read inox items. Writes are denied.
+     * @description Allows public read access to inox items.
      * @path /inox_items/{inoxItemId}
-     * @allow (get, list): if true
-     * @deny (create, update, delete): Always
-     * @principle Allows public read access to item data.
+     * @allow (get, list) Any unauthenticated user can read inox items.
+     * @deny (create, update, delete) No user can create, update, or delete inox items directly.
+     * @principle Grants public read access to all items and restricts write access.
      */
     match /inox_items/{inoxItemId} {
       allow get, list: if true;
@@ -49,11 +47,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows anyone to read universal settings. Writes are denied.
+     * @description Allows public read access to universal settings.
      * @path /universal_settings/{universalSettingsId}
-     * @allow (get, list): if true
-     * @deny (create, update, delete): Always
-     * @principle Allows public read access to universal settings.
+     * @allow (get, list) Any unauthenticated user can read universal settings.
+     * @deny (create, update, delete) No user can create, update, or delete universal settings directly.
+     * @principle Grants public read access to universal settings and restricts write access.
      */
     match /universal_settings/{universalSettingsId} {
       allow get, list: if true;
@@ -61,27 +59,14 @@ service cloud.firestore {
     }
 
     /**
-     * @description Denies all access to the scale_data collection to clients. This collection should only be written to from a trusted backend.
+     * @description Denies all direct access to scale data. Data should be written by a trusted source.
      * @path /scale_data/{scaleDataId}
-     * @allow (get, list): if false
-     * @allow (create, update, delete): if false
-     * @principle Restricts write access to a trusted backend service.
+     * @allow None. Data writes should be managed by a trusted backend.
+     * @deny (get, list, create, update, delete) All operations are denied.
+     * @principle Restricts all direct access to scale data, expecting a trusted backend service to manage it.
      */
     match /scale_data/{scaleDataId} {
-      allow get, list: if false;
-      allow create, update, delete: if false;
-    }
-    
-    /**
-     * @description Denies all access to the pesagens/live document due to insufficient permissions.
-     * @path /pesagens/live
-     * @allow get, list: if false
-     * @allow create, update, delete: if false
-     * @principle Prevents unauthorized access to pesagens/live document.
-     */
-    match /pesagens/live {
-        allow get, list: if false;
-        allow create, update, delete: if false;
+      allow get, list, create, update, delete: if false;
     }
   }
 }
