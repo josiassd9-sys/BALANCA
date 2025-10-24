@@ -32,8 +32,11 @@ type WeighingSet = {
 };
 
 type ScaleData = {
-  peso: number; // Updated to 'peso' to match balanca.js script
-  timestamp: Date;
+  peso: number;
+  timestamp: {
+    seconds: number;
+    nanoseconds: number;
+  };
 }
 
 type OperationType = 'loading' | 'unloading';
@@ -266,7 +269,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       toast({ title: "Aguardando balança...", description: "Buscando dados da balança." });
       return;
     }
-    if (!liveScaleData) {
+    if (!liveScaleData || typeof liveScaleData.peso === 'undefined') {
       toast({ variant: "destructive", title: "Balança Offline", description: "Não foi possível obter o peso da balança. Verifique a conexão." });
       return;
     }
@@ -288,6 +291,11 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
     if (isNaN(num) || num === 0) return "";
     return new Intl.NumberFormat('pt-BR', {useGrouping: false}).format(num);
   };
+
+  const formatNumberWithGroup = (num: number) => {
+    if (isNaN(num)) return "0";
+    return new Intl.NumberFormat('pt-BR').format(num);
+  }
   
   const grandTotalLiquido = weighingSets.reduce((total, set) => {
     const setItemsTotal = set.items.reduce((acc, item) => acc + item.liquido, 0);
@@ -470,7 +478,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                <div className="space-y-px">
                                   <Label className="text-xs text-muted-foreground">Líquido (kg)</Label>
                                   <div className="h-8 flex items-center justify-end font-semibold">
-                                      <span className="print:text-black">{formatNumber(item.liquido)}</span>
+                                      <span className="print:text-black">{formatNumberWithGroup(item.liquido)}</span>
                                   </div>
                               </div>
                           </div>
@@ -554,7 +562,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                       </TableCell>
                       <TableCell className="w-[17.5%] text-right font-semibold p-0 sm:p-px">
                             <div className="h-8 sm:h-full flex items-center justify-end">
-                                <span className="print:text-black">{formatNumber(item.liquido)}</span>
+                                <span className="print:text-black">{formatNumberWithGroup(item.liquido)}</span>
                             </div>
                       </TableCell>
                     </TableRow>
@@ -579,11 +587,11 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                      </div>
                      <div className="text-right flex-shrink-0">
                          <p className="text-sm text-muted-foreground">Subtotal</p>
-                         <p className="text-lg font-bold print:text-black">{formatNumber(subtotalLiquido)} kg</p>
+                         <p className="text-lg font-bold print:text-black">{formatNumberWithGroup(subtotalLiquido)} kg</p>
                      </div>
                       <div className="text-right flex-shrink-0">
                          <p className="text-sm text-muted-foreground">{setIndex === 0 ? "Caçamba 1" : "Bitrem / Caçamba 2"}</p>
-                         <p className="text-xl font-bold text-primary print:text-black">{formatNumber(totalLiquidoSet)} kg</p>
+                         <p className="text-xl font-bold text-primary print:text-black">{formatNumberWithGroup(totalLiquidoSet)} kg</p>
                      </div>
                  </div>
             </CardContent>
@@ -639,3 +647,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
