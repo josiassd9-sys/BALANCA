@@ -21,8 +21,8 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border-silver: 0 0% 75%;
-    --border: var(--border-silver);
-    --input: 240 3.7% 15.9%;
+    --border: 240 3.7% 15.9%;
+    --input: var(--border-silver);
     --ring: 158 44% 55%;
     --radius: 0.5rem;
     --chart-1: 12 76% 61%;
@@ -61,8 +61,8 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border-silver: 0 0% 75%;
-    --border: var(--border-silver);
-    --input: 240 3.7% 15.9%;
+    --border: 240 3.7% 15.9%;
+    --input: var(--border-silver);
     --ring: 158 44% 55%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
