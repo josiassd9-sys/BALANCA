@@ -94,7 +94,7 @@
 
 @layer components {
   input:not(:placeholder-shown) {
-    @apply bg-zinc-200 text-black;
+    @apply bg-white text-black;
   }
 }
 
