@@ -9,7 +9,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
-import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, Signal } from "lucide-react";
+import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, CircuitBoard } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { doc } from "firebase/firestore";
@@ -65,26 +65,36 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const { data: liveScaleData, isLoading: isScaleDataLoading } = useDoc<ScaleData>(scaleDataRef);
 
   useEffect(() => {
-    const savedData = localStorage.getItem("scaleData");
+    let savedData;
+    try {
+      savedData = localStorage.getItem("scaleData");
+    } catch (e) {
+      console.error("Could not read from localStorage.", e);
+    }
+  
     if (savedData) {
       try {
         const { weighingSets: savedSets, headerData: savedHeader, operationType: savedOpType } = JSON.parse(savedData);
-        setWeighingSets(savedSets || []);
-        setHeaderData(savedHeader || { client: "", plate: "", driver: "" });
-        setOperationType(savedOpType || 'loading');
-        if (savedSets && savedSets.length > 0) {
-            setActiveSetId(savedSets[0]?.id);
+        
+        if (Array.isArray(savedSets) && savedSets.length > 0) {
+           setWeighingSets(savedSets);
+           setActiveSetId(savedSets[0]?.id);
         } else {
             const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
             setWeighingSets([newSet]);
             setActiveSetId(newSet.id);
         }
+
+        setHeaderData(savedHeader || { client: "", plate: "", driver: "" });
+        setOperationType(savedOpType || 'loading');
+
       } catch (e) {
+        console.error("Failed to parse saved data.", e);
         const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
         setWeighingSets([newSet]);
         setActiveSetId(newSet.id);
       }
-    } else if (weighingSets.length === 0) {
+    } else {
       const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
       setWeighingSets([newSet]);
       setActiveSetId(newSet.id);
@@ -154,16 +164,15 @@ const ScaleCalculator = forwardRef((props, ref) => {
     setWeighingSets(prevSets =>
       prevSets.map(set => {
         if (set.id === setId) {
-          const lastItem = set.items[set.items.length - 1];
-          // If this is the very first item being added, its initial values depend on the truck's initial weight
-          const isFirstItemEver = set.items.length === 0;
-
+          const isFirstItemInSet = set.items.length === 0;
+          const isFirstSet = weighingSets[0]?.id === setId;
+  
           let newItem: WeighingItem;
-
-          if (isFirstItemEver) {
-            const firstSet = weighingSets[0];
-            const firstItemOfFirstSet = firstSet?.items[0]; // This will be undefined, as expected
-            const truckWeight = firstSet?.items[0]?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? (operationType === 'loading' ? (firstItemOfFirstSet?.tara ?? 0) : (firstItemOfFirstSet?.bruto ?? 0));
+          
+          if (isFirstItemInSet && isFirstSet) {
+            // This is the very first material being added to the first container.
+            // Its initial weight depends on the truck's weight.
+            const truckWeight = weighingSets[0]?.items[0]?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? 0;
             
             newItem = {
               id: uuidv4(),
@@ -173,31 +182,42 @@ const ScaleCalculator = forwardRef((props, ref) => {
               descontos: 0,
               liquido: 0,
             };
-            
-            // Re-calculate liquido after setting properties
             newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
           
           } else {
-             if (!lastItem) return set; // Should not happen if not the first item
-            
-            if (operationType === 'loading') { // Venda - Carregamento
-              newItem = {
-                id: uuidv4(),
-                material: "SUCATA",
-                bruto: 0,
-                tara: lastItem.bruto, // Tara do novo é o bruto do anterior
-                descontos: 0,
-                liquido: 0,
-              };
-            } else { // Compra - Descarregamento
-              newItem = {
-                id: uuidv4(),
-                material: "SUCATA",
-                bruto: lastItem.tara, // Bruto do novo é a tara do anterior
-                tara: 0,
-                descontos: 0,
-                liquido: 0,
-              };
+            const lastItem = set.items[set.items.length - 1];
+            if (!lastItem) { // Should only happen if adding to a subsequent container that is empty
+                const firstSet = weighingSets[0];
+                const truckWeight = firstSet?.items[0]?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? 0;
+                newItem = {
+                    id: uuidv4(),
+                    material: "SUCATA",
+                    bruto: operationType === 'loading' ? 0 : truckWeight,
+                    tara: operationType === 'loading' ? truckWeight : 0,
+                    descontos: 0,
+                    liquido: 0,
+                };
+                newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
+            } else {
+                if (operationType === 'loading') { // Venda - Carregamento
+                newItem = {
+                    id: uuidv4(),
+                    material: "SUCATA",
+                    bruto: 0,
+                    tara: lastItem.bruto, // Tara do novo é o bruto do anterior
+                    descontos: 0,
+                    liquido: 0,
+                };
+                } else { // Compra - Descarregamento
+                newItem = {
+                    id: uuidv4(),
+                    material: "SUCATA",
+                    bruto: lastItem.tara, // Bruto do novo é a tara do anterior
+                    tara: 0,
+                    descontos: 0,
+                    liquido: 0,
+                };
+                }
             }
           }
            
@@ -212,30 +232,24 @@ const ScaleCalculator = forwardRef((props, ref) => {
     if (weighingSets.length >= 2) return;
 
     const firstSet = weighingSets[0];
-    const firstItemOfFirstSet = firstSet.items[0];
-
-    if (!firstItemOfFirstSet) {
+    
+    // Check if the first item (with the initial truck weight) exists.
+    if (!firstSet || !firstSet.items[0]) {
         toast({
             variant: "destructive",
-            title: "Primeira caçamba vazia",
-            description: "Adicione e pese pelo menos um material na Caçamba 1 antes de adicionar o bitrem.",
+            title: "Peso Inicial Necessário",
+            description: "Insira o peso inicial do caminhão antes de adicionar o bitrem.",
         });
         return;
     }
 
-    const truckTara = firstItemOfFirstSet.tara;
+    const truckTara = operationType === 'loading' ? firstSet.items[0].tara : 0;
+    const truckBruto = operationType === 'unloading' ? firstSet.items[0].bruto : 0;
 
     const newSet: WeighingSet = {
         id: uuidv4(),
         name: "BITREM / CAÇAMBA 2",
-        items: [{
-            id: uuidv4(),
-            material: "SUCATA",
-            bruto: 0,
-            tara: truckTara,
-            descontos: 0,
-            liquido: 0 - truckTara,
-        }],
+        items: [],
         descontoCacamba: 0
     };
 
@@ -307,16 +321,24 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
     const initialWeightField = operationType === 'loading' ? 'tara' : 'bruto';
 
     setWeighingSets(prev => {
-        const newSets = [...prev];
+        const newSets = JSON.parse(JSON.stringify(prev)); // Deep copy
         if (newSets.length > 0) {
-            // Ensure the first item exists to store the initial weight
+            // Create a hidden item to store the truck's initial weight if it doesn't exist
             if (newSets[0].items.length === 0) {
-                newSets[0].items.push({ ...initialItem, id: uuidv4() });
+                newSets[0].items.push({ ...initialItem, id: uuidv4(), material: "PESO_INICIAL_CAMINHAO" });
             }
-            newSets[0].items[0] = {
-                ...newSets[0].items[0],
-                [initialWeightField]: numValue
-            };
+            // Update the weight on the hidden item
+            const firstItem = newSets[0].items[0];
+            firstItem[initialWeightField] = numValue;
+            
+            // Also update its counterpart to avoid negative liquid weight if bruto/tara is 0
+            if (initialWeightField === 'tara') {
+                if(firstItem.bruto === 0) firstItem.liquido = -numValue;
+                else firstItem.liquido = firstItem.bruto - numValue - firstItem.descontos;
+            } else { // initialWeightField is 'bruto'
+                if(firstItem.tara === 0) firstItem.liquido = numValue;
+                 else firstItem.liquido = numValue - firstItem.tara - firstItem.descontos;
+            }
         }
         return newSets;
     });
@@ -340,15 +362,19 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   }
   
   const grandTotalLiquido = weighingSets.reduce((total, set) => {
-    const setItemsTotal = set.items.reduce((acc, item) => acc + item.liquido, 0);
+    const setItemsTotal = set.items
+      .filter(item => item.material !== "PESO_INICIAL_CAMINHAO")
+      .reduce((acc, item) => acc + item.liquido, 0);
     return total + (setItemsTotal - set.descontoCacamba);
   }, 0);
 
   const firstSet = weighingSets.length > 0 ? weighingSets[0] : null;
   const firstItem = firstSet && firstSet.items.length > 0 ? firstSet.items[0] : null;
   const initialWeightField = operationType === 'loading' ? 'tara' : 'bruto';
-  // Use the value from the (potentially hidden) first item to display the initial truck weight
-  const initialWeightValue = firstSet?.items[0]?.[initialWeightField] ?? 0;
+  const initialWeightValue = firstItem?.[initialWeightField] ?? 0;
+  
+  // Filter out the hidden initial item before rendering
+  const visibleItems = (set: WeighingSet) => set.items.filter(item => item.material !== "PESO_INICIAL_CAMINHAO");
 
   return (
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
@@ -375,7 +401,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
             <Tooltip>
               <TooltipTrigger asChild>
                 <ToggleGroupItem value="electronic" aria-label="Eletrônica">
-                  <Signal className="h-5 w-5" />
+                  <CircuitBoard className="h-5 w-5" />
                 </ToggleGroupItem>
               </TooltipTrigger>
               <TooltipContent><p>Pesagem Eletrônica</p></TooltipContent>
@@ -451,9 +477,8 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       </Card>
 
       {weighingSets.map((set, setIndex) => {
-         // Only show items if there are any
-         const visibleItems = set.items.filter(item => item.id);
-         const subtotalLiquido = visibleItems.reduce((acc, item) => acc + item.liquido, 0);
+         const itemsToRender = visibleItems(set);
+         const subtotalLiquido = itemsToRender.reduce((acc, item) => acc + item.liquido, 0);
          const totalLiquidoSet = subtotalLiquido - set.descontoCacamba;
 
          return (
@@ -476,11 +501,11 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                 </Tooltip>
               </TooltipProvider>
             </CardHeader>
-            {visibleItems.length > 0 && (
+            {itemsToRender.length > 0 && (
             <CardContent className="p-0 overflow-x-auto">
               {/* Mobile Layout */}
               <div className="sm:hidden">
-                  {visibleItems.map((item) => {
+                  {itemsToRender.map((item) => {
                       return (
                       <div key={item.id} className="border-b p-0.5 space-y-0.5">
                           <div className="space-y-px">
@@ -543,7 +568,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {visibleItems.map((item) => {
+                  {itemsToRender.map((item) => {
                       return (
                     <TableRow key={item.id} className="print:text-black">
                       <TableCell className="w-[30%] font-medium p-0 sm:p-px">
