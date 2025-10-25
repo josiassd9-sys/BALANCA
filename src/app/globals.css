@@ -93,7 +93,7 @@
 }
 
 @layer components {
-  input:not(:placeholder-shown) {
+  input {
     @apply bg-white text-black;
   }
 }
