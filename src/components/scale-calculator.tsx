@@ -75,17 +75,17 @@ const ScaleCalculator = forwardRef((props, ref) => {
         if (savedSets && savedSets.length > 0) {
             setActiveSetId(savedSets[0]?.id);
         } else {
-            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA" }] };
+            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
             setWeighingSets([newSet]);
             setActiveSetId(newSet.id);
         }
       } catch (e) {
-        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA" }] };
+        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
         setWeighingSets([newSet]);
         setActiveSetId(newSet.id);
       }
     } else if (weighingSets.length === 0) {
-      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA" }] };
+      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
       setWeighingSets([newSet]);
       setActiveSetId(newSet.id);
     }
@@ -155,28 +155,50 @@ const ScaleCalculator = forwardRef((props, ref) => {
       prevSets.map(set => {
         if (set.id === setId) {
           const lastItem = set.items[set.items.length - 1];
-          if (!lastItem) return set;
-          
+          // If this is the very first item being added, its initial values depend on the truck's initial weight
+          const isFirstItemEver = set.items.length === 0;
+
           let newItem: WeighingItem;
 
-          if (operationType === 'loading') { // Venda - Carregamento
-             newItem = {
-              id: uuidv4(),
-              material: "SUCATA",
-              bruto: 0,
-              tara: lastItem.bruto, // Tara do novo é o bruto do anterior
-              descontos: 0,
-              liquido: 0,
-            };
-          } else { // Compra - Descarregamento
+          if (isFirstItemEver) {
+            const firstSet = weighingSets[0];
+            const firstItemOfFirstSet = firstSet?.items[0]; // This will be undefined, as expected
+            const truckWeight = firstSet?.items[0]?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? (operationType === 'loading' ? (firstItemOfFirstSet?.tara ?? 0) : (firstItemOfFirstSet?.bruto ?? 0));
+            
             newItem = {
               id: uuidv4(),
               material: "SUCATA",
-              bruto: lastItem.tara, // Bruto do novo é a tara do anterior
-              tara: 0,
+              bruto: operationType === 'loading' ? 0 : truckWeight,
+              tara: operationType === 'loading' ? truckWeight : 0,
               descontos: 0,
               liquido: 0,
             };
+            
+            // Re-calculate liquido after setting properties
+            newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
+          
+          } else {
+             if (!lastItem) return set; // Should not happen if not the first item
+            
+            if (operationType === 'loading') { // Venda - Carregamento
+              newItem = {
+                id: uuidv4(),
+                material: "SUCATA",
+                bruto: 0,
+                tara: lastItem.bruto, // Tara do novo é o bruto do anterior
+                descontos: 0,
+                liquido: 0,
+              };
+            } else { // Compra - Descarregamento
+              newItem = {
+                id: uuidv4(),
+                material: "SUCATA",
+                bruto: lastItem.tara, // Bruto do novo é a tara do anterior
+                tara: 0,
+                descontos: 0,
+                liquido: 0,
+              };
+            }
           }
            
           return { ...set, items: [...set.items, newItem] };
@@ -222,7 +244,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
   };
 
   const handleClear = () => {
-    const newWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [{ ...initialItem, id: uuidv4(), material: "SUCATA" }], descontoCacamba: 0 };
+    const newWeighingSet: WeighingSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
     setWeighingSets([newWeighingSet]);
     setActiveSetId(newWeighingSet.id);
     setHeaderData({ client: "", plate: "", driver: "" });
@@ -280,6 +302,26 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   };
 
 
+  const handleInitialWeightChange = (value: string) => {
+    const numValue = parseInt(value.replace(/\D/g, ''), 10) || 0;
+    const initialWeightField = operationType === 'loading' ? 'tara' : 'bruto';
+
+    setWeighingSets(prev => {
+        const newSets = [...prev];
+        if (newSets.length > 0) {
+            // Ensure the first item exists to store the initial weight
+            if (newSets[0].items.length === 0) {
+                newSets[0].items.push({ ...initialItem, id: uuidv4() });
+            }
+            newSets[0].items[0] = {
+                ...newSets[0].items[0],
+                [initialWeightField]: numValue
+            };
+        }
+        return newSets;
+    });
+};
+
   useImperativeHandle(ref, () => ({
     handleClear,
     handleSave,
@@ -305,7 +347,8 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   const firstSet = weighingSets.length > 0 ? weighingSets[0] : null;
   const firstItem = firstSet && firstSet.items.length > 0 ? firstSet.items[0] : null;
   const initialWeightField = operationType === 'loading' ? 'tara' : 'bruto';
-  const initialWeightValue = firstItem ? firstItem[initialWeightField] : 0;
+  // Use the value from the (potentially hidden) first item to display the initial truck weight
+  const initialWeightValue = firstSet?.items[0]?.[initialWeightField] ?? 0;
 
   return (
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
@@ -385,7 +428,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                  <div className="space-y-px flex-none w-28">
                     <Label className="text-xs sm:text-sm">{operationType === 'loading' ? 'Tara (kg)' : 'Bruto (kg)'}</Label>
                     {weighingMode === 'electronic' ? (
-                        <Button variant="outline" className="h-8 w-full justify-between" onClick={() => firstSet && firstItem && handleFetchLiveWeight(firstSet.id, firstItem.id, initialWeightField)}>
+                        <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleInitialWeightChange('0')}>
                             <span>{formatNumber(initialWeightValue) || "Buscar"}</span>
                             {isScaleDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
                         </Button>
@@ -395,7 +438,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                             inputMode="decimal" 
                             placeholder="0" 
                             value={formatNumber(initialWeightValue)} 
-                            onChange={(e) => firstSet && firstItem && handleInputChange(firstSet.id, firstItem.id, initialWeightField, e.target.value)} 
+                            onChange={(e) => handleInitialWeightChange(e.target.value)} 
                             className="text-right h-8 print:hidden w-full" 
                         />
                     )}
@@ -408,7 +451,9 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       </Card>
 
       {weighingSets.map((set, setIndex) => {
-         const subtotalLiquido = set.items.reduce((acc, item) => acc + item.liquido, 0);
+         // Only show items if there are any
+         const visibleItems = set.items.filter(item => item.id);
+         const subtotalLiquido = visibleItems.reduce((acc, item) => acc + item.liquido, 0);
          const totalLiquidoSet = subtotalLiquido - set.descontoCacamba;
 
          return (
@@ -431,10 +476,11 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                 </Tooltip>
               </TooltipProvider>
             </CardHeader>
+            {visibleItems.length > 0 && (
             <CardContent className="p-0 overflow-x-auto">
               {/* Mobile Layout */}
               <div className="sm:hidden">
-                  {set.items.map((item) => {
+                  {visibleItems.map((item) => {
                       return (
                       <div key={item.id} className="border-b p-0.5 space-y-0.5">
                           <div className="space-y-px">
@@ -497,7 +543,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {set.items.map((item) => {
+                  {visibleItems.map((item) => {
                       return (
                     <TableRow key={item.id} className="print:text-black">
                       <TableCell className="w-[30%] font-medium p-0 sm:p-px">
@@ -570,6 +616,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                 </TableBody>
               </Table>
             </CardContent>
+            )}
             <CardContent className="p-px border-t print:border-t print:border-border print:p-0 print:pt-0.5">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-1">
                      <div className="flex items-center gap-0.5">
