@@ -20,7 +20,8 @@
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 30%;
+    --border-silver: 0 0% 75%;
+    --border: var(--border-silver);
     --input: 240 3.7% 15.9%;
     --ring: 158 44% 55%;
     --radius: 0.5rem;
@@ -59,7 +60,8 @@
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 30%;
+    --border-silver: 0 0% 75%;
+    --border: var(--border-silver);
     --input: 240 3.7% 15.9%;
     --ring: 158 44% 55%;
     --chart-1: 220 70% 50%;
