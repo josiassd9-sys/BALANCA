@@ -605,7 +605,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
         </div>
       )}
 
-      <Card className="mt-px bg-primary/10 border-primary/20 print:border print:border-accent-price print:shadow-none print:p-0.5">
+      <Card className="mt-px bg-card print:border print:border-accent-price print:shadow-none print:p-0.5">
          <CardContent className="p-px flex justify-end items-center">
              <div className="text-right">
                 <p className="text-lg font-semibold text-primary print:text-2xl print:mb-0.5">Peso Líquido Total</p>
