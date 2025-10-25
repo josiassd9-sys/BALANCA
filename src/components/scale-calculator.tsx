@@ -9,7 +9,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
-import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, CircuitBoard } from "lucide-react";
+import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, CircuitBoard, Signal } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { doc } from "firebase/firestore";
@@ -388,7 +388,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
             onValueChange={(value) => {
               if (value) setWeighingMode(value as WeighingMode);
             }}
-            className="p-1"
+            className="p-1 gap-4"
           >
             <Tooltip>
               <TooltipTrigger asChild>
@@ -677,7 +677,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
         </div>
       )}
 
-      <Card className="mt-px bg-card print:border print:border-accent-price print:shadow-none print:p-0.5">
+      <Card className="mt-px bg-primary/10 border-primary/20 print:border print:border-accent-price print:shadow-none print:p-0.5">
          <CardContent className="p-px flex justify-end items-center">
              <div className="text-right">
                 <p className="text-lg font-semibold text-primary print:text-2xl print:mb-0.5">Peso Líquido Total</p>
