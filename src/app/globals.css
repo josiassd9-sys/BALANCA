@@ -21,7 +21,7 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border-silver: 0 0% 75%;
-    --border: 240 3.7% 15.9%;
+    --border: var(--border-silver);
     --input: var(--border-silver);
     --ring: 158 44% 55%;
     --radius: 0.5rem;
@@ -61,7 +61,7 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border-silver: 0 0% 75%;
-    --border: 240 3.7% 15.9%;
+    --border: var(--border-silver);
     --input: var(--border-silver);
     --ring: 158 44% 55%;
     --chart-1: 220 70% 50%;
@@ -94,7 +94,7 @@
 
 @layer components {
   input:not(:placeholder-shown) {
-    @apply bg-white text-black;
+    @apply bg-zinc-200 text-black;
   }
 }
 
