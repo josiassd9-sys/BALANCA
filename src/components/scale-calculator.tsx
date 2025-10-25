@@ -75,17 +75,17 @@ const ScaleCalculator = forwardRef((props, ref) => {
         if (savedSets && savedSets.length > 0) {
             setActiveSetId(savedSets[0]?.id);
         } else {
-            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA INOX" }] };
+            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA" }] };
             setWeighingSets([newSet]);
             setActiveSetId(newSet.id);
         }
       } catch (e) {
-        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA INOX" }] };
+        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA" }] };
         setWeighingSets([newSet]);
         setActiveSetId(newSet.id);
       }
     } else if (weighingSets.length === 0) {
-      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA INOX" }] };
+      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA" }] };
       setWeighingSets([newSet]);
       setActiveSetId(newSet.id);
     }
@@ -162,7 +162,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
           if (operationType === 'loading') { // Venda - Carregamento
              newItem = {
               id: uuidv4(),
-              material: "SUCATA INOX",
+              material: "SUCATA",
               bruto: 0,
               tara: lastItem.bruto, // Tara do novo é o bruto do anterior
               descontos: 0,
@@ -171,7 +171,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
           } else { // Compra - Descarregamento
             newItem = {
               id: uuidv4(),
-              material: "SUCATA INOX",
+              material: "SUCATA",
               bruto: lastItem.tara, // Bruto do novo é a tara do anterior
               tara: 0,
               descontos: 0,
@@ -208,7 +208,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
         name: "BITREM / CAÇAMBA 2",
         items: [{
             id: uuidv4(),
-            material: "SUCATA INOX",
+            material: "SUCATA",
             bruto: 0,
             tara: truckTara,
             descontos: 0,
@@ -222,7 +222,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
   };
 
   const handleClear = () => {
-    const newWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [{ ...initialItem, id: uuidv4(), material: "SUCATA INOX" }], descontoCacamba: 0 };
+    const newWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [{ ...initialItem, id: uuidv4(), material: "SUCATA" }], descontoCacamba: 0 };
     setWeighingSets([newWeighingSet]);
     setActiveSetId(newWeighingSet.id);
     setHeaderData({ client: "", plate: "", driver: "" });
