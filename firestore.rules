@@ -1,35 +1,34 @@
 /**
- * @file Overview
- * This ruleset governs access to the Inox PriceCalc application's data, focusing on
- * stainless steel item catalogs and real-time scale data.
+ * @file Firestore Security Rules for Inox PriceCalc
  *
- * Core Philosophy:
- * This ruleset prioritizes open access to catalog data (items, categories, settings)
- * and secure, service-account-controlled access to real-time scale data. There is no user-specific data, so
- * no authentication is required for read operations. All writes are denied to the client
- * and MUST be performed by a trusted server environment using a service account.
+ * @core_philosophy This ruleset provides public read access to item catalogs and universal settings,
+ * and assumes a trusted environment (e.g., a service account) for writing scale data.
+ * There is no user-specific data or concept of ownership in this model.
  *
- * Data Structure:
- * - /inox_item_categories/{inoxItemCategoryId}: Categories of stainless steel items.
- * - /inox_items/{inoxItemId}: Specific stainless steel items.
- * - /universal_settings/{universalSettingsId}: Universal pricing settings.
- * - /scale_data/{scaleDataId}: Data from the live scale.
+ * @data_structure
+ * - /inox_item_categories/{inoxItemCategoryId}: Stores item categories. Publicly readable.
+ * - /inox_items/{inoxItemId}: Stores item details. Publicly readable.
+ * - /universal_settings/{universalSettingsId}: Stores global settings. Publicly readable.
+ * - /scale_data/{scaleDataId}: Stores scale readings. Writes should be secured via a service account.
  *
- * Key Security Decisions:
- * - Catalog data (items, categories, settings) is publicly readable.
- * - All write access is denied to the client. Writes to `scale_data` must originate from a trusted server environment (e.g., Cloud Function) using a service account.
- * - No user-specific data or ownership concepts are enforced, as the application is designed for public data.
+ * @key_security_decisions
+ * - Public read access for item catalogs and settings to allow unauthenticated users to view data.
+ * - No user listing is needed or supported.
+ * - Strict separation of concerns with dedicated collections for different data types.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants read access to inox item categories and denies all writes.
+     * @description Grants public read access to inox item categories.
      * @path /inox_item_categories/{inoxItemCategoryId}
-     * @allow (get, list): Any user can read item categories.
-     * @deny (create, update, delete): No user can create, update, or delete item categories. These operations must be performed by a trusted server.
-     * @principle Allows public read access to item categories.
+     * @allow (get) Any user can read an item category.
+     * @allow (list) Any user can list item categories.
+     * @deny (create) No one can create item categories directly.
+     * @deny (update) No one can update item categories directly.
+     * @deny (delete) No one can delete item categories directly.
+     * @principle Allows public read access to item catalog data.
      */
     match /inox_item_categories/{inoxItemCategoryId} {
       allow get, list: if true;
@@ -37,11 +36,14 @@ service cloud.firestore {
     }
 
     /**
-     * @description Grants read access to inox items and denies all writes.
+     * @description Grants public read access to inox items.
      * @path /inox_items/{inoxItemId}
-     * @allow (get, list): Any user can read inox items.
-     * @deny (create, update, delete): No user can create, update, or delete inox items. These operations must be performed by a trusted server.
-     * @principle Allows public read access to inox items.
+     * @allow (get) Any user can read an item.
+     * @allow (list) Any user can list items.
+     * @deny (create) No one can create items directly.
+     * @deny (update) No one can update items directly.
+     * @deny (delete) No one can delete items directly.
+     * @principle Allows public read access to item catalog data.
      */
     match /inox_items/{inoxItemId} {
       allow get, list: if true;
@@ -49,11 +51,14 @@ service cloud.firestore {
     }
 
     /**
-     * @description Grants read access to universal settings and denies all writes.
+     * @description Grants public read access to universal settings.
      * @path /universal_settings/{universalSettingsId}
-     * @allow (get, list): Any user can read universal settings.
-     * @deny (create, update, delete): No user can create, update, or delete universal settings. These operations must be performed by a trusted server.
-     * @principle Allows public read access to universal settings.
+     * @allow (get) Any user can read the universal settings.
+     * @allow (list) Any user can list the universal settings.
+     * @deny (create) No one can create universal settings directly.
+     * @deny (update) No one can update universal settings directly.
+     * @deny (delete) No one can delete universal settings directly.
+     * @principle Allows public read access to global settings.
      */
     match /universal_settings/{universalSettingsId} {
       allow get, list: if true;
@@ -61,27 +66,41 @@ service cloud.firestore {
     }
 
     /**
-     * @description Denies all access to scale data from the client. Writes to this collection must originate from a trusted server environment (e.g., Cloud Function) using a service account.
+     * @description Restricts write access to the scale_data collection.  Assumes a trusted environment.
      * @path /scale_data/{scaleDataId}
-     * @allow (get, list): Not Applicable.
-     * @deny (create, update, delete): All operations are denied for a client.
-     * @principle Secure the live scale data to only be updated from backend.
+     * @allow (create) Allows create if authenticated (e.g., via service account).
+     * @allow (get) Any user can read a scale data entry.
+     * @allow (list) Any user can list scale data entries.
+     * @deny (update) No one can update scale data entries directly.
+     * @deny (delete) No one can delete scale data entries directly.
+     * @principle Secure write access assuming trusted environment and allows public read.
      */
     match /scale_data/{scaleDataId} {
-      allow get, list: if false;
-      allow create, update, delete: if false;
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if false;
     }
 
     /**
-     * @description Denies access to the /pesagens/live document.
-     * @path /pesagens/live
-     * @allow (get): Not Applicable.
-     * @deny (get): All operations are denied for a client.
+     * @description Catches any other requests and denies them.
+     * @path /
+     * @deny (get) Denies all get operations.
+     * @deny (list) Denies all list operations.
+     * @deny (create) Denies all create operations.
+     * @deny (update) Denies all update operations.
+     * @deny (delete) Denies all delete operations.
+     * @principle Default deny-all policy.
      */
-    match /pesagens/live {
-      allow get: if false;
-      allow list: if false;
-      allow create, update, delete: if false;
+    match /{path=**} {
+      allow get, list, create, update, delete: if false;
     }
+  }
+
+  /**
+   * @description Checks if the request is authenticated.
+   * @return {bool} True if the request is authenticated, false otherwise.
+   */
+  function isSignedIn() {
+    return request.auth != null;
   }
 }
