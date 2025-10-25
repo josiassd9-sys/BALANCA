@@ -92,6 +92,12 @@
   }
 }
 
+@layer components {
+  input:not(:placeholder-shown) {
+    @apply bg-white text-black;
+  }
+}
+
 
 @media print {
   body {
