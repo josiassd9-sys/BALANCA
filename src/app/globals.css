@@ -4,19 +4,19 @@
 
 @layer base {
   :root {
-    --background: 220 6% 50%;
-    --foreground: 0 0% 98%;
-    --card: 220 6% 90%;
+    --background: 220 6% 88%;
+    --foreground: 220 6% 14%;
+    --card: 0 0% 100%;
     --card-foreground: 220 6% 14%;
-    --popover: 220 6% 90%;
+    --popover: 0 0% 100%;
     --popover-foreground: 220 6% 14%;
     --primary: 158 44% 55%;
     --primary-foreground: 158 44% 95%;
-    --secondary: 220 6% 90%;
+    --secondary: 0 0% 100%;
     --secondary-foreground: 220 6% 14%;
-    --muted: 220 6% 90%;
+    --muted: 0 0% 100%;
     --muted-foreground: 240 5% 64.9%;
-    --accent: 220 6% 90%;
+    --accent: 0 0% 100%;
     --accent-foreground: 220 6% 14%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
@@ -94,7 +94,7 @@
 
 @layer components {
   input:not(:placeholder-shown) {
-    @apply bg-zinc-200 text-black;
+    @apply bg-white text-black;
   }
 }
 
