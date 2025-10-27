@@ -164,15 +164,15 @@ const ScaleCalculator = forwardRef((props, ref) => {
     setWeighingSets(prevSets =>
       prevSets.map(set => {
         if (set.id === setId) {
-          const isFirstItemInSet = set.items.length === 0;
-          const isFirstSet = weighingSets[0]?.id === setId;
-  
           let newItem: WeighingItem;
-          
-          if (isFirstItemInSet && isFirstSet) {
-            // This is the very first material being added to the first container.
-            // Its initial weight depends on the truck's weight.
-            const truckWeight = weighingSets[0]?.items[0]?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? 0;
+          const visibleItems = set.items.filter(item => item.material !== "PESO_INICIAL_CAMINHAO");
+          const lastVisibleItem = visibleItems[visibleItems.length - 1];
+
+          if (!lastVisibleItem) {
+            // This is the FIRST VISIBLE item being added.
+            // Its weight is based on the initial truck weight stored in the hidden item.
+            const initialWeightItem = set.items.find(item => item.material === "PESO_INICIAL_CAMINHAO");
+            const truckWeight = initialWeightItem?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? 0;
             
             newItem = {
               id: uuidv4(),
@@ -182,45 +182,30 @@ const ScaleCalculator = forwardRef((props, ref) => {
               descontos: 0,
               liquido: 0,
             };
-            newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
-          
+
           } else {
-            const lastItem = set.items[set.items.length - 1];
-            if (!lastItem) { // Should only happen if adding to a subsequent container that is empty
-                const firstSet = weighingSets[0];
-                const truckWeight = firstSet?.items[0]?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? 0;
-                newItem = {
-                    id: uuidv4(),
-                    material: "SUCATA",
-                    bruto: operationType === 'loading' ? 0 : truckWeight,
-                    tara: operationType === 'loading' ? truckWeight : 0,
-                    descontos: 0,
-                    liquido: 0,
-                };
-                newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
-            } else {
-                if (operationType === 'loading') { // Venda - Carregamento
-                newItem = {
-                    id: uuidv4(),
-                    material: "SUCATA",
-                    bruto: 0,
-                    tara: lastItem.bruto, // Tara do novo é o bruto do anterior
-                    descontos: 0,
-                    liquido: 0,
-                };
-                } else { // Compra - Descarregamento
-                newItem = {
-                    id: uuidv4(),
-                    material: "SUCATA",
-                    bruto: lastItem.tara, // Bruto do novo é a tara do anterior
-                    tara: 0,
-                    descontos: 0,
-                    liquido: 0,
-                };
-                }
-            }
+            // This is a SUBSEQUENT item. Its weight is based on the previous visible item.
+             if (operationType === 'loading') { // Venda - Carregamento
+              newItem = {
+                  id: uuidv4(),
+                  material: "SUCATA",
+                  bruto: 0,
+                  tara: lastVisibleItem.bruto, // Tara do novo é o bruto do anterior
+                  descontos: 0,
+                  liquido: 0,
+              };
+              } else { // Compra - Descarregamento
+              newItem = {
+                  id: uuidv4(),
+                  material: "SUCATA",
+                  bruto: lastVisibleItem.tara, // Bruto do novo é a tara do anterior
+                  tara: 0,
+                  descontos: 0,
+                  liquido: 0,
+              };
+              }
           }
-           
+          newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
           return { ...set, items: [...set.items, newItem] };
         }
         return set;
@@ -233,8 +218,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
 
     const firstSet = weighingSets[0];
     
-    // Check if the first item (with the initial truck weight) exists.
-    if (!firstSet || !firstSet.items[0]) {
+    if (!firstSet || !firstSet.items.find(item => item.material === "PESO_INICIAL_CAMINHAO")) {
         toast({
             variant: "destructive",
             title: "Peso Inicial Necessário",
@@ -242,9 +226,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
         });
         return;
     }
-
-    const truckTara = operationType === 'loading' ? firstSet.items[0].tara : 0;
-    const truckBruto = operationType === 'unloading' ? firstSet.items[0].bruto : 0;
 
     const newSet: WeighingSet = {
         id: uuidv4(),
@@ -322,24 +303,28 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 
     setWeighingSets(prev => {
         const newSets = JSON.parse(JSON.stringify(prev)); // Deep copy
-        if (newSets.length > 0) {
-            // Create a hidden item to store the truck's initial weight if it doesn't exist
-            if (newSets[0].items.length === 0) {
-                newSets[0].items.push({ ...initialItem, id: uuidv4(), material: "PESO_INICIAL_CAMINHAO" });
-            }
-            // Update the weight on the hidden item
-            const firstItem = newSets[0].items[0];
-            firstItem[initialWeightField] = numValue;
-            
-            // Also update its counterpart to avoid negative liquid weight if bruto/tara is 0
-            if (initialWeightField === 'tara') {
-                if(firstItem.bruto === 0) firstItem.liquido = -numValue;
-                else firstItem.liquido = firstItem.bruto - numValue - firstItem.descontos;
-            } else { // initialWeightField is 'bruto'
-                if(firstItem.tara === 0) firstItem.liquido = numValue;
-                 else firstItem.liquido = numValue - firstItem.tara - firstItem.descontos;
-            }
+        
+        if (newSets.length === 0) { // Should not happen, but as a safeguard
+            newSets.push({ ...initialWeighingSet, id: uuidv4(), items: [] });
         }
+
+        let initialItem = newSets[0].items.find((i: WeighingItem) => i.material === "PESO_INICIAL_CAMINHAO");
+
+        if (!initialItem) {
+            initialItem = { ...initialItem, id: uuidv4(), material: "PESO_INICIAL_CAMINHAO", bruto: 0, tara: 0, descontos: 0, liquido: 0 };
+            newSets[0].items.unshift(initialItem); // Add to the beginning
+        }
+
+        // Update the weight on the hidden item
+        initialItem[initialWeightField] = numValue;
+        
+        // Also update its counterpart to avoid negative liquid weight if bruto/tara is 0
+        if (initialWeightField === 'tara') {
+            initialItem.liquido = initialItem.bruto - numValue - initialItem.descontos;
+        } else { // initialWeightField is 'bruto'
+            initialItem.liquido = numValue - initialItem.tara - initialItem.descontos;
+        }
+        
         return newSets;
     });
 };
@@ -369,9 +354,9 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   }, 0);
 
   const firstSet = weighingSets.length > 0 ? weighingSets[0] : null;
-  const firstItem = firstSet && firstSet.items.length > 0 ? firstSet.items[0] : null;
+  const initialItemInState = firstSet?.items.find(item => item.material === "PESO_INICIAL_CAMINHAO");
   const initialWeightField = operationType === 'loading' ? 'tara' : 'bruto';
-  const initialWeightValue = firstItem?.[initialWeightField] ?? 0;
+  const initialWeightValue = initialItemInState?.[initialWeightField] ?? 0;
   
   // Filter out the hidden initial item before rendering
   const visibleItems = (set: WeighingSet) => set.items.filter(item => item.material !== "PESO_INICIAL_CAMINHAO");
@@ -719,5 +704,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
 
     
