@@ -59,7 +59,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
 
   const firestore = useFirestore();
   const scaleDataRef = useMemoFirebase(
-    () => firestore ? doc(firestore, "pesagens", "live") : null,
+    () => firestore ? doc(firestore, "balanca", "live") : null,
     [firestore]
   );
   const { data: liveScaleData, isLoading: isScaleDataLoading } = useDoc<ScaleData>(scaleDataRef);
@@ -171,7 +171,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
           if (!lastVisibleItem) {
             // This is the FIRST VISIBLE item being added.
             // Its weight is based on the initial truck weight stored in the hidden item.
-            const initialWeightItem = set.items.find(item => item.material === "PESO_INICIAL_CAMINHAO");
+            const initialWeightItem = weighingSets[0]?.items.find(item => item.material === "PESO_INICIAL_CAMINHAO");
             const truckWeight = initialWeightItem?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? 0;
             
             newItem = {
@@ -704,7 +704,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    
 
     
