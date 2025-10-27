@@ -12,6 +12,16 @@ import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from ".
 import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, CircuitBoard, Settings } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+
 
 type WeighingItem = {
   id: string;
@@ -29,21 +39,14 @@ type WeighingSet = {
   descontoCacamba: number;
 };
 
-type ScaleData = {
-  peso: number;
-  timestamp: {
-    seconds: number;
-    nanoseconds: number;
-  };
-}
-
 type OperationType = 'loading' | 'unloading';
 type WeighingMode = 'manual' | 'electronic';
 
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
-const WEBSOCKET_URL = "ws://127.0.0.1:8081";
+const DEFAULT_WEBSOCKET_URL = "ws://127.0.0.1:8081";
+
 
 const ScaleCalculator = forwardRef((props, ref) => {
   const [headerData, setHeaderData] = useState({
@@ -58,11 +61,26 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const [weighingMode, setWeighingMode] = useState<WeighingMode>('manual');
   const [liveWeight, setLiveWeight] = useState(0);
   const [isWsConnected, setIsWsConnected] = useState(false);
+  const [websocketUrl, setWebsocketUrl] = useState(DEFAULT_WEBSOCKET_URL);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [tempWebsocketUrl, setTempWebsocketUrl] = useState(websocketUrl);
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    try {
+      const savedUrl = localStorage.getItem("websocketUrl");
+      if (savedUrl) {
+        setWebsocketUrl(savedUrl);
+        setTempWebsocketUrl(savedUrl);
+      }
+    } catch (e) {
+      console.error("Could not read websocketUrl from localStorage.", e);
+    }
+  }, []);
+
+  useEffect(() => {
     if (weighingMode === 'electronic') {
-      ws.current = new WebSocket(WEBSOCKET_URL);
+      ws.current = new WebSocket(websocketUrl);
       
       ws.current.onopen = () => {
         console.log("WebSocket connected");
@@ -94,7 +112,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
         console.error("WebSocket error:", error);
         setIsWsConnected(false);
         setLiveWeight(0);
-        toast({ variant: "destructive", title: "Erro de Conexão", description: "Não foi possível conectar à balança eletrônica." });
+        toast({ variant: "destructive", title: "Erro de Conexão", description: `Não foi possível conectar à balança em ${websocketUrl}.` });
       };
 
       return () => {
@@ -108,7 +126,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
         setIsWsConnected(false);
         setLiveWeight(0);
     }
-  }, [weighingMode, toast]);
+  }, [weighingMode, websocketUrl, toast]);
 
   useEffect(() => {
     let savedData;
@@ -213,12 +231,12 @@ const ScaleCalculator = forwardRef((props, ref) => {
           const visibleItems = set.items.filter(item => item.material !== "PESO_INICIAL_CAMINHAO");
           const lastVisibleItem = visibleItems[visibleItems.length - 1];
           let newItem: WeighingItem;
+          
+          const initialWeightItem = weighingSets.find(s => s.id === weighingSets[0].id)?.items.find(item => item.material === "PESO_INICIAL_CAMINHAO");
+          const truckWeight = initialWeightItem?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? 0;
 
-          if (!lastVisibleItem) {
+          if (!lastVisibleItem && visibleItems.length === 0) {
             // First visible item. Base its weight on the hidden initial truck weight.
-            const initialWeightItem = weighingSets[0]?.items.find(item => item.material === "PESO_INICIAL_CAMINHAO");
-            const truckWeight = initialWeightItem?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? 0;
-            
             newItem = {
               id: uuidv4(),
               material: "SUCATA",
@@ -227,7 +245,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
               descontos: 0,
               liquido: 0,
             };
-          } else {
+          } else if (lastVisibleItem) {
             // Subsequent item. Base its weight on the previous visible item.
             if (operationType === 'loading') { // Venda - Carregamento
               newItem = {
@@ -248,6 +266,9 @@ const ScaleCalculator = forwardRef((props, ref) => {
                   liquido: 0,
               };
             }
+          } else {
+             // Fallback, should not be reached with the current logic
+             newItem = { id: uuidv4(), material: 'SUCATA', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
           }
           newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
           return { ...set, items: [...set.items, newItem] };
@@ -304,7 +325,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
           if (savedData) {
               const { weighingSets, headerData, operationType } = JSON.parse(savedData);
               setWeighingSets(weighingSets);
-              setHeaderData(headerData || { client: "", plate: "", driver: "" });
+setHeaderData(headerData || { client: "", plate: "", driver: "" });
               setOperationType(operationType || 'loading');
               setActiveSetId(weighingSets[0]?.id || null);
               toast({ title: "Dados Carregados", description: "A última pesagem salva foi carregada." });
@@ -336,6 +357,21 @@ const ScaleCalculator = forwardRef((props, ref) => {
     toast({ title: "Peso Capturado!", description: `Peso de ${weight}kg aplicado ao campo ${field}.` });
   };
 
+  const handleSaveSettings = () => {
+    try {
+      localStorage.setItem("websocketUrl", tempWebsocketUrl);
+      setWebsocketUrl(tempWebsocketUrl);
+      setIsSettingsOpen(false);
+      toast({ title: "Configurações Salvas!", description: "O endereço da balança foi atualizado." });
+      // The useEffect for weighingMode will handle reconnection
+      if (weighingMode === 'electronic') {
+        setWeighingMode('manual'); // Toggle to force re-connection
+        setTimeout(() => setWeighingMode('electronic'), 100);
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erro ao Salvar", description: "Não foi possível salvar as configurações." });
+    }
+  };
 
   const handleInitialWeightChange = (value: string) => {
     const numValue = parseInt(value.replace(/\D/g, ''), 10) || 0;
@@ -403,6 +439,40 @@ const ScaleCalculator = forwardRef((props, ref) => {
 
   return (
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Configurar Conexão</DialogTitle>
+            <DialogDescription>
+              Altere o endereço do servidor WebSocket para se conectar à balança eletrônica.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="ws-url" className="text-right col-span-1">
+                URL
+              </Label>
+              <Input
+                id="ws-url"
+                value={tempWebsocketUrl}
+                onChange={(e) => setTempWebsocketUrl(e.target.value)}
+                className="col-span-3"
+                placeholder="ws://127.0.0.1:8081"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Cancelar
+              </Button>
+            </DialogClose>
+            <Button type="button" onClick={handleSaveSettings}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex justify-between items-center mb-4 px-2 print:hidden">
         <div className="flex items-center gap-2">
             <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
@@ -442,7 +512,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)}>
                   <Settings className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
@@ -761,3 +831,5 @@ const ScaleCalculator = forwardRef((props, ref) => {
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
