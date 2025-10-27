@@ -9,7 +9,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
-import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, CircuitBoard, Signal } from "lucide-react";
+import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, CircuitBoard, Settings } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { doc } from "firebase/firestore";
@@ -365,34 +365,46 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
       <div className="flex justify-between items-center mb-4 px-2 print:hidden">
         <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
-        <TooltipProvider>
-          <ToggleGroup 
-            type="single" 
-            variant="outline"
-            value={weighingMode} 
-            onValueChange={(value) => {
-              if (value) setWeighingMode(value as WeighingMode);
-            }}
-            className="p-1 gap-4"
-          >
+        <div className="flex items-center gap-4">
+          <TooltipProvider>
+            <ToggleGroup 
+              type="single" 
+              variant="outline"
+              value={weighingMode} 
+              onValueChange={(value) => {
+                if (value) setWeighingMode(value as WeighingMode);
+              }}
+              className="p-1 gap-4"
+            >
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <ToggleGroupItem value="manual" aria-label="Manual">
+                    <PenSquare className="h-5 w-5" />
+                  </ToggleGroupItem>
+                </TooltipTrigger>
+                <TooltipContent><p>Pesagem Manual</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <ToggleGroupItem value="electronic" aria-label="Eletrônica">
+                    <CircuitBoard className="h-5 w-5" />
+                  </ToggleGroupItem>
+                </TooltipTrigger>
+                <TooltipContent><p>Pesagem Eletrônica</p></TooltipContent>
+              </Tooltip>
+            </ToggleGroup>
+          </TooltipProvider>
+          <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <ToggleGroupItem value="manual" aria-label="Manual">
-                  <PenSquare className="h-5 w-5" />
-                </ToggleGroupItem>
+                <Button variant="outline" size="icon">
+                  <Settings className="h-5 w-5" />
+                </Button>
               </TooltipTrigger>
-              <TooltipContent><p>Pesagem Manual</p></TooltipContent>
+              <TooltipContent><p>Configurar Conexão</p></TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToggleGroupItem value="electronic" aria-label="Eletrônica">
-                  <CircuitBoard className="h-5 w-5" />
-                </ToggleGroupItem>
-              </TooltipTrigger>
-              <TooltipContent><p>Pesagem Eletrônica</p></TooltipContent>
-            </Tooltip>
-          </ToggleGroup>
-        </TooltipProvider>
+          </TooltipProvider>
+        </div>
       </div>
 
       <Card className="mb-px print:border-none print:shadow-none print:p-0">
