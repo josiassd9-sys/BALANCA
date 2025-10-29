@@ -45,7 +45,8 @@ type WeighingMode = 'manual' | 'electronic';
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
-const DEFAULT_WEBSOCKET_URL = "ws://127.0.0.1:8081";
+const DEFAULT_WEBSOCKET_IP = "127.0.0.1";
+const DEFAULT_WEBSOCKET_PORT = "8081";
 
 
 const ScaleCalculator = forwardRef((props, ref) => {
@@ -61,25 +62,33 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const [weighingMode, setWeighingMode] = useState<WeighingMode>('manual');
   const [liveWeight, setLiveWeight] = useState(0);
   const [isWsConnected, setIsWsConnected] = useState(false);
-  const [websocketUrl, setWebsocketUrl] = useState(DEFAULT_WEBSOCKET_URL);
+  const [websocketIp, setWebsocketIp] = useState(DEFAULT_WEBSOCKET_IP);
+  const [websocketPort, setWebsocketPort] = useState(DEFAULT_WEBSOCKET_PORT);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [tempWebsocketUrl, setTempWebsocketUrl] = useState(websocketUrl);
+  const [tempWebsocketIp, setTempWebsocketIp] = useState(websocketIp);
+  const [tempWebsocketPort, setTempWebsocketPort] = useState(websocketPort);
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     try {
-      const savedUrl = localStorage.getItem("websocketUrl");
-      if (savedUrl) {
-        setWebsocketUrl(savedUrl);
-        setTempWebsocketUrl(savedUrl);
+      const savedIp = localStorage.getItem("websocketIp");
+      const savedPort = localStorage.getItem("websocketPort");
+      if (savedIp) {
+        setWebsocketIp(savedIp);
+        setTempWebsocketIp(savedIp);
+      }
+      if (savedPort) {
+        setWebsocketPort(savedPort);
+        setTempWebsocketPort(savedPort);
       }
     } catch (e) {
-      console.error("Could not read websocketUrl from localStorage.", e);
+      console.error("Could not read websocket settings from localStorage.", e);
     }
   }, []);
 
   useEffect(() => {
     if (weighingMode === 'electronic') {
+      const websocketUrl = `ws://${websocketIp}:${websocketPort}`;
       ws.current = new WebSocket(websocketUrl);
       
       ws.current.onopen = () => {
@@ -126,7 +135,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
         setIsWsConnected(false);
         setLiveWeight(0);
     }
-  }, [weighingMode, websocketUrl, toast]);
+  }, [weighingMode, websocketIp, websocketPort, toast]);
 
   useEffect(() => {
     let savedData;
@@ -359,13 +368,15 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 
   const handleSaveSettings = () => {
     try {
-      localStorage.setItem("websocketUrl", tempWebsocketUrl);
-      setWebsocketUrl(tempWebsocketUrl);
+      localStorage.setItem("websocketIp", tempWebsocketIp);
+      localStorage.setItem("websocketPort", tempWebsocketPort);
+      setWebsocketIp(tempWebsocketIp);
+      setWebsocketPort(tempWebsocketPort);
       setIsSettingsOpen(false);
       toast({ title: "Configurações Salvas!", description: "O endereço da balança foi atualizado." });
-      // The useEffect for weighingMode will handle reconnection
+      
       if (weighingMode === 'electronic') {
-        setWeighingMode('manual'); // Toggle to force re-connection
+        setWeighingMode('manual');
         setTimeout(() => setWeighingMode('electronic'), 100);
       }
     } catch (e) {
@@ -440,26 +451,36 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   return (
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Configurar Conexão</DialogTitle>
             <DialogDescription>
               Altere o endereço do servidor WebSocket para se conectar à balança eletrônica.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="ws-url" className="text-right col-span-1">
-                URL
-              </Label>
-              <Input
-                id="ws-url"
-                value={tempWebsocketUrl}
-                onChange={(e) => setTempWebsocketUrl(e.target.value)}
-                className="col-span-3"
-                placeholder="ws://127.0.0.1:8081"
-              />
-            </div>
+          <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-4 sm:items-center">
+            <Label htmlFor="ws-ip" className="sm:text-right">
+              IP do Servidor
+            </Label>
+            <Input
+              id="ws-ip"
+              value={tempWebsocketIp}
+              onChange={(e) => setTempWebsocketIp(e.target.value)}
+              className="sm:col-span-3"
+              placeholder="127.0.0.1"
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 pb-4 sm:grid-cols-4 sm:items-center">
+             <Label htmlFor="ws-port" className="sm:text-right">
+              Porta
+            </Label>
+            <Input
+              id="ws-port"
+              value={tempWebsocketPort}
+              onChange={(e) => setTempWebsocketPort(e.target.value)}
+              className="sm:col-span-3"
+              placeholder="8081"
+            />
           </div>
           <DialogFooter>
             <DialogClose asChild>
