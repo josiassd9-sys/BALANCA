@@ -1,11 +1,7 @@
 {
-  "name": "Balança de Pesagem",
+  "name": "Balança",
   "short_name": "Balança",
-  "description": "Calculadora de Pesagem Avulsa",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#2a3b4c",
-  "theme_color": "#4dab96",
+  "description": "Calculadora de Pesagem",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -17,5 +13,10 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "theme_color": "#212936",
+  "background_color": "#212936",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait"
 }
