@@ -70,19 +70,52 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    // Load WebSocket settings from localStorage on client-side
+    const savedIp = localStorage.getItem("websocketIp");
+    const savedPort = localStorage.getItem("websocketPort");
+    if (savedIp) {
+      setWebsocketIp(savedIp);
+      setTempWebsocketIp(savedIp);
+    }
+    if (savedPort) {
+      setWebsocketPort(savedPort);
+      setTempWebsocketPort(savedPort);
+    }
+
+    // Load scale data from localStorage on client-side
+    let savedData;
     try {
-      const savedIp = localStorage.getItem("websocketIp");
-      const savedPort = localStorage.getItem("websocketPort");
-      if (savedIp) {
-        setWebsocketIp(savedIp);
-        setTempWebsocketIp(savedIp);
-      }
-      if (savedPort) {
-        setWebsocketPort(savedPort);
-        setTempWebsocketPort(savedPort);
-      }
+      savedData = localStorage.getItem("scaleData");
     } catch (e) {
-      console.error("Could not read websocket settings from localStorage.", e);
+      console.error("Could not read from localStorage.", e);
+    }
+  
+    if (savedData) {
+      try {
+        const { weighingSets: savedSets, headerData: savedHeader, operationType: savedOpType } = JSON.parse(savedData);
+        
+        if (Array.isArray(savedSets) && savedSets.length > 0) {
+           setWeighingSets(savedSets);
+           setActiveSetId(savedSets[0]?.id);
+        } else {
+            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
+            setWeighingSets([newSet]);
+            setActiveSetId(newSet.id);
+        }
+
+        setHeaderData(savedHeader || { client: "", plate: "", driver: "" });
+        setOperationType(savedOpType || 'loading');
+
+      } catch (e) {
+        console.error("Failed to parse saved data.", e);
+        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
+        setWeighingSets([newSet]);
+        setActiveSetId(newSet.id);
+      }
+    } else {
+      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
+      setWeighingSets([newSet]);
+      setActiveSetId(newSet.id);
     }
   }, []);
 
@@ -136,43 +169,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
         setLiveWeight(0);
     }
   }, [weighingMode, websocketIp, websocketPort, toast]);
-
-  useEffect(() => {
-    let savedData;
-    try {
-      savedData = localStorage.getItem("scaleData");
-    } catch (e) {
-      console.error("Could not read from localStorage.", e);
-    }
-  
-    if (savedData) {
-      try {
-        const { weighingSets: savedSets, headerData: savedHeader, operationType: savedOpType } = JSON.parse(savedData);
-        
-        if (Array.isArray(savedSets) && savedSets.length > 0) {
-           setWeighingSets(savedSets);
-           setActiveSetId(savedSets[0]?.id);
-        } else {
-            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
-            setWeighingSets([newSet]);
-            setActiveSetId(newSet.id);
-        }
-
-        setHeaderData(savedHeader || { client: "", plate: "", driver: "" });
-        setOperationType(savedOpType || 'loading');
-
-      } catch (e) {
-        console.error("Failed to parse saved data.", e);
-        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
-        setWeighingSets([newSet]);
-        setActiveSetId(newSet.id);
-      }
-    } else {
-      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
-      setWeighingSets([newSet]);
-      setActiveSetId(newSet.id);
-    }
-  }, []);
 
   const handleHeaderChange = (field: keyof typeof headerData, value: string) => {
     if (field === 'plate') {
