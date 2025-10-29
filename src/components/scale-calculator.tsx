@@ -65,8 +65,8 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const [websocketIp, setWebsocketIp] = useState(DEFAULT_WEBSOCKET_IP);
   const [websocketPort, setWebsocketPort] = useState(DEFAULT_WEBSOCKET_PORT);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [tempWebsocketIp, setTempWebsocketIp] = useState(websocketIp);
-  const [tempWebsocketPort, setTempWebsocketPort] = useState(websocketPort);
+  const [tempWebsocketIp, setTempWebsocketIp] = useState(DEFAULT_WEBSOCKET_IP);
+  const [tempWebsocketPort, setTempWebsocketPort] = useState(DEFAULT_WEBSOCKET_PORT);
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -103,8 +103,8 @@ const ScaleCalculator = forwardRef((props, ref) => {
             setActiveSetId(newSet.id);
         }
 
-        setHeaderData(savedHeader || { client: "", plate: "", driver: "" });
-        setOperationType(savedOpType || 'loading');
+        if (savedHeader) setHeaderData(savedHeader);
+        if (savedOpType) setOperationType(savedOpType);
 
       } catch (e) {
         console.error("Failed to parse saved data.", e);
@@ -230,58 +230,64 @@ const ScaleCalculator = forwardRef((props, ref) => {
   };
   
   const addNewMaterial = (setId: string) => {
-    setWeighingSets(prevSets =>
-      prevSets.map(set => {
-        if (set.id === setId) {
-          const visibleItems = set.items.filter(item => item.material !== "PESO_INICIAL_CAMINHAO");
-          const lastVisibleItem = visibleItems[visibleItems.length - 1];
-          let newItem: WeighingItem;
-          
-          const initialWeightItem = weighingSets.find(s => s.id === weighingSets[0].id)?.items.find(item => item.material === "PESO_INICIAL_CAMINHAO");
-          const truckWeight = initialWeightItem?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? 0;
+    setWeighingSets(prevSets => {
+        // Deep clone to avoid mutation issues
+        const newSets = JSON.parse(JSON.stringify(prevSets));
+        const setIndex = newSets.findIndex((s: WeighingSet) => s.id === setId);
+        if (setIndex === -1) return prevSets; // Set not found
 
-          if (!lastVisibleItem && visibleItems.length === 0) {
+        const currentSet = newSets[setIndex];
+        const visibleItems = currentSet.items.filter((item: WeighingItem) => item.material !== "PESO_INICIAL_CAMINHAO");
+        const lastVisibleItem = visibleItems[visibleItems.length - 1];
+        
+        let newItem: WeighingItem;
+        
+        // Safely find the initial weight item from the first set
+        const firstSet = newSets[0];
+        const initialWeightItem = firstSet?.items.find((item: WeighingItem) => item.material === "PESO_INICIAL_CAMINHAO");
+        const truckWeight = initialWeightItem?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? 0;
+
+        if (!lastVisibleItem && visibleItems.length === 0) {
             // First visible item. Base its weight on the hidden initial truck weight.
             newItem = {
-              id: uuidv4(),
-              material: "SUCATA",
-              bruto: operationType === 'loading' ? 0 : truckWeight,
-              tara: operationType === 'loading' ? truckWeight : 0,
-              descontos: 0,
-              liquido: 0,
+                id: uuidv4(),
+                material: "SUCATA",
+                bruto: operationType === 'loading' ? 0 : truckWeight,
+                tara: operationType === 'loading' ? truckWeight : 0,
+                descontos: 0,
+                liquido: 0,
             };
-          } else if (lastVisibleItem) {
+        } else if (lastVisibleItem) {
             // Subsequent item. Base its weight on the previous visible item.
             if (operationType === 'loading') { // Venda - Carregamento
-              newItem = {
-                  id: uuidv4(),
-                  material: "SUCATA",
-                  bruto: 0,
-                  tara: lastVisibleItem.bruto, // Tara do novo é o bruto do anterior
-                  descontos: 0,
-                  liquido: 0,
-              };
+                newItem = {
+                    id: uuidv4(),
+                    material: "SUCATA",
+                    bruto: 0,
+                    tara: lastVisibleItem.bruto, // Tara do novo é o bruto do anterior
+                    descontos: 0,
+                    liquido: 0,
+                };
             } else { // Compra - Descarregamento
-              newItem = {
-                  id: uuidv4(),
-                  material: "SUCATA",
-                  bruto: lastVisibleItem.tara, // Bruto do novo é a tara do anterior
-                  tara: 0,
-                  descontos: 0,
-                  liquido: 0,
-              };
+                newItem = {
+                    id: uuidv4(),
+                    material: "SUCATA",
+                    bruto: lastVisibleItem.tara, // Bruto do novo é a tara do anterior
+                    tara: 0,
+                    descontos: 0,
+                    liquido: 0,
+                };
             }
-          } else {
-             // Fallback, should not be reached with the current logic
-             newItem = { id: uuidv4(), material: 'SUCATA', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
-          }
-          newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
-          return { ...set, items: [...set.items, newItem] };
+        } else {
+            // Fallback, should not be reached with the current logic
+            newItem = { id: uuidv4(), material: 'SUCATA', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
         }
-        return set;
-      })
-    );
-  };
+        newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
+        
+        currentSet.items.push(newItem);
+        return newSets;
+    });
+};
   
   const addBitrem = () => {
     if (weighingSets.length >= 2) return;
@@ -848,5 +854,3 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    
