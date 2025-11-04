@@ -64,11 +64,13 @@ export default function PrintableScaleTicket({ autoPrint = true }: PrintableScal
     if (isNaN(num)) return "0";
     return new Intl.NumberFormat("pt-BR", { useGrouping }).format(num);
   };
-
+  
   const grandTotalLiquido = weighingSets.reduce((total, set) => {
-    const setItemsTotal = set.items.reduce((acc, item) => acc + item.liquido, 0);
+    const visibleItems = set.items.filter(item => item.material !== "PESO_INICIAL_CAMINHAO");
+    const setItemsTotal = visibleItems.reduce((acc, item) => acc + item.liquido, 0);
     return total + (setItemsTotal - set.descontoCacamba);
   }, 0);
+
 
   return (
     <div
@@ -97,7 +99,14 @@ export default function PrintableScaleTicket({ autoPrint = true }: PrintableScal
         {/* BODY */}
         <div className="space-y-3">
           {weighingSets.map((set) => {
-            const subtotalLiquido = set.items.reduce(
+            const visibleItems = set.items.filter(item => item.material !== "PESO_INICIAL_CAMINHAO");
+            
+            // Do not render the set if there are no visible items
+            if (visibleItems.length === 0 && set.descontoCacamba === 0) {
+              return null;
+            }
+
+            const subtotalLiquido = visibleItems.reduce(
               (acc, item) => acc + item.liquido,
               0
             );
@@ -119,7 +128,7 @@ export default function PrintableScaleTicket({ autoPrint = true }: PrintableScal
                     </tr>
                   </thead>
                   <tbody>
-                    {set.items.map((item) => (
+                    {visibleItems.map((item) => (
                       <tr key={item.id}>
                         <td className="text-left">{item.material}</td>
                         <td className="text-right">{formatNumber(item.bruto)}</td>
