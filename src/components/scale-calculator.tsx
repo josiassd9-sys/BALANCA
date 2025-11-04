@@ -70,7 +70,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    // Load WebSocket settings from localStorage on client-side
+    // Load WebSocket settings and scale data from localStorage on client-side
     const savedIp = localStorage.getItem("websocketIp");
     const savedPort = localStorage.getItem("websocketPort");
     if (savedIp) {
@@ -82,7 +82,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
       setTempWebsocketPort(savedPort);
     }
 
-    // Load scale data from localStorage on client-side
     let savedData;
     try {
       savedData = localStorage.getItem("scaleData");
@@ -121,7 +120,10 @@ const ScaleCalculator = forwardRef((props, ref) => {
 
   useEffect(() => {
     if (weighingMode === 'electronic') {
-      const websocketUrl = `ws://${websocketIp}:${websocketPort}`;
+      const isSecure = window.location.protocol === 'https:';
+      const protocol = isSecure ? 'wss' : 'ws';
+      const websocketUrl = `${protocol}://${websocketIp}:${websocketPort}`;
+      
       ws.current = new WebSocket(websocketUrl);
       
       ws.current.onopen = () => {
@@ -231,25 +233,22 @@ const ScaleCalculator = forwardRef((props, ref) => {
   
   const addNewMaterial = (setId: string) => {
     setWeighingSets(prevSets => {
-        // Deep clone to avoid mutation issues
         const newSets = JSON.parse(JSON.stringify(prevSets));
         const setIndex = newSets.findIndex((s: WeighingSet) => s.id === setId);
-        if (setIndex === -1) return prevSets; // Set not found
+        if (setIndex === -1) return prevSets;
 
         const currentSet = newSets[setIndex];
         const visibleItems = currentSet.items.filter((item: WeighingItem) => item.material !== "PESO_INICIAL_CAMINHAO");
         const lastVisibleItem = visibleItems[visibleItems.length - 1];
         
-        let newItem: WeighingItem;
-        
-        // Safely find the initial weight item from the first set
         const firstSet = newSets[0];
         const initialWeightItem = firstSet?.items.find((item: WeighingItem) => item.material === "PESO_INICIAL_CAMINHAO");
         const truckWeight = initialWeightItem?.[operationType === 'loading' ? 'tara' : 'bruto'] ?? 0;
 
-        if (!lastVisibleItem && visibleItems.length === 0) {
-            // First visible item. Base its weight on the hidden initial truck weight.
-            newItem = {
+        let newItem: WeighingItem;
+
+        if (visibleItems.length === 0) {
+             newItem = {
                 id: uuidv4(),
                 material: "SUCATA",
                 bruto: operationType === 'loading' ? 0 : truckWeight,
@@ -258,32 +257,30 @@ const ScaleCalculator = forwardRef((props, ref) => {
                 liquido: 0,
             };
         } else if (lastVisibleItem) {
-            // Subsequent item. Base its weight on the previous visible item.
-            if (operationType === 'loading') { // Venda - Carregamento
+            if (operationType === 'loading') {
                 newItem = {
                     id: uuidv4(),
                     material: "SUCATA",
                     bruto: 0,
-                    tara: lastVisibleItem.bruto, // Tara do novo é o bruto do anterior
+                    tara: lastVisibleItem.bruto,
                     descontos: 0,
                     liquido: 0,
                 };
-            } else { // Compra - Descarregamento
+            } else { 
                 newItem = {
                     id: uuidv4(),
                     material: "SUCATA",
-                    bruto: lastVisibleItem.tara, // Bruto do novo é a tara do anterior
+                    bruto: lastVisibleItem.tara,
                     tara: 0,
                     descontos: 0,
                     liquido: 0,
                 };
             }
         } else {
-            // Fallback, should not be reached with the current logic
             newItem = { id: uuidv4(), material: 'SUCATA', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
         }
-        newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
         
+        newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
         currentSet.items.push(newItem);
         return newSets;
     });
@@ -854,3 +851,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
