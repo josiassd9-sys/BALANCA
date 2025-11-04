@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from "react";
@@ -45,8 +44,8 @@ type WeighingMode = 'manual' | 'electronic';
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
-const DEFAULT_WEBSOCKET_IP = "127.0.0.1";
-const DEFAULT_WEBSOCKET_PORT = "8081";
+const DEFAULT_WEBSOCKET_IP = "192.168.18.8";
+const DEFAULT_WEBSOCKET_PORT = "3001";
 
 
 const ScaleCalculator = forwardRef((props, ref) => {
@@ -153,7 +152,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
       };
 
       ws.current.onerror = (error) => {
-        // console.error("WebSocket error:", error);
         setIsWsConnected(false);
         setLiveWeight(0);
         toast({ variant: "destructive", title: "Erro de Conexão", description: `Não foi possível conectar à balança em ${websocketUrl}.` });
@@ -466,7 +464,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
               value={tempWebsocketIp}
               onChange={(e) => setTempWebsocketIp(e.target.value)}
               className="sm:col-span-3"
-              placeholder="127.0.0.1"
+              placeholder="192.168.18.8"
             />
           </div>
           <div className="grid grid-cols-1 gap-4 pb-4 sm:grid-cols-4 sm:items-center">
@@ -478,7 +476,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
               value={tempWebsocketPort}
               onChange={(e) => setTempWebsocketPort(e.target.value)}
               className="sm:col-span-3"
-              placeholder="8081"
+              placeholder="3001"
             />
           </div>
           <DialogFooter>
@@ -588,7 +586,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                     {weighingMode === 'electronic' ? (
                         <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleInitialWeightChange(liveWeight.toString())}>
                             <span>{formatNumber(initialWeightValue) || "Buscar"}</span>
-                            {!isWsConnected ? <Loader2 className="h-4 w-4"/> : <Weight className="h-4 w-4" />}
+                            {isWsConnected ? <Weight className="h-4 w-4" /> : <Loader2 className="h-4 w-4" />}
                         </Button>
                     ) : (
                         <Input 
@@ -654,7 +652,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                   {weighingMode === 'electronic' ? (
                                      <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
                                           <span>{formatNumber(item.bruto) || "Buscar"}</span>
-                                          {!isWsConnected ? <Loader2 className="h-4 w-4"/> : <Weight className="h-4 w-4" />}
+                                          {isWsConnected ? <Weight className="h-4 w-4" /> : <Loader2 className="h-4 w-4" />}
                                      </Button>
                                   ) : (
                                     <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.bruto)} onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)} className="text-right h-8 print:hidden w-full" />
@@ -666,7 +664,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                     {weighingMode === 'electronic' ? (
                                          <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
                                               <span>{formatNumber(item.tara) || "Buscar"}</span>
-                                              {!isWsConnected ? <Loader2 className="h-4 w-4"/> : <Weight className="h-4 w-4" />}
+                                              {isWsConnected ? <Weight className="h-4 w-4" /> : <Loader2 className="h-4 w-4" />}
                                          </Button>
                                     ) : (
                                       <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.tara)} onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)} className="text-right h-8 print:hidden w-full" />
@@ -715,7 +713,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                 {weighingMode === 'electronic' ? (
                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
                                         <span>{formatNumber(item.bruto) || "Buscar Peso"}</span>
-                                        {!isWsConnected ? <Loader2 className="h-4 w-4"/> : <Weight className="h-4 w-4" />}
+                                        {isWsConnected ? <Weight className="h-4 w-4" /> : <Loader2 className="h-4 w-4" />}
                                     </Button>
                                 ) : (
                                   <Input
@@ -735,7 +733,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                 {weighingMode === 'electronic' ? (
                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
                                         <span>{formatNumber(item.tara) || "Buscar Peso"}</span>
-                                        {!isWsConnected ? <Loader2 className="h-4 w-4"/> : <Weight className="h-4 w-4" />}
+                                        {isWsConnected ? <Weight className="h-4 w-4" /> : <Loader2 className="h-4 w-4" />}
                                     </Button>
                                 ) : (
                                   <Input
@@ -851,5 +849,3 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    
