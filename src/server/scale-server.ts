@@ -1,27 +1,19 @@
 import net from 'net';
 import { WebSocketServer, WebSocket } from 'ws';
-import https from 'https-localhost';
 
 // --- Configurações ---
 const TCP_HOST = '127.0.0.1'; // IP do servidor TCP da balança
 const TCP_PORT = 3000;         // Porta do servidor TCP da balança
 const WEBSOCKET_PORT = 8081;   // Porta para o servidor WebSocket
-const APP_NAME = 'balanca';
 // --------------------
 
-// Configura o servidor HTTPS usando https-localhost
-// Ele irá gerar certificados autoassinados para localhost
-const app = https(APP_NAME);
-
-const wss = new WebSocketServer({ server: app });
+const wss = new WebSocketServer({ port: WEBSOCKET_PORT });
 
 let lastKnownWeight = 0;
 let tcpClient = new net.Socket();
 let isTcpReconnecting = false;
 
-app.listen(WEBSOCKET_PORT, () => {
-    console.log(`Servidor WebSocket seguro (WSS) escutando em wss://localhost:${WEBSOCKET_PORT}`);
-});
+console.log(`Servidor WebSocket escutando na porta ${WEBSOCKET_PORT}`);
 
 
 // Função para conectar ao servidor TCP
@@ -96,3 +88,5 @@ wss.on('connection', (ws) => {
         console.log('Cliente WebSocket desconectado.');
     });
 });
+
+    

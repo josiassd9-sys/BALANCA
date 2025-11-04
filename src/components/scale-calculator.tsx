@@ -153,7 +153,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
       };
 
       ws.current.onerror = (error) => {
-        console.error("WebSocket error:", error);
+        // console.error("WebSocket error:", error);
         setIsWsConnected(false);
         setLiveWeight(0);
         toast({ variant: "destructive", title: "Erro de Conexão", description: `Não foi possível conectar à balança em ${websocketUrl}.` });
@@ -851,3 +851,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
