@@ -588,7 +588,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                     {weighingMode === 'electronic' ? (
                         <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleInitialWeightChange(liveWeight.toString())}>
                             <span>{formatNumber(initialWeightValue) || "Buscar"}</span>
-                            {!isWsConnected ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                            {!isWsConnected ? <Loader2 className="h-4 w-4"/> : <Weight className="h-4 w-4" />}
                         </Button>
                     ) : (
                         <Input 
@@ -654,7 +654,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                   {weighingMode === 'electronic' ? (
                                      <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
                                           <span>{formatNumber(item.bruto) || "Buscar"}</span>
-                                          {!isWsConnected ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                                          {!isWsConnected ? <Loader2 className="h-4 w-4"/> : <Weight className="h-4 w-4" />}
                                      </Button>
                                   ) : (
                                     <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.bruto)} onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)} className="text-right h-8 print:hidden w-full" />
@@ -666,7 +666,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                     {weighingMode === 'electronic' ? (
                                          <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
                                               <span>{formatNumber(item.tara) || "Buscar"}</span>
-                                              {!isWsConnected ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                                              {!isWsConnected ? <Loader2 className="h-4 w-4"/> : <Weight className="h-4 w-4" />}
                                          </Button>
                                     ) : (
                                       <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.tara)} onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)} className="text-right h-8 print:hidden w-full" />
@@ -715,7 +715,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                 {weighingMode === 'electronic' ? (
                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
                                         <span>{formatNumber(item.bruto) || "Buscar Peso"}</span>
-                                        {!isWsConnected ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                                        {!isWsConnected ? <Loader2 className="h-4 w-4"/> : <Weight className="h-4 w-4" />}
                                     </Button>
                                 ) : (
                                   <Input
@@ -735,7 +735,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                 {weighingMode === 'electronic' ? (
                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
                                         <span>{formatNumber(item.tara) || "Buscar Peso"}</span>
-                                        {!isWsConnected ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                                        {!isWsConnected ? <Loader2 className="h-4 w-4"/> : <Weight className="h-4 w-4" />}
                                     </Button>
                                 ) : (
                                   <Input
@@ -851,5 +851,3 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    
