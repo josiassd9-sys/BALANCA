@@ -1,41 +1,28 @@
 import net from 'net';
 import { WebSocketServer, WebSocket } from 'ws';
-import fs from 'fs';
-import https from 'https';
+import https from 'https-localhost';
 
 // --- Configurações ---
 const TCP_HOST = '127.0.0.1'; // IP do servidor TCP da balança
 const TCP_PORT = 3000;         // Porta do servidor TCP da balança
 const WEBSOCKET_PORT = 8081;   // Porta para o servidor WebSocket
+const APP_NAME = 'balanca';
 // --------------------
 
-let server;
+// Configura o servidor HTTPS usando https-localhost
+// Ele irá gerar certificados autoassinados para localhost
+const app = https(APP_NAME);
 
-// Verifica se os certificados SSL existem para iniciar um servidor HTTPS/WSS
-if (fs.existsSync('cert.pem') && fs.existsSync('key.pem')) {
-    console.log('Certificados SSL encontrados. Iniciando servidor WebSocket seguro (WSS).');
-    server = https.createServer({
-        cert: fs.readFileSync('cert.pem'),
-        key: fs.readFileSync('key.pem')
-    });
-    server.listen(WEBSOCKET_PORT);
-} else {
-    console.log('Certificados SSL não encontrados. Iniciando servidor WebSocket inseguro (WS).');
-    // Se não houver certificados, o WebSocketServer criará seu próprio servidor HTTP.
-    // Para evitar conflitos, não precisamos criar um servidor http manualmente aqui.
-}
-
-const wss = new WebSocketServer({ 
-    server: server, // Usa o servidor HTTPS se ele foi criado
-    port: server ? undefined : WEBSOCKET_PORT // Usa a porta apenas se não houver servidor HTTPS
-});
-
+const wss = new WebSocketServer({ server: app });
 
 let lastKnownWeight = 0;
 let tcpClient = new net.Socket();
 let isTcpReconnecting = false;
 
-console.log(`Servidor WebSocket escutando na porta ${WEBSOCKET_PORT}`);
+app.listen(WEBSOCKET_PORT, () => {
+    console.log(`Servidor WebSocket seguro (WSS) escutando em wss://localhost:${WEBSOCKET_PORT}`);
+});
+
 
 // Função para conectar ao servidor TCP
 const connectTcp = () => {
