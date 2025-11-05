@@ -93,36 +93,51 @@ const ScaleCalculator = forwardRef((props, ref) => {
       setIsScaleConnected(false);
       return;
     }
+    
+    let unsubscribe: () => void;
+    try {
+      const scaleDataQuery = query(collection(firestore, 'pesagens'), orderBy('timestamp', 'desc'), limit(1));
 
-    const scaleDataQuery = query(collection(firestore, 'pesagens'), orderBy('timestamp', 'desc'), limit(1));
-
-    const unsubscribe = onSnapshot(scaleDataQuery, (querySnapshot) => {
-      if (!querySnapshot.empty) {
-        const latestDoc = querySnapshot.docs[0];
-        const latestWeight = latestDoc.data().peso;
-        if (typeof latestWeight === 'number') {
-          setLiveWeight(latestWeight);
-          setIsScaleConnected(true);
+      unsubscribe = onSnapshot(scaleDataQuery, (querySnapshot) => {
+        if (!querySnapshot.empty) {
+          const latestDoc = querySnapshot.docs[0];
+          const latestWeight = latestDoc.data().peso;
+          if (typeof latestWeight === 'number') {
+            setLiveWeight(latestWeight);
+            setIsScaleConnected(true);
+          }
+        } else {
+          setIsScaleConnected(false);
         }
-      } else {
+      }, (error: FirestoreError) => {
+        const contextualError = new FirestorePermissionError({
+          operation: 'list',
+          path: 'pesagens',
+        });
+        errorEmitter.emit('permission-error', contextualError);
+
         setIsScaleConnected(false);
+        toast({
+          variant: "destructive",
+          title: "Erro de Permissão",
+          description: "Não foi possível ler o peso da balança. Verifique as permissões do Firestore."
+        });
+      });
+    } catch(e) {
+        console.error("Failed to set up Firestore listener:", e);
+        setIsScaleConnected(false);
+        toast({
+            variant: "destructive",
+            title: "Erro de Conexão",
+            description: "Falha ao iniciar a conexão com o Firestore."
+        });
+    }
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
       }
-    }, (error: FirestoreError) => {
-      const contextualError = new FirestorePermissionError({
-        operation: 'list',
-        path: 'pesagens',
-      });
-      errorEmitter.emit('permission-error', contextualError);
-
-      setIsScaleConnected(false);
-      toast({
-        variant: "destructive",
-        title: "Erro de Permissão",
-        description: "Não foi possível ler o peso da balança. Verifique as permissões do Firestore."
-      });
-    });
-
-    return () => unsubscribe();
+    }
   }, [weighingMode, firestore, toast]);
 
   const handleHeaderChange = (field: keyof typeof headerData, value: string) => {
@@ -736,5 +751,3 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    
