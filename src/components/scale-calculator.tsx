@@ -66,6 +66,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tempWebsocketIp, setTempWebsocketIp] = useState(DEFAULT_WEBSOCKET_IP);
   const [tempWebsocketPort, setTempWebsocketPort] = useState(DEFAULT_WEBSOCKET_PORT);
+  const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -128,6 +129,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
       ws.current.onopen = () => {
         console.log("WebSocket connected");
         setIsWsConnected(true);
+        setHasConnectedOnce(true);
         toast({ title: "Balança Conectada", description: "Conexão com a balança eletrônica estabelecida." });
       };
 
@@ -147,18 +149,23 @@ const ScaleCalculator = forwardRef((props, ref) => {
         setIsWsConnected(false);
         setLiveWeight(0);
         if (weighingMode === 'electronic') {
-          toast({ variant: "destructive", title: "Balança Desconectada", description: "A conexão com a balança foi perdida." });
+          if (hasConnectedOnce) {
+             toast({ variant: "destructive", title: "Balança Desconectada", description: "A conexão com a balança foi perdida." });
+          } else {
+             toast({ variant: "destructive", title: "Erro de Conexão", description: `Não foi possível conectar à balança em ${websocketUrl}.` });
+          }
         }
       };
 
       ws.current.onerror = (error) => {
         setIsWsConnected(false);
         setLiveWeight(0);
-        toast({ variant: "destructive", title: "Erro de Conexão", description: `Não foi possível conectar à balança em ${websocketUrl}.` });
+        // The onclose event will handle the toast notification.
       };
 
       return () => {
         ws.current?.close();
+        setHasConnectedOnce(false);
       };
     } else {
         if (ws.current) {
@@ -167,6 +174,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
         }
         setIsWsConnected(false);
         setLiveWeight(0);
+        setHasConnectedOnce(false);
     }
   }, [weighingMode, websocketIp, websocketPort, toast]);
 
@@ -849,3 +857,4 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
