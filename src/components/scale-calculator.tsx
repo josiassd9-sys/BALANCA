@@ -11,8 +11,10 @@ import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from ".
 import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, CircuitBoard } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, onSnapshot, DocumentData } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { collection, query, orderBy, limit, onSnapshot, FirestoreError } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 type WeighingItem = {
   id: string;
@@ -105,13 +107,18 @@ const ScaleCalculator = forwardRef((props, ref) => {
       } else {
         setIsScaleConnected(false);
       }
-    }, (error) => {
-      console.error("Error fetching live weight from Firestore:", error);
+    }, (error: FirestoreError) => {
+      const contextualError = new FirestorePermissionError({
+        operation: 'list',
+        path: 'pesagens',
+      });
+      errorEmitter.emit('permission-error', contextualError);
+
       setIsScaleConnected(false);
       toast({
         variant: "destructive",
-        title: "Erro de Leitura",
-        description: "Não foi possível ler o peso da balança via Firestore."
+        title: "Erro de Permissão",
+        description: "Não foi possível ler o peso da balança. Verifique as permissões do Firestore."
       });
     });
 
@@ -729,3 +736,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
