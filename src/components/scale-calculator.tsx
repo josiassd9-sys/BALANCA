@@ -122,7 +122,10 @@ const ScaleCalculator = forwardRef((props, ref) => {
     if (weighingMode === 'electronic') {
       const isSecure = window.location.protocol === 'https:';
       const protocol = isSecure ? 'wss' : 'ws';
-      const websocketUrl = `${protocol}://${websocketIp}:${websocketPort}`;
+      
+      // Ensure IP does not contain a port
+      const ipOnly = websocketIp.split(':')[0];
+      const websocketUrl = `${protocol}://${ipOnly}:${websocketPort}`;
       
       ws.current = new WebSocket(websocketUrl);
       
@@ -373,9 +376,10 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 
   const handleSaveSettings = () => {
     try {
-      localStorage.setItem("websocketIp", tempWebsocketIp);
+      const ipOnly = tempWebsocketIp.split(':')[0];
+      localStorage.setItem("websocketIp", ipOnly);
       localStorage.setItem("websocketPort", tempWebsocketPort);
-      setWebsocketIp(tempWebsocketIp);
+      setWebsocketIp(ipOnly);
       setWebsocketPort(tempWebsocketPort);
       setIsSettingsOpen(false);
       toast({ title: "Configurações Salvas!", description: "O endereço da balança foi atualizado." });
@@ -858,3 +862,6 @@ ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
 
+
+
+    
