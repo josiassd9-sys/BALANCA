@@ -123,9 +123,12 @@ const ScaleCalculator = forwardRef((props, ref) => {
       const isSecure = window.location.protocol === 'https:';
       const protocol = isSecure ? 'wss' : 'ws';
       
-      // Ensure IP does not contain a port
       const ipOnly = websocketIp.split(':')[0];
       const websocketUrl = `${protocol}://${ipOnly}:${websocketPort}`;
+      
+      if (ws.current) {
+        ws.current.close();
+      }
       
       ws.current = new WebSocket(websocketUrl);
       
@@ -155,7 +158,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
           if (hasConnectedOnce) {
              toast({ variant: "destructive", title: "Balança Desconectada", description: "A conexão com a balança foi perdida." });
           } else {
-             toast({ variant: "destructive", title: "Erro de Conexão", description: `Não foi possível conectar à balança em ${websocketUrl}.` });
+             toast({ variant: "destructive", title: "Erro de Conexão", description: `Não foi possível conectar à balança em ${websocketUrl}. Verifique se o servidor-ponte está rodando.` });
           }
         }
       };
@@ -163,7 +166,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
       ws.current.onerror = (error) => {
         setIsWsConnected(false);
         setLiveWeight(0);
-        // The onclose event will handle the toast notification.
+        // onclose will be called anyway, which handles the toast notification.
       };
 
       return () => {
@@ -384,7 +387,9 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       setIsSettingsOpen(false);
       toast({ title: "Configurações Salvas!", description: "O endereço da balança foi atualizado." });
       
+      // Force reconnect
       if (weighingMode === 'electronic') {
+        setHasConnectedOnce(false); // Reset connection tracker
         setWeighingMode('manual');
         setTimeout(() => setWeighingMode('electronic'), 100);
       }
@@ -462,9 +467,9 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Configurar Conexão</DialogTitle>
+            <DialogTitle>Configurar Conexão da Balança</DialogTitle>
             <DialogDescription>
-              Altere o endereço do servidor WebSocket para se conectar à balança eletrônica.
+              Endereço do servidor-ponte que conecta com a balança.
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-4 sm:items-center">
