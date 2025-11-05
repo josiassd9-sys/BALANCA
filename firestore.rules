@@ -26,58 +26,41 @@ service cloud.firestore {
     /**
      * @description Allows anyone to read inox item categories. No write access is granted.
      * @path /inox_item_categories/{inoxItemCategoryId}
-     * @allow (get, list): Anyone can read.
-     * @deny (create, update, delete): No one can write directly to this collection.
-     * @principle Public read access.  Write access is not explicitly denied, assuming backend management.
      */
     match /inox_item_categories/{inoxItemCategoryId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow write: if false;
     }
 
     /**
      * @description Allows anyone to read inox items. No write access is granted.
      * @path /inox_items/{inoxItemId}
-     * @allow (get, list): Anyone can read.
-     * @deny (create, update, delete): No one can write directly to this collection.
-     * @principle Public read access.  Write access is not explicitly denied, assuming backend management.
      */
     match /inox_items/{inoxItemId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow write: if false;
     }
 
     /**
      * @description Allows anyone to read universal settings. No write access is granted.
      * @path /universal_settings/{universalSettingsId}
-     * @allow (get, list): Anyone can read.
-     * @deny (create, update, delete): No one can write directly to this collection.
-     * @principle Public read access.  Write access is not explicitly denied, assuming backend management.
      */
     match /universal_settings/{universalSettingsId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow write: if false;
     }
 
     /**
-     * @description Allows anyone to write scale data. Read access is public.
+     * @description Manages access to the scale readings collection.
      * @path /pesagens/{pesagemId}
-     * @allow (read): Anyone can read.
-     * @allow (create): Write access is open to allow writing from a trusted source.
-     * @deny (update, delete): No updates or deletes allowed.
-     * @principle Public read access and open write access for trusted sources.
+     * @allow (read): Anyone can read the scale data.
+     * @allow (create): A trusted source can write new scale readings.
+     * @deny (update, delete): No updates or deletes allowed to maintain data integrity.
      */
     match /pesagens/{pesagemId} {
       allow read: if true;
       allow create: if true;
-      allow update: if false;
-      allow delete: if false;
+      allow update, delete: if false;
     }
   }
 }
