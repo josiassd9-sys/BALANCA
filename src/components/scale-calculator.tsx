@@ -44,7 +44,7 @@ type WeighingMode = 'manual' | 'electronic';
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
-const DEFAULT_WEBSOCKET_IP = "192.168.18.8";
+const DEFAULT_WEBSOCKET_IP = "127.0.0.1";
 const DEFAULT_WEBSOCKET_PORT = "3001";
 
 
@@ -464,7 +464,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
               value={tempWebsocketIp}
               onChange={(e) => setTempWebsocketIp(e.target.value)}
               className="sm:col-span-3"
-              placeholder="192.168.18.8"
+              placeholder="127.0.0.1"
             />
           </div>
           <div className="grid grid-cols-1 gap-4 pb-4 sm:grid-cols-4 sm:items-center">
