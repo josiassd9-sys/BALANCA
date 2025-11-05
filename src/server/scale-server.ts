@@ -120,5 +120,3 @@ server.listen(BRIDGE_SERVER_PORT, () => {
 server.on('error', (err) => {
     console.error(`--- Bridge Server Error ---`, err);
 });
-
-    
