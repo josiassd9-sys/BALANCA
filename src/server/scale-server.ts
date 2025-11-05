@@ -16,6 +16,15 @@ let clientWs: WebSocket | null = null;
 let currentConfig = { ip: '', port: '' };
 
 const connectToScale = (config: { ip: string, port: string }) => {
+    // Prevent connection if config is not set
+    if (!config.ip || !config.port) {
+        console.log("Scale IP and Port not configured. Waiting for client configuration.");
+        if (clientWs?.readyState === WebSocket.OPEN) {
+            clientWs.send(JSON.stringify({ type: 'error', message: 'Configuração da balança não recebida.' }));
+        }
+        return;
+    }
+    
     const scaleUrl = `ws://${config.ip}:${config.port}`;
     console.log(`Attempting to connect to scale at: ${scaleUrl}`);
 
@@ -40,12 +49,15 @@ const connectToScale = (config: { ip: string, port: string }) => {
     });
 
     scaleSocket.on('message', (data) => {
-        const rawMessage = data.toString(); // e.g., "ST,GS,+0070,00kg\r\n"
+        const rawMessage = data.toString();
+        // Regex to extract weight like "+0070,00" from "ST,GS,+0070,00kg\r\n"
         const match = rawMessage.match(/\+([0-9,]+)kg/);
         if (match && match[1]) {
+            // Replace comma with dot for correct float parsing
             const weightString = match[1].replace(',', '.');
             const weight = parseFloat(weightString);
             if (!isNaN(weight) && clientWs && clientWs.readyState === WebSocket.OPEN) {
+                // Send a structured JSON message to the client
                 clientWs.send(JSON.stringify({ type: 'weightUpdate', weight: weight }));
             }
         }
@@ -56,9 +68,10 @@ const connectToScale = (config: { ip: string, port: string }) => {
         if (clientWs && clientWs.readyState === WebSocket.OPEN) {
             clientWs.send(JSON.stringify({ type: 'error', message: 'Conexão com a balança perdida.' }));
         }
+        // Set up reconnection only if a config is present
         if (!reconnectInterval && currentConfig.ip && currentConfig.port) {
-            console.log('Will attempt to reconnect in 3 seconds...');
-            reconnectInterval = setInterval(() => connectToScale(currentConfig), 3000);
+            console.log('Will attempt to reconnect in 5 seconds...');
+            reconnectInterval = setInterval(() => connectToScale(currentConfig), 5000);
         }
     });
 
@@ -78,10 +91,12 @@ wss.on('connection', (ws) => {
     ws.on('message', (message) => {
         try {
             const data = JSON.parse(message.toString());
+            // Check for 'configure' message type
             if (data.type === 'configure' && data.ip && data.port) {
                 console.log(`Received new config from client: IP=${data.ip}, Port=${data.port}`);
                 currentConfig = { ip: data.ip, port: data.port };
                 
+                // If a reconnection interval is running, clear it to apply new settings immediately
                 if (reconnectInterval) {
                     clearInterval(reconnectInterval);
                     reconnectInterval = null;
@@ -95,7 +110,7 @@ wss.on('connection', (ws) => {
 
     ws.on('close', () => {
         console.log('<<< Web app client disconnected.');
-        clientWs = null;
+        clientWs = null; // Clear the client reference
         if (scaleSocket) {
             scaleSocket.close();
         }
@@ -103,6 +118,8 @@ wss.on('connection', (ws) => {
             clearInterval(reconnectInterval);
             reconnectInterval = null;
         }
+        // Reset config to ensure new client provides it
+        currentConfig = { ip: '', port: '' }; 
     });
 
     ws.on('error', (err) => {
@@ -120,3 +137,5 @@ server.listen(BRIDGE_SERVER_PORT, () => {
 server.on('error', (err) => {
     console.error(`--- Bridge Server Error ---`, err);
 });
+
+    
