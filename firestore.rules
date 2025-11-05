@@ -68,13 +68,13 @@ service cloud.firestore {
     /**
      * @description Allows anyone to write scale data. Read access is public.
      * @path /pesagens/{pesagemId}
-     * @allow (get, list): Anyone can read.
+     * @allow (read): Anyone can read.
      * @allow (create): Write access is open to allow writing from a trusted source.
      * @deny (update, delete): No updates or deletes allowed.
      * @principle Public read access and open write access for trusted sources.
      */
     match /pesagens/{pesagemId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create: if true;
       allow update: if false;
       allow delete: if false;
