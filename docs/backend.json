@@ -102,34 +102,24 @@
         "id"
       ]
     },
-    "ScaleData": {
+    "ScaleReading": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ScaleData",
+      "title": "ScaleReading",
       "type": "object",
-      "description": "Represents the data captured from the live scale.",
+      "description": "Represents a single weight reading from the scale, stored in Firestore.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the scale reading."
-        },
-        "grossWeight": {
+        "peso": {
           "type": "number",
-          "description": "The gross weight value received from the scale."
-        },
-        "tareWeight": {
-          "type": "number",
-          "description": "The tare weight value received from the scale."
+          "description": "The weight value captured from the scale."
         },
         "timestamp": {
           "type": "string",
-          "description": "Timestamp of when the weight was recorded.",
+          "description": "The server-side timestamp of when the weight was recorded.",
           "format": "date-time"
         }
       },
       "required": [
-        "id",
-        "grossWeight",
-        "tareWeight",
+        "peso",
         "timestamp"
       ]
     }
@@ -193,11 +183,11 @@
       {
         "path": "/scale_data/{scaleDataId}",
         "definition": {
-          "entityName": "ScaleData",
+          "entityName": "ScaleReading",
           "schema": {
-            "$ref": "#/backend/entities/ScaleData"
+            "$ref": "#/backend/entities/ScaleReading"
           },
-          "description": "Stores data captured from the live scale, including gross weight, tare weight, and timestamp.",
+          "description": "Stores real-time weight readings from the scale. This collection is read by the app and written to by an external process.",
           "params": [
             {
               "name": "scaleDataId",
