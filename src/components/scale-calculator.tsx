@@ -92,7 +92,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
       return;
     }
 
-    const scaleDataQuery = query(collection(firestore, 'scale_data'), orderBy('timestamp', 'desc'), limit(1));
+    const scaleDataQuery = query(collection(firestore, 'pesagens'), orderBy('timestamp', 'desc'), limit(1));
 
     const unsubscribe = onSnapshot(scaleDataQuery, (querySnapshot) => {
       if (!querySnapshot.empty) {
@@ -729,4 +729,3 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-    

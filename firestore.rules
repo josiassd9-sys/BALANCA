@@ -4,19 +4,19 @@
  *
  * Core Philosophy:
  *  This ruleset provides public read access to item catalogs (`InoxItemCategory`, `InoxItem`, `UniversalSettings`) and restricts write access.
- *  Writes to the `scale_data` collection should be performed by a trusted server with appropriate service account credentials.
+ *  Writes to the `pesagens` collection should be performed by a trusted server with appropriate service account credentials.
  *  There is no user-specific ownership, so no authentication is required for read operations.
  *
  * Data Structure:
  *  - /inox_item_categories/{inoxItemCategoryId}: Stores categories of stainless steel items.
  *  - /inox_items/{inoxItemId}: Stores specific stainless steel items with their specifications and pricing.
  *  - /universal_settings/{universalSettingsId}: Stores the universal cost and margin settings.
- *  - /scale_data/{scaleDataId}: Stores data captured from the live scale.
+ *  - /pesagens/{pesagemId}: Stores data captured from the live scale.
  *
  * Key Security Decisions:
  *  - Public read access for item catalogs and settings to allow for easy data retrieval without authentication.
  *  - No user listing is applicable since there is no user data.
- *  - Write operations for `scale_data` are allowed without authentication, assuming a trusted server-side process handles the actual data writing.
+ *  - Write operations for `pesagens` are allowed without authentication, assuming a trusted server-side process handles the actual data writing.
  *  - Write operations are not explicitly denied for item catalogs and settings, assuming that these are managed through the Firebase console or a backend process that does not rely on client-side writes.
  */
 rules_version = '2';
@@ -67,13 +67,13 @@ service cloud.firestore {
 
     /**
      * @description Allows anyone to write scale data. Read access is public.
-     * @path /scale_data/{scaleDataId}
+     * @path /pesagens/{pesagemId}
      * @allow (get, list): Anyone can read.
      * @allow (create): Write access is open to allow writing from a trusted source.
      * @deny (update, delete): No updates or deletes allowed.
      * @principle Public read access and open write access for trusted sources.
      */
-    match /scale_data/{scaleDataId} {
+    match /pesagens/{pesagemId} {
       allow get, list: if true;
       allow create: if true;
       allow update: if false;
