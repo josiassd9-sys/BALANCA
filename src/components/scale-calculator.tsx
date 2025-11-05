@@ -11,10 +11,6 @@ import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from ".
 import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, CircuitBoard } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useFirestore } from "@/firebase";
-import { collection, query, orderBy, limit, onSnapshot, FirestoreError } from "firebase/firestore";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
 
 type WeighingItem = {
   id: string;
@@ -38,6 +34,9 @@ type WeighingMode = 'manual' | 'electronic';
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
+// Configuration for the secure WebSocket bridge server
+const WEBSOCKET_URL = "wss://127.0.0.1:3001";
+
 const ScaleCalculator = forwardRef((props, ref) => {
   const [headerData, setHeaderData] = useState({ client: "", plate: "", driver: "" });
   const [weighingSets, setWeighingSets] = useState<WeighingSet[]>([]);
@@ -48,8 +47,9 @@ const ScaleCalculator = forwardRef((props, ref) => {
   
   const [liveWeight, setLiveWeight] = useState<number>(0);
   const [isScaleConnected, setIsScaleConnected] = useState(false);
-  
-  const firestore = useFirestore();
+  const ws = useRef<WebSocket | null>(null);
+  const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
+
 
   useEffect(() => {
     let savedData;
@@ -88,57 +88,74 @@ const ScaleCalculator = forwardRef((props, ref) => {
     }
   }, []);
 
-  useEffect(() => {
-    if (weighingMode !== 'electronic' || !firestore) {
-      setIsScaleConnected(false);
+  const connectWebSocket = () => {
+    if (weighingMode !== 'electronic') {
+      if (ws.current) {
+        ws.current.close();
+        ws.current = null;
+      }
       return;
     }
     
-    let unsubscribe: () => void;
-    try {
-      const scaleDataQuery = query(collection(firestore, 'pesagens'), orderBy('timestamp', 'desc'), limit(1));
+    // Prevent multiple connections
+    if (ws.current && ws.current.readyState < 2) return;
 
-      unsubscribe = onSnapshot(scaleDataQuery, (querySnapshot) => {
-        if (!querySnapshot.empty) {
-          const latestDoc = querySnapshot.docs[0];
-          const latestWeight = latestDoc.data().peso;
-          if (typeof latestWeight === 'number') {
-            setLiveWeight(latestWeight);
-            setIsScaleConnected(true);
-          }
-        } else {
-          setIsScaleConnected(false);
+    ws.current = new WebSocket(WEBSOCKET_URL);
+
+    ws.current.onopen = () => {
+      console.log("Secure WebSocket connected to bridge server.");
+      setIsScaleConnected(true);
+      setHasConnectedOnce(true);
+      toast({ title: "Balança Conectada", description: "A conexão com a balança foi estabelecida." });
+    };
+
+    ws.current.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (typeof message.weight === 'number') {
+          setLiveWeight(message.weight);
         }
-      }, (error: FirestoreError) => {
-        const contextualError = new FirestorePermissionError({
-          operation: 'list',
-          path: 'pesagens',
-        });
-        errorEmitter.emit('permission-error', contextualError);
+      } catch (error) {
+        console.error("Failed to parse weight message:", event.data);
+      }
+    };
 
-        setIsScaleConnected(false);
+    ws.current.onerror = (error) => {
+      console.error("WebSocket Error:", error);
+    };
+
+    ws.current.onclose = () => {
+      console.log("Secure WebSocket disconnected.");
+      setIsScaleConnected(false);
+      if (hasConnectedOnce) {
         toast({
           variant: "destructive",
-          title: "Erro de Permissão",
-          description: "Não foi possível ler o peso da balança. Verifique as permissões do Firestore."
+          title: "Balança Desconectada",
+          description: "A conexão com a balança foi perdida. Tentando reconectar...",
         });
-      });
-    } catch(e) {
-        console.error("Failed to set up Firestore listener:", e);
-        setIsScaleConnected(false);
-        toast({
-            variant: "destructive",
-            title: "Erro de Conexão",
-            description: "Falha ao iniciar a conexão com o Firestore."
+      } else {
+         toast({
+          variant: "destructive",
+          title: "Erro de Conexão",
+          description: "Não foi possível conectar à balança. Verifique se o servidor-ponte está rodando.",
         });
-    }
-
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
       }
-    }
-  }, [weighingMode, firestore, toast]);
+
+      // Automatically try to reconnect
+      setTimeout(connectWebSocket, 3000);
+    };
+  };
+
+  useEffect(() => {
+    connectWebSocket();
+
+    // Cleanup on component unmount
+    return () => {
+      if (ws.current) {
+        ws.current.close();
+      }
+    };
+  }, [weighingMode]); // Re-run effect if weighing mode changes
 
   const handleHeaderChange = (field: keyof typeof headerData, value: string) => {
     if (field === 'plate') {
@@ -324,7 +341,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 
   const handleFetchLiveWeight = (setId?: string, itemId?: string, field?: 'bruto' | 'tara') => {
     if (!isScaleConnected) {
-        toast({ variant: "destructive", title: "Balança Desconectada", description: "Não é possível capturar o peso. Verifique a conexão com o Firestore." });
+        toast({ variant: "destructive", title: "Balança Desconectada", description: "Não é possível capturar o peso. Verifique a conexão." });
         return;
     }
     
