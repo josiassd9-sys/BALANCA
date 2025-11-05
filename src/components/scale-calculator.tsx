@@ -34,21 +34,21 @@ type WeighingMode = 'manual' | 'electronic';
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
-const BRIDGE_URL = "http://localhost:3001/getWeight";
+const websocketUrl = "wss://127.0.0.1:3001";
 
 
 const ScaleCalculator = forwardRef((props, ref) => {
-  const [headerData, setHeaderData] = useState({
-    client: "",
-    plate: "",
-    driver: "",
-  });
+  const [headerData, setHeaderData] = useState({ client: "", plate: "", driver: "" });
   const [weighingSets, setWeighingSets] = useState<WeighingSet[]>([]);
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
   const { toast } = useToast();
   const [operationType, setOperationType] = useState<OperationType>('loading');
   const [weighingMode, setWeighingMode] = useState<WeighingMode>('manual');
-  const [isFetchingWeight, setIsFetchingWeight] = useState(false);
+  
+  const [liveWeight, setLiveWeight] = useState<number>(0);
+  const [isWsConnected, setIsWsConnected] = useState(false);
+  const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
+  const ws = useRef<WebSocket | null>(null);
 
 
   useEffect(() => {
@@ -87,6 +87,71 @@ const ScaleCalculator = forwardRef((props, ref) => {
       setActiveSetId(newSet.id);
     }
   }, []);
+
+  useEffect(() => {
+    if (weighingMode !== 'electronic') {
+        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+            ws.current.close();
+        }
+        return;
+    }
+
+    function connect() {
+        if (ws.current && (ws.current.readyState === WebSocket.OPEN || ws.current.readyState === WebSocket.CONNECTING)) {
+            return;
+        }
+
+        ws.current = new WebSocket(websocketUrl);
+        
+        ws.current.onopen = () => {
+            console.log("WebSocket connected");
+            setIsWsConnected(true);
+            setHasConnectedOnce(true);
+        };
+        
+        ws.current.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (typeof data.weight === 'number') {
+                    setLiveWeight(data.weight);
+                }
+            } catch (error) {
+                console.error("Failed to parse WebSocket message:", error);
+            }
+        };
+
+        ws.current.onerror = (error) => {
+            console.error("WebSocket error:", error);
+        };
+
+        ws.current.onclose = () => {
+            console.log("WebSocket disconnected");
+            setIsWsConnected(false);
+            setLiveWeight(0);
+            
+            if (hasConnectedOnce) {
+              toast({ variant: "destructive", title: "Balança Desconectada", description: "A conexão com a balança foi perdida. Tentando reconectar..." });
+            } else {
+              toast({ variant: "destructive", title: "Erro de Conexão", description: `Não foi possível conectar à balança. Verifique se o servidor-ponte está ativo.` });
+            }
+
+            // Tenta reconectar após um atraso
+            setTimeout(() => {
+              if (weighingMode === 'electronic') {
+                  connect();
+              }
+            }, 5000);
+        };
+    }
+
+    connect();
+
+    return () => {
+        if (ws.current) {
+            ws.current.close();
+        }
+    };
+  }, [weighingMode, hasConnectedOnce, toast]);
 
   const handleHeaderChange = (field: keyof typeof headerData, value: string) => {
     if (field === 'plate') {
@@ -270,33 +335,20 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
     }
   };
 
-  const handleFetchLiveWeight = async (setId?: string, itemId?: string, field?: 'bruto' | 'tara') => {
-    setIsFetchingWeight(true);
-    try {
-      const response = await fetch(BRIDGE_URL);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      const weight = data.weight;
+  const handleFetchLiveWeight = (setId?: string, itemId?: string, field?: 'bruto' | 'tara') => {
+    if (!isWsConnected) {
+        toast({ variant: "destructive", title: "Balança Desconectada", description: "Não é possível capturar o peso. Verifique a conexão." });
+        return;
+    }
+    
+    const weight = liveWeight;
 
-      if (typeof weight !== 'number') {
-        throw new Error('Invalid weight data received');
-      }
-      
-      if (setId && itemId && field) {
-        handleInputChange(setId, itemId, field, weight.toString());
-        toast({ title: "Peso Capturado!", description: `Peso de ${weight}kg aplicado ao campo ${field}.` });
-      } else {
-        handleInitialWeightChange(weight.toString());
-        toast({ title: "Peso Inicial Capturado!", description: `Peso de ${weight}kg aplicado.` });
-      }
-
-    } catch (error) {
-      console.error("Failed to fetch weight:", error);
-      toast({ variant: "destructive", title: "Erro ao buscar peso", description: "Não foi possível conectar ao servidor da balança. Verifique se o servidor-ponte está rodando." });
-    } finally {
-      setIsFetchingWeight(false);
+    if (setId && itemId && field) {
+      handleInputChange(setId, itemId, field, weight.toString());
+      toast({ title: "Peso Capturado!", description: `Peso de ${weight}kg aplicado ao campo ${field}.` });
+    } else {
+      handleInitialWeightChange(weight.toString());
+      toast({ title: "Peso Inicial Capturado!", description: `Peso de ${weight}kg aplicado.` });
     }
   };
 
@@ -447,9 +499,9 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                  <div className="space-y-px flex-none w-28">
                     <Label className="text-xs sm:text-sm">{operationType === 'loading' ? 'Tara (kg)' : 'Bruto (kg)'}</Label>
                     {weighingMode === 'electronic' ? (
-                        <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight()} disabled={isFetchingWeight}>
-                            <span>{formatNumber(initialWeightValue) || "Buscar"}</span>
-                            {isFetchingWeight ? <Loader2 className="h-4 w-4 animate-spin" /> : <Weight className="h-4 w-4" />}
+                        <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight()} disabled={!isWsConnected}>
+                            <span>{isWsConnected ? (liveWeight || "Buscar") : <Loader2 className="h-4 w-4" />}</span>
+                            {isWsConnected ? <Weight className="h-4 w-4" /> : null}
                         </Button>
                     ) : (
                         <Input 
@@ -513,9 +565,9 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                               <div className="space-y-px">
                                   <Label className="text-xs text-muted-foreground">Bruto (kg)</Label>
                                   {weighingMode === 'electronic' ? (
-                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')} disabled={isFetchingWeight}>
-                                          <span>{formatNumber(item.bruto) || "Buscar"}</span>
-                                          {isFetchingWeight ? <Loader2 className="h-4 w-4 animate-spin" /> : <Weight className="h-4 w-4" />}
+                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')} disabled={!isWsConnected}>
+                                          <span>{isWsConnected ? (formatNumber(item.bruto) || "Buscar") : <Loader2 className="h-4 w-4" />}</span>
+                                          {isWsConnected ? <Weight className="h-4 w-4" /> : null}
                                      </Button>
                                   ) : (
                                     <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.bruto)} onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)} className="text-right h-8 print:hidden w-full" />
@@ -525,9 +577,9 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                <div className="space-y-px">
                                   <Label className="text-xs text-muted-foreground">Tara (kg)</Label>
                                     {weighingMode === 'electronic' ? (
-                                         <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')} disabled={isFetchingWeight}>
-                                              <span>{formatNumber(item.tara) || "Buscar"}</span>
-                                              {isFetchingWeight ? <Loader2 className="h-4 w-4 animate-spin" /> : <Weight className="h-4 w-4" />}
+                                         <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')} disabled={!isWsConnected}>
+                                              <span>{isWsConnected ? (formatNumber(item.tara) || "Buscar") : <Loader2 className="h-4 w-4" />}</span>
+                                              {isWsConnected ? <Weight className="h-4 w-4" /> : null}
                                          </Button>
                                     ) : (
                                       <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.tara)} onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)} className="text-right h-8 print:hidden w-full" />
@@ -574,9 +626,9 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                       <TableCell className="w-[17.5%] p-0 sm:p-px">
                             <div className="flex items-center justify-end gap-1">
                                 {weighingMode === 'electronic' ? (
-                                    <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')} disabled={isFetchingWeight}>
-                                        <span>{formatNumber(item.bruto) || "Buscar Peso"}</span>
-                                        {isFetchingWeight ? <Loader2 className="h-4 w-4 animate-spin" /> : <Weight className="h-4 w-4" />}
+                                    <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')} disabled={!isWsConnected}>
+                                        <span>{isWsConnected ? (formatNumber(item.bruto) || "Buscar Peso") : <Loader2 className="h-4 w-4" />}</span>
+                                        {isWsConnected ? <Weight className="h-4 w-4" /> : null}
                                     </Button>
                                 ) : (
                                   <Input
@@ -594,9 +646,9 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                       <TableCell className="w-[17.5%] p-0 sm:p-px">
                             <div className="flex items-center justify-end gap-1">
                                 {weighingMode === 'electronic' ? (
-                                    <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')} disabled={isFetchingWeight}>
-                                        <span>{formatNumber(item.tara) || "Buscar Peso"}</span>
-                                        {isFetchingWeight ? <Loader2 className="h-4 w-4 animate-spin" /> : <Weight className="h-4 w-4" />}
+                                    <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')} disabled={!isWsConnected}>
+                                        <span>{isWsConnected ? (formatNumber(item.tara) || "Buscar Peso") : <Loader2 className="h-4 w-4" />}</span>
+                                        {isWsConnected ? <Weight className="h-4 w-4" /> : null}
                                     </Button>
                                 ) : (
                                   <Input

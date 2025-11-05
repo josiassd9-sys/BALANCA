@@ -1,54 +1,67 @@
-import http from 'http';
-import fetch from 'node-fetch'; // Certifique-se de que 'node-fetch' está no seu package.json
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { WebSocketServer, WebSocket } from 'ws';
+import fetch from 'node-fetch';
+import httpsLocalhost from 'https-localhost';
 
 const SCALE_URL = 'http://192.168.18.8:3001/';
-const BRIDGE_PORT = 3001; // Porta em que o servidor-ponte irá rodar
+const BRIDGE_PORT = 3001;
 
-const server = http.createServer(async (req, res) => {
-  // Adiciona cabeçalhos CORS para permitir requisições do seu app
-  res.setHeader('Access-Control-Allow-Origin', '*'); // Em produção, restrinja para o domínio do seu app
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+async function main() {
+    const app = httpsLocalhost();
+    const certs = await app.getCerts();
+    const server = https.createServer(certs, (req, res) => {
+        res.writeHead(200);
+        res.end('WebSocket server is running securely.');
+    });
 
-  // Lida com requisições OPTIONS (pre-flight)
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
-    return;
-  }
+    const wss = new WebSocketServer({ server });
 
-  if (req.url === '/getWeight' && req.method === 'GET') {
-    try {
-      const scaleResponse = await fetch(SCALE_URL);
-      if (!scaleResponse.ok) {
-        throw new Error(`Scale server returned status ${scaleResponse.status}`);
-      }
-      
-      const textResponse = await scaleResponse.text();
-      
-      // Tenta extrair um número do texto. Robusto para HTML ou texto simples.
-      const match = textResponse.match(/(\d[\d,.]*)/);
-      const weight = match ? parseFloat(match[1].replace(',', '.')) : 0;
+    wss.on('connection', (ws) => {
+        console.log('Client connected to WebSocket bridge');
 
-      if (isNaN(weight)) {
-          throw new Error('Could not parse weight from scale response');
-      }
+        let isFetching = false;
+        const interval = setInterval(async () => {
+            if (isFetching) return;
+            isFetching = true;
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ weight: weight }));
+            try {
+                const response = await fetch(SCALE_URL);
+                if (!response.ok) {
+                    throw new Error(`Scale responded with status: ${response.status}`);
+                }
+                const textResponse = await response.text();
+                const match = textResponse.match(/(\d[\d,.]*)/);
+                const weight = match ? parseFloat(match[1].replace(',', '.')) : 0;
 
-    } catch (error) {
-      console.error('Error fetching from scale:', error);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Failed to fetch weight from scale.' }));
-    }
-  } else {
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not Found' }));
-  }
-});
+                if (!isNaN(weight)) {
+                    ws.send(JSON.stringify({ weight: weight }));
+                }
+            } catch (error) {
+                console.error('Error fetching from scale:', error);
+                // Optionally send an error to the client
+                ws.send(JSON.stringify({ error: 'Failed to fetch from scale.' }));
+            } finally {
+                isFetching = false;
+            }
+        }, 2000); // Fetch every 2 seconds
 
-server.listen(BRIDGE_PORT, () => {
-  console.log(`✅ HTTP Bridge server running on http://localhost:${BRIDGE_PORT}`);
-  console.log(`Forwarding requests to scale at ${SCALE_URL}`);
-});
+        ws.on('close', () => {
+            console.log('Client disconnected');
+            clearInterval(interval);
+        });
+
+        ws.on('error', (error) => {
+            console.error('WebSocket error:', error);
+            clearInterval(interval);
+        });
+    });
+
+    server.listen(BRIDGE_PORT, () => {
+        console.log(`✅ Secure WebSocket bridge server running on wss://localhost:${BRIDGE_PORT}`);
+        console.log(`Forwarding requests to scale at ${SCALE_URL}`);
+    });
+}
+
+main().catch(console.error);
