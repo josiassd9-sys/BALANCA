@@ -3,111 +3,122 @@ import WebSocket, { WebSocketServer } from 'ws';
 import app from 'https-localhost';
 
 // --- Configuration ---
-const SCALE_WEBSOCKET_URL = 'ws://192.168.18.8:8080';
 const BRIDGE_SERVER_PORT = 3001;
 
 console.log('--- Secure WebSocket Bridge for Scale ---');
 
-// Create a secure HTTPS server using https-localhost
-// This automatically generates self-signed certificates for localhost
 const server = https.createServer(app);
-
-// Create a secure WebSocket server (WSS) and attach it to the HTTPS server
 const wss = new WebSocketServer({ server });
 
-let scaleClient: WebSocket | null = null;
-let lastKnownWeight = 0;
+let scaleSocket: WebSocket | null = null;
 let reconnectInterval: NodeJS.Timeout | null = null;
+let clientWs: WebSocket | null = null;
+let currentConfig = { ip: '', port: '' };
 
-// Function to connect to the physical scale's WebSocket
-const connectToScale = () => {
-  console.log(`Attempting to connect to scale at: ${SCALE_WEBSOCKET_URL}`);
-  
-  if (scaleClient && (scaleClient.readyState === WebSocket.OPEN || scaleClient.readyState === WebSocket.CONNECTING)) {
-      console.log('A connection attempt to the scale is already in progress.');
-      return;
-  }
+const connectToScale = (config: { ip: string, port: string }) => {
+    const scaleUrl = `ws://${config.ip}:${config.port}`;
+    console.log(`Attempting to connect to scale at: ${scaleUrl}`);
 
-  // Close any existing connection before creating a new one
-  if(scaleClient) {
-      scaleClient.removeAllListeners();
-      scaleClient.terminate();
-  }
-
-  scaleClient = new WebSocket(SCALE_WEBSOCKET_URL);
-
-  scaleClient.on('open', () => {
-    console.log('>>> Successfully connected to the scale.');
-    if(reconnectInterval) {
-        clearInterval(reconnectInterval);
-        reconnectInterval = null;
+    if (scaleSocket && (scaleSocket.readyState === WebSocket.OPEN || scaleSocket.readyState === WebSocket.CONNECTING)) {
+        console.log('A connection attempt to the scale is already in progress.');
+        return;
     }
-  });
 
-  scaleClient.on('message', (data) => {
-    const rawMessage = data.toString(); // "ST,GS,+0070,00kg\r\n"
-    
-    // Regex to find the weight value
-    const match = rawMessage.match(/\+([0-9,]+)kg/);
-    if (match && match[1]) {
-      // Found "+0070,00kg", match[1] is "0070,00"
-      const weightString = match[1].replace(',', '.'); // "0070.00"
-      const weight = parseFloat(weightString);
-      
-      if (!isNaN(weight)) {
-        lastKnownWeight = weight;
-        // Broadcast the new weight to all connected web app clients
-        wss.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'weightUpdate', weight: lastKnownWeight }));
-          }
-        });
-      }
+    if (scaleSocket) {
+        scaleSocket.removeAllListeners();
+        scaleSocket.terminate();
     }
-  });
 
-  scaleClient.on('close', () => {
-    console.log('!!! Disconnected from the scale.');
-    if (!reconnectInterval) {
-        console.log('Will attempt to reconnect in 3 seconds...');
-        reconnectInterval = setInterval(connectToScale, 3000);
-    }
-  });
+    scaleSocket = new WebSocket(scaleUrl);
 
-  scaleClient.on('error', (err) => {
-    console.error('--- Error connecting to scale ---', err.message);
-    // The 'close' event will be triggered next, which handles reconnection.
-  });
+    scaleSocket.on('open', () => {
+        console.log('>>> Successfully connected to the scale.');
+        if (reconnectInterval) {
+            clearInterval(reconnectInterval);
+            reconnectInterval = null;
+        }
+    });
+
+    scaleSocket.on('message', (data) => {
+        const rawMessage = data.toString(); // e.g., "ST,GS,+0070,00kg\r\n"
+        const match = rawMessage.match(/\+([0-9,]+)kg/);
+        if (match && match[1]) {
+            const weightString = match[1].replace(',', '.');
+            const weight = parseFloat(weightString);
+            if (!isNaN(weight) && clientWs && clientWs.readyState === WebSocket.OPEN) {
+                clientWs.send(JSON.stringify({ type: 'weightUpdate', weight: weight }));
+            }
+        }
+    });
+
+    scaleSocket.on('close', () => {
+        console.log('!!! Disconnected from the scale.');
+        if (clientWs && clientWs.readyState === WebSocket.OPEN) {
+            clientWs.send(JSON.stringify({ type: 'error', message: 'Conexão com a balança perdida.' }));
+        }
+        if (!reconnectInterval && currentConfig.ip && currentConfig.port) {
+            console.log('Will attempt to reconnect in 3 seconds...');
+            reconnectInterval = setInterval(() => connectToScale(currentConfig), 3000);
+        }
+    });
+
+    scaleSocket.on('error', (err) => {
+        console.error('--- Error connecting to scale ---', err.message);
+        if (clientWs && clientWs.readyState === WebSocket.OPEN) {
+            clientWs.send(JSON.stringify({ type: 'error', message: `Erro ao conectar à balança: ${err.message}` }));
+        }
+        // The 'close' event will be triggered next, which handles reconnection.
+    });
 };
 
-
-// --- Bridge Server Logic (WSS) ---
 wss.on('connection', (ws) => {
-  console.log('>>> Web app client connected to the bridge.');
+    console.log('>>> Web app client connected to the bridge.');
+    clientWs = ws;
 
-  // Send the last known weight immediately upon connection
-  ws.send(JSON.stringify({ type: 'weightUpdate', weight: lastKnownWeight }));
+    ws.on('message', (message) => {
+        try {
+            const data = JSON.parse(message.toString());
+            if (data.type === 'configure' && data.ip && data.port) {
+                console.log(`Received new config from client: IP=${data.ip}, Port=${data.port}`);
+                currentConfig = { ip: data.ip, port: data.port };
+                
+                if (reconnectInterval) {
+                    clearInterval(reconnectInterval);
+                    reconnectInterval = null;
+                }
+                connectToScale(currentConfig);
+            }
+        } catch (e) {
+            console.error('Invalid message from client:', message.toString());
+        }
+    });
 
-  ws.on('close', () => {
-    console.log('<<< Web app client disconnected.');
-  });
+    ws.on('close', () => {
+        console.log('<<< Web app client disconnected.');
+        clientWs = null;
+        if (scaleSocket) {
+            scaleSocket.close();
+        }
+        if(reconnectInterval) {
+            clearInterval(reconnectInterval);
+            reconnectInterval = null;
+        }
+    });
 
-  ws.on('error', (err) => {
-    console.error('--- Web app client WebSocket error ---', err.message);
-  });
+    ws.on('error', (err) => {
+        console.error('--- Web app client WebSocket error ---', err.message);
+    });
 });
 
-// Start the secure bridge server
 server.listen(BRIDGE_SERVER_PORT, () => {
-  console.log(`================================================================`);
-  console.log(`  Secure WebSocket Bridge Server is running on: wss://localhost:${BRIDGE_SERVER_PORT}`);
-  console.log(`  It is now bridging to the scale at: ${SCALE_WEBSOCKET_URL}`);
-  console.log(`================================================================`);
-  
-  // Initial connection attempt to the scale
-  connectToScale();
+    console.log(`================================================================`);
+    console.log(`  Secure WebSocket Bridge Server is running on: wss://localhost:${BRIDGE_SERVER_PORT}`);
+    console.log(`  Waiting for configuration from the client app...`);
+    console.log(`================================================================`);
 });
 
 server.on('error', (err) => {
     console.error(`--- Bridge Server Error ---`, err);
 });
+
+    

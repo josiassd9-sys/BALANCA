@@ -8,9 +8,10 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
-import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, CircuitBoard } from "lucide-react";
+import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, CircuitBoard, Settings } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 
 type WeighingItem = {
   id: string;
@@ -34,8 +35,7 @@ type WeighingMode = 'manual' | 'electronic';
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
-// Configuration for the secure WebSocket bridge server
-const WEBSOCKET_URL = "wss://127.0.0.1:3001";
+const WEBSOCKET_BRIDGE_URL = "wss://127.0.0.1:3001";
 
 const ScaleCalculator = forwardRef((props, ref) => {
   const [headerData, setHeaderData] = useState({ client: "", plate: "", driver: "" });
@@ -49,6 +49,39 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const [isScaleConnected, setIsScaleConnected] = useState(false);
   const ws = useRef<WebSocket | null>(null);
   const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // State for scale configuration
+  const [scaleConfig, setScaleConfig] = useState({
+    ip: '192.168.18.8',
+    port: '8080'
+  });
+
+  useEffect(() => {
+    try {
+      const savedConfig = localStorage.getItem('scaleConfig');
+      if (savedConfig) {
+        setScaleConfig(JSON.parse(savedConfig));
+      }
+    } catch (e) {
+      console.error("Could not read scale config from localStorage.", e);
+    }
+  }, []);
+
+  const handleSaveConfig = () => {
+    try {
+      localStorage.setItem('scaleConfig', JSON.stringify(scaleConfig));
+      toast({ title: "Configuração Salva!", description: "A nova configuração da balança foi salva." });
+      setIsSettingsOpen(false);
+      // Force reconnection with new settings
+      if (ws.current) {
+        ws.current.close();
+      }
+      connectWebSocket();
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erro ao Salvar", description: "Não foi possível salvar a configuração." });
+    }
+  };
 
 
   useEffect(() => {
@@ -97,23 +130,26 @@ const ScaleCalculator = forwardRef((props, ref) => {
       return;
     }
     
-    // Prevent multiple connections
     if (ws.current && ws.current.readyState < 2) return;
 
-    ws.current = new WebSocket(WEBSOCKET_URL);
+    ws.current = new WebSocket(WEBSOCKET_BRIDGE_URL);
 
     ws.current.onopen = () => {
       console.log("Secure WebSocket connected to bridge server.");
       setIsScaleConnected(true);
       setHasConnectedOnce(true);
       toast({ title: "Balança Conectada", description: "A conexão com a balança foi estabelecida." });
+      // Send config to bridge server
+      ws.current?.send(JSON.stringify({ type: 'configure', ...scaleConfig }));
     };
 
     ws.current.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        if (typeof message.weight === 'number') {
+        if (message.type === 'weightUpdate' && typeof message.weight === 'number') {
           setLiveWeight(message.weight);
+        } else if (message.type === 'error') {
+            toast({ variant: 'destructive', title: 'Erro na Ponte da Balança', description: message.message });
         }
       } catch (error) {
         console.error("Failed to parse weight message:", event.data);
@@ -127,35 +163,27 @@ const ScaleCalculator = forwardRef((props, ref) => {
     ws.current.onclose = () => {
       console.log("Secure WebSocket disconnected.");
       setIsScaleConnected(false);
-      if (hasConnectedOnce) {
+      if (hasConnectedOnce && weighingMode === 'electronic') {
         toast({
           variant: "destructive",
           title: "Balança Desconectada",
           description: "A conexão com a balança foi perdida. Tentando reconectar...",
         });
-      } else {
-         toast({
-          variant: "destructive",
-          title: "Erro de Conexão",
-          description: "Não foi possível conectar à balança. Verifique se o servidor-ponte está rodando.",
-        });
+        setTimeout(connectWebSocket, 3000);
       }
-
-      // Automatically try to reconnect
-      setTimeout(connectWebSocket, 3000);
     };
   };
 
   useEffect(() => {
     connectWebSocket();
 
-    // Cleanup on component unmount
     return () => {
       if (ws.current) {
+        ws.current.onclose = null; // prevent reconnection on unmount
         ws.current.close();
       }
     };
-  }, [weighingMode]); // Re-run effect if weighing mode changes
+  }, [weighingMode, scaleConfig]);
 
   const handleHeaderChange = (field: keyof typeof headerData, value: string) => {
     if (field === 'plate') {
@@ -364,7 +392,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
     setWeighingSets(prev => {
         const newSets = JSON.parse(JSON.stringify(prev)); // Deep copy
         
-        if (newSets.length === 0) { // Should not happen, but as a safeguard
+        if (newSets.length === 0) {
             newSets.push({ ...initialWeighingSet, id: uuidv4(), items: [] });
         }
 
@@ -372,16 +400,14 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 
         if (!initialItem) {
             initialItem = { ...initialItem, id: uuidv4(), material: "PESO_INICIAL_CAMINHAO", bruto: 0, tara: 0, descontos: 0, liquido: 0 };
-            newSets[0].items.unshift(initialItem); // Add to the beginning
+            newSets[0].items.unshift(initialItem);
         }
-
-        // Update the weight on the hidden item
+        
         initialItem[initialWeightField] = numValue;
         
-        // Also update its counterpart to avoid negative liquid weight if bruto/tara is 0
         if (initialWeightField === 'tara') {
             initialItem.liquido = initialItem.bruto - numValue - initialItem.descontos;
-        } else { // initialWeightField is 'bruto'
+        } else {
             initialItem.liquido = numValue - initialItem.tara - initialItem.descontos;
         }
         
@@ -418,26 +444,32 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   const initialWeightField = operationType === 'loading' ? 'tara' : 'bruto';
   const initialWeightValue = initialItemInState?.[initialWeightField] ?? 0;
   
-  // Filter out the hidden initial item before rendering
   const visibleItems = (set: WeighingSet) => set.items.filter(item => item.material !== "PESO_INICIAL_CAMINHAO");
 
   return (
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
       <div className="flex justify-between items-center mb-4 px-2 print:hidden">
+        <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
         <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
-        </div>
-        <div className="flex items-center gap-4">
-          <TooltipProvider>
             <ToggleGroup 
               type="single" 
               variant="outline"
               value={weighingMode} 
               onValueChange={(value) => {
-                if (value) setWeighingMode(value as WeighingMode);
+                if (value) {
+                    const newMode = value as WeighingMode;
+                    setWeighingMode(newMode);
+                    if (newMode === 'manual' && ws.current) {
+                        ws.current.close();
+                        setIsScaleConnected(false);
+                    } else if (newMode === 'electronic' && !isScaleConnected) {
+                        connectWebSocket();
+                    }
+                }
               }}
               className="p-1 gap-4"
             >
+              <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <ToggleGroupItem value="manual" aria-label="Manual">
@@ -454,8 +486,40 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                 </TooltipTrigger>
                 <TooltipContent><p>Pesagem Eletrônica</p></TooltipContent>
               </Tooltip>
+              </TooltipProvider>
             </ToggleGroup>
-          </TooltipProvider>
+            
+            <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" size="icon"><Settings className="h-5 w-5"/></Button>
+                            </DialogTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Configurações da Balança</p></TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Configuração da Balança Eletrônica</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="scale-ip" className="text-right">Host IP</Label>
+                            <Input id="scale-ip" value={scaleConfig.ip} onChange={(e) => setScaleConfig(c => ({...c, ip: e.target.value}))} className="col-span-3"/>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="scale-port" className="text-right">Porta</Label>
+                            <Input id="scale-port" value={scaleConfig.port} onChange={(e) => setScaleConfig(c => ({...c, port: e.target.value}))} className="col-span-3"/>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleSaveConfig}>Salvar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
       </div>
 
@@ -768,3 +832,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
