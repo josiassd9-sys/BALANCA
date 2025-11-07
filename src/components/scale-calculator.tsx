@@ -38,7 +38,7 @@ type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
-const WEBSOCKET_BRIDGE_URL = "wss://127.0.0.1:3001";
+const WEBSOCKET_BRIDGE_URL = "wss://localhost:3001";
 
 const ScaleCalculator = forwardRef((props, ref) => {
   const [headerData, setHeaderData] = useState({ client: "", plate: "", driver: "" });
@@ -52,8 +52,8 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const ws = useRef<WebSocket | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const reconnectIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // State for scale configuration
   const [scaleConfig, setScaleConfig] = useState({
     ip: '192.168.18.8',
     port: '8080'
@@ -75,11 +75,10 @@ const ScaleCalculator = forwardRef((props, ref) => {
       localStorage.setItem('scaleConfig', JSON.stringify(scaleConfig));
       toast({ title: "Configuração Salva!", description: "A nova configuração da balança foi salva." });
       setIsSettingsOpen(false);
-      // Force reconnection with new settings
+      // Disconnect and reconnect with new settings
       if (ws.current) {
         ws.current.close();
       }
-      connectWebSocket();
     } catch (e) {
       toast({ variant: "destructive", title: "Erro ao Salvar", description: "Não foi possível salvar a configuração." });
     }
@@ -124,68 +123,82 @@ const ScaleCalculator = forwardRef((props, ref) => {
   }, []);
 
   const connectWebSocket = () => {
-    if (weighingMode !== 'electronic') {
-      if (ws.current) {
-        ws.current.close();
-      }
-      return;
+    if (weighingMode !== 'electronic' || (ws.current && ws.current.readyState === WebSocket.CONNECTING)) {
+        return;
     }
     
-    if (ws.current && ws.current.readyState < 2) return;
-
     setConnectionStatus('connecting');
+
     ws.current = new WebSocket(WEBSOCKET_BRIDGE_URL);
 
     ws.current.onopen = () => {
-      setConnectionStatus('connected');
-      toast({ title: "Balança Conectada", description: "A conexão com a balança foi estabelecida." });
-      ws.current?.send(JSON.stringify({ type: 'configure', ...scaleConfig }));
+        setConnectionStatus('connected');
+        toast({ title: "Balança Conectada", description: "A conexão com a ponte foi estabelecida." });
+        
+        // Send config to bridge server
+        ws.current?.send(JSON.stringify({ type: 'configure', ...scaleConfig }));
+
+        if(reconnectIntervalRef.current) {
+            clearInterval(reconnectIntervalRef.current);
+            reconnectIntervalRef.current = null;
+        }
     };
 
     ws.current.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        if (message.type === 'weightUpdate' && typeof message.weight === 'number') {
-          setLiveWeight(message.weight);
-        } else if (message.type === 'error') {
-            toast({ variant: 'destructive', title: 'Erro na Ponte da Balança', description: message.message });
+        try {
+            const message = JSON.parse(event.data);
+            if (message.type === 'weightUpdate' && typeof message.weight === 'number') {
+                setLiveWeight(message.weight);
+            } else if (message.type === 'error') {
+                toast({ variant: 'destructive', title: 'Erro na Ponte da Balança', description: message.message });
+            }
+        } catch (error) {
+            console.error("Failed to parse message from bridge:", event.data);
         }
-      } catch (error) {
-        console.error("Failed to parse weight message:", event.data);
-      }
     };
 
-    ws.current.onerror = () => {
-      setConnectionStatus('error');
+    ws.current.onerror = (error) => {
+        setConnectionStatus('error');
+        ws.current?.close();
     };
 
     ws.current.onclose = () => {
-      if (connectionStatus !== 'error') {
+        if (connectionStatus !== 'error') {
           setConnectionStatus('disconnected');
-      }
-      if (weighingMode === 'electronic') {
-        setTimeout(connectWebSocket, 3000);
-      }
+        }
+        ws.current = null;
+        
+        if (weighingMode === 'electronic' && !reconnectIntervalRef.current) {
+            reconnectIntervalRef.current = setTimeout(() => {
+                reconnectIntervalRef.current = null;
+                connectWebSocket();
+            }, 3000);
+        }
     };
   };
+
+  const disconnectWebSocket = () => {
+    if (reconnectIntervalRef.current) {
+        clearInterval(reconnectIntervalRef.current);
+        reconnectIntervalRef.current = null;
+    }
+    if (ws.current) {
+        ws.current.onclose = null; // Prevent reconnection logic from firing
+        ws.current.close();
+        ws.current = null;
+    }
+    setConnectionStatus('disconnected');
+  }
 
   useEffect(() => {
     if (weighingMode === 'electronic') {
         connectWebSocket();
     } else {
-        if (ws.current) {
-            ws.current.onclose = null;
-            ws.current.close();
-            ws.current = null;
-        }
-        setConnectionStatus('disconnected');
+        disconnectWebSocket();
     }
 
     return () => {
-      if (ws.current) {
-        ws.current.onclose = null; // prevent reconnection on unmount
-        ws.current.close();
-      }
+      disconnectWebSocket();
     };
   }, [weighingMode, scaleConfig]);
 
@@ -493,12 +506,12 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                 <AlertDescription>
                     Não foi possível conectar ao servidor-ponte da balança.
                     <ol className="list-decimal list-inside mt-2 space-y-1">
-                        <li>Certifique-se de que o servidor-ponte está rodando na sua máquina (`npm run dev:scale`).</li>
+                        <li>Verifique se o servidor-ponte está rodando (`npm run dev:scale`).</li>
                         <li>
                             Se for o primeiro uso, abra uma nova aba e aceite o certificado de segurança em:{' '}
-                            <a href="https://localhost:3001" target="_blank" rel="noopener noreferrer" className="underline">
-                                https://localhost:3001
-                            </a>.
+                            <a href={WEBSOCKET_BRIDGE_URL.replace('wss', 'https')} target="_blank" rel="noopener noreferrer" className="underline">
+                                {WEBSOCKET_BRIDGE_URL.replace('wss', 'https')}
+                            </a>. Recarregue esta página após aceitar.
                         </li>
                     </ol>
                 </AlertDescription>
@@ -885,5 +898,3 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    

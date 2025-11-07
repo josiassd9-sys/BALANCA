@@ -18,18 +18,18 @@ let currentConfig = { ip: '', port: '' };
 const connectToScale = (config: { ip: string, port: string }) => {
     // Prevent connection if config is not set
     if (!config.ip || !config.port) {
-        console.log("Scale IP and Port not configured. Waiting for client configuration.");
+        console.log("[Bridge] Scale IP and Port not configured. Waiting for client configuration.");
         if (clientWs?.readyState === WebSocket.OPEN) {
-            clientWs.send(JSON.stringify({ type: 'error', message: 'Configuração da balança não recebida.' }));
+            clientWs.send(JSON.stringify({ type: 'error', message: 'Configuração da balança não recebida do cliente.' }));
         }
         return;
     }
     
     const scaleUrl = `ws://${config.ip}:${config.port}`;
-    console.log(`Attempting to connect to scale at: ${scaleUrl}`);
+    console.log(`[Bridge] Attempting to connect to scale at: ${scaleUrl}`);
 
     if (scaleSocket && (scaleSocket.readyState === WebSocket.OPEN || scaleSocket.readyState === WebSocket.CONNECTING)) {
-        console.log('A connection attempt to the scale is already in progress.');
+        console.log('[Bridge] A connection attempt to the scale is already in progress.');
         return;
     }
 
@@ -41,7 +41,7 @@ const connectToScale = (config: { ip: string, port: string }) => {
     scaleSocket = new WebSocket(scaleUrl);
 
     scaleSocket.on('open', () => {
-        console.log('>>> Successfully connected to the scale.');
+        console.log('>>> [Bridge] Successfully connected to the scale.');
         if (reconnectInterval) {
             clearInterval(reconnectInterval);
             reconnectInterval = null;
@@ -64,19 +64,19 @@ const connectToScale = (config: { ip: string, port: string }) => {
     });
 
     scaleSocket.on('close', () => {
-        console.log('!!! Disconnected from the scale.');
+        console.log('!!! [Bridge] Disconnected from the scale.');
         if (clientWs && clientWs.readyState === WebSocket.OPEN) {
             clientWs.send(JSON.stringify({ type: 'error', message: 'Conexão com a balança perdida.' }));
         }
         // Set up reconnection only if a config is present
         if (!reconnectInterval && currentConfig.ip && currentConfig.port) {
-            console.log('Will attempt to reconnect in 5 seconds...');
+            console.log('[Bridge] Will attempt to reconnect in 5 seconds...');
             reconnectInterval = setInterval(() => connectToScale(currentConfig), 5000);
         }
     });
 
     scaleSocket.on('error', (err) => {
-        console.error('--- Error connecting to scale ---', err.message);
+        console.error('--- [Bridge] Error connecting to scale ---', err.message);
         if (clientWs && clientWs.readyState === WebSocket.OPEN) {
             clientWs.send(JSON.stringify({ type: 'error', message: `Erro ao conectar à balança: ${err.message}` }));
         }
@@ -85,7 +85,7 @@ const connectToScale = (config: { ip: string, port: string }) => {
 };
 
 wss.on('connection', (ws) => {
-    console.log('>>> Web app client connected to the bridge.');
+    console.log('>>> [Bridge] Web app client connected.');
     clientWs = ws;
 
     ws.on('message', (message) => {
@@ -93,7 +93,7 @@ wss.on('connection', (ws) => {
             const data = JSON.parse(message.toString());
             // Check for 'configure' message type
             if (data.type === 'configure' && data.ip && data.port) {
-                console.log(`Received new config from client: IP=${data.ip}, Port=${data.port}`);
+                console.log(`[Bridge] Received new config from client: IP=${data.ip}, Port=${data.port}`);
                 currentConfig = { ip: data.ip, port: data.port };
                 
                 // If a reconnection interval is running, clear it to apply new settings immediately
@@ -104,12 +104,12 @@ wss.on('connection', (ws) => {
                 connectToScale(currentConfig);
             }
         } catch (e) {
-            console.error('Invalid message from client:', message.toString());
+            console.error('[Bridge] Invalid message from client:', message.toString());
         }
     });
 
     ws.on('close', () => {
-        console.log('<<< Web app client disconnected.');
+        console.log('<<< [Bridge] Web app client disconnected.');
         clientWs = null; // Clear the client reference
         if (scaleSocket) {
             scaleSocket.close();
@@ -123,7 +123,7 @@ wss.on('connection', (ws) => {
     });
 
     ws.on('error', (err) => {
-        console.error('--- Web app client WebSocket error ---', err.message);
+        console.error('--- [Bridge] Web app client WebSocket error ---', err.message);
     });
 });
 
@@ -135,7 +135,5 @@ server.listen(BRIDGE_SERVER_PORT, () => {
 });
 
 server.on('error', (err) => {
-    console.error(`--- Bridge Server Error ---`, err);
+    console.error(`--- [Bridge] Server Error ---`, err);
 });
-
-    
