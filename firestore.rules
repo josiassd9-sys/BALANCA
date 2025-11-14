@@ -13,6 +13,7 @@
  * - /inox_items/{inoxItemId}: Stores individual items with specifications and pricing.
  * - /universal_settings/{universalSettingsId}: Stores global cost and margin settings.
  * - /scale_data/{scaleDataId}: Stores real-time data from the live scale.
+ * - /pesagens/{pesagemId}: Stores live weight data from the scale.
  *
  * Key Security Decisions:
  * - Public read access for item catalogs and settings.
@@ -77,6 +78,19 @@ service cloud.firestore {
     match /scale_data/{scaleDataId} {
       allow get, list: if true;
       allow create, update, delete: if true;
+    }
+
+    /**
+     * @description Allows unauthenticated read/writes to live scale data for prototyping.
+     * @path /pesagens/{pesagemId}
+     * @allow (get, list, create, update, delete) Publicly accessible for prototyping.
+     * @principle Allows unauthenticated read/writes to simulate a trusted device.
+     *
+     * @security WARNING: In a production environment, you MUST restrict write access to
+     * authenticated sources using a service account or similar mechanism to prevent abuse.
+     */
+    match /pesagens/{pesagemId} {
+      allow read, write: if true;
     }
   }
 }
