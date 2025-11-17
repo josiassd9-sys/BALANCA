@@ -18,11 +18,14 @@ export function useScaleWeight() {
       clearTimeout(reconnectTimeoutRef.current);
     }
     
-    if (socketRef.current && socketRef.current.readyState !== WebSocket.CLOSED) {
-        socketRef.current.onclose = null; // Prevent onclose from firing during manual reconnection
+    // Se já existe um socket, feche-o antes de criar um novo.
+    // Isso evita múltiplas conexões e garante que o onclose não dispare reconexão indesejada.
+    if (socketRef.current) {
+        socketRef.current.onclose = null; // Impede que o onclose antigo dispare
         socketRef.current.close();
     }
     
+    // Define o status para 'connecting' no início de cada tentativa.
     setConnectionStatus('connecting');
 
     try {
@@ -43,39 +46,42 @@ export function useScaleWeight() {
       };
 
       socket.onclose = () => {
+        // Só tenta reconectar se o status não for de erro, para evitar loops em falhas persistentes.
+        if (connectionStatus !== 'error') {
+            setConnectionStatus('disconnected');
+        }
         console.log("WebSocket desconectado. Tentando reconectar em 3 segundos...");
-        setConnectionStatus('disconnected');
         reconnectTimeoutRef.current = setTimeout(connect, 3000);
       };
 
       socket.onerror = (error) => {
         console.error("Erro no WebSocket:", error);
-        setConnectionStatus('error');
-        socket.close(); // Isso vai disparar o onclose e a lógica de reconexão
+        setConnectionStatus('error'); // Define o estado de erro
+        socket.close(); // Isso vai disparar o onclose, que por sua vez agenda a reconexão.
       };
 
     } catch (error) {
       console.error("Falha ao construir o WebSocket:", error);
       setConnectionStatus('error');
+      // Agenda a reconexão mesmo se a construção do WebSocket falhar.
       reconnectTimeoutRef.current = setTimeout(connect, 3000);
     }
-  }, []);
+  }, [connectionStatus]); // Adiciona connectionStatus como dependência para reavaliar no onclose
 
   useEffect(() => {
     connect();
 
     return () => {
+      // Limpeza ao desmontar o componente
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
       if (socketRef.current) {
-        socketRef.current.onclose = null; // Impede a reconexão ao desmontar o componente
+        socketRef.current.onclose = null; // Impede a reconexão ao desmontar
         socketRef.current.close();
       }
     };
-  }, [connect]);
+  }, [connect]); // Executa apenas uma vez na montagem
 
   return { weight, connectionStatus };
 }
-
-    
