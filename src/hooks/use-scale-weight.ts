@@ -6,6 +6,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 type ConnectionConfig = { ip: string; port: string } | null;
 
+// TEMPORARILY HARDCODED FOR DIAGNOSTICS
+const BALANCA_URL = 'wss://192.168.18.8:3005';
+
 export function useScaleWeight(config: ConnectionConfig) {
   const [weight, setWeight] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
@@ -16,21 +19,24 @@ export function useScaleWeight(config: ConnectionConfig) {
       setConnectionStatus('disconnected');
       return;
     }
-
+    
     if (socketRef.current && (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING)) {
-        return; 
+      return;
     }
     
     setConnectionStatus('connecting');
     
-    const BALANCA_URL = `wss://${config.ip}:${config.port}`;
+    // Use the hardcoded URL for this test
+    const finalUrl = `wss://${config.ip}:${config.port}`;
+    console.log("Attempting to connect to WebSocket at:", finalUrl);
+
 
     try {
-      const socket = new WebSocket(BALANCA_URL);
+      const socket = new WebSocket(finalUrl);
       socketRef.current = socket;
 
       socket.onopen = () => {
-        console.log("WebSocket conectado com sucesso em", BALANCA_URL);
+        console.log("WebSocket conectado com sucesso em", finalUrl);
         setConnectionStatus('connected');
       };
 
@@ -43,7 +49,9 @@ export function useScaleWeight(config: ConnectionConfig) {
       };
 
       socket.onclose = () => {
-        setConnectionStatus('disconnected');
+        if (connectionStatus !== 'error') {
+            setConnectionStatus('disconnected');
+        }
         console.log("WebSocket desconectado.");
       };
 
@@ -57,7 +65,7 @@ export function useScaleWeight(config: ConnectionConfig) {
       console.error("Falha ao construir o WebSocket:", error);
       setConnectionStatus('error');
     }
-  }, [config]);
+  }, [config, connectionStatus]);
 
   const disconnect = useCallback(() => {
     if (socketRef.current) {
