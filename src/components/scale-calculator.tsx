@@ -4,16 +4,15 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "@/hooks/use-toast";
+import { useScaleWeight, type ConnectionStatus } from "@/hooks/use-scale-weight";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
-import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, Signal, Network } from "lucide-react";
+import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, Signal, Network, Wifi, WifiOff } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { doc } from "firebase/firestore";
-import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "./ui/dialog";
 
 type WeighingItem = {
@@ -32,16 +31,38 @@ type WeighingSet = {
   descontoCacamba: number;
 };
 
-type ScaleData = {
-  peso: number; // Updated to 'peso' to match balanca.js script
-  timestamp: Date;
-}
-
 type OperationType = 'loading' | 'unloading';
 type WeighingMode = 'manual' | 'electronic';
 
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
+
+const ConnectionStatusIndicator: React.FC<{ status: ConnectionStatus }> = ({ status }) => {
+  const getStatusInfo = () => {
+    switch (status) {
+      case 'connecting':
+        return { icon: <Loader2 className="h-4 w-4 animate-spin" />, text: 'Conectando...', color: 'text-muted-foreground' };
+      case 'connected':
+        return { icon: <Wifi className="h-4 w-4" />, text: 'Conectado', color: 'text-green-500' };
+      case 'disconnected':
+        return { icon: <WifiOff className="h-4 w-4" />, text: 'Desconectado', color: 'text-red-500' };
+      case 'error':
+        return { icon: <WifiOff className="h-4 w-4" />, text: 'Erro de Conexão', color: 'text-red-500' };
+      default:
+        return { icon: <WifiOff className="h-4 w-4" />, text: 'Desconhecido', color: 'text-muted-foreground' };
+    }
+  };
+
+  const { icon, text, color } = getStatusInfo();
+
+  return (
+    <div className={`flex items-center gap-2 text-xs font-medium ${color}`}>
+      {icon}
+      <span>{text}</span>
+    </div>
+  );
+};
+
 
 const ScaleCalculator = forwardRef((props, ref) => {
   const [headerData, setHeaderData] = useState({
@@ -53,14 +74,9 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
   const { toast } = useToast();
   const [operationType, setOperationType] = useState<OperationType>('loading');
-  const [weighingMode, setWeighingMode] = useState<WeighingMode>('manual');
+  const [weighingMode, setWeighingMode] = useState<WeighingMode>('electronic');
+  const { weight: liveWeight, connectionStatus } = useScaleWeight();
 
-  const firestore = useFirestore();
-  const scaleDataRef = useMemoFirebase(
-    () => firestore ? doc(firestore, "pesagens", "live") : null,
-    [firestore]
-  );
-  const { data: liveScaleData, isLoading: isScaleDataLoading } = useDoc<ScaleData>(scaleDataRef);
 
   useEffect(() => {
     const savedData = localStorage.getItem("scaleData");
@@ -73,17 +89,17 @@ const ScaleCalculator = forwardRef((props, ref) => {
         if (savedSets && savedSets.length > 0) {
             setActiveSetId(savedSets[0]?.id);
         } else {
-            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA INOX" }] };
+            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "BARRA CHATA" }] };
             setWeighingSets([newSet]);
             setActiveSetId(newSet.id);
         }
       } catch (e) {
-        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA INOX" }] };
+        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "BARRA CHATA" }] };
         setWeighingSets([newSet]);
         setActiveSetId(newSet.id);
       }
     } else if (weighingSets.length === 0) {
-      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA INOX" }] };
+      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "BARRA CHATA" }] };
       setWeighingSets([newSet]);
       setActiveSetId(newSet.id);
     }
@@ -160,7 +176,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
           if (operationType === 'loading') { // Venda - Carregamento
              newItem = {
               id: uuidv4(),
-              material: "SUCATA INOX",
+              material: "BARRA CHATA",
               bruto: 0,
               tara: lastItem.bruto, // Tara do novo é o bruto do anterior
               descontos: 0,
@@ -169,7 +185,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
           } else { // Compra - Descarregamento
             newItem = {
               id: uuidv4(),
-              material: "SUCATA INOX",
+              material: "BARRA CHATA",
               bruto: lastItem.tara, // Bruto do novo é a tara do anterior
               tara: 0,
               descontos: 0,
@@ -206,7 +222,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
         name: "BITREM / CAÇAMBA 2",
         items: [{
             id: uuidv4(),
-            material: "SUCATA INOX",
+            material: "BARRA CHATA",
             bruto: 0,
             tara: truckTara,
             descontos: 0,
@@ -220,7 +236,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
   };
 
   const handleClear = () => {
-    const newWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [{ ...initialItem, id: uuidv4(), material: "SUCATA INOX" }], descontoCacamba: 0 };
+    const newWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [{ ...initialItem, id: uuidv4(), material: "BARRA CHATA" }], descontoCacamba: 0 };
     setWeighingSets([newWeighingSet]);
     setActiveSetId(newWeighingSet.id);
     setHeaderData({ client: "", plate: "", driver: "" });
@@ -263,18 +279,16 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   };
 
   const handleFetchLiveWeight = (setId: string, itemId: string, field: 'bruto' | 'tara') => {
-    if (isScaleDataLoading) {
-      toast({ title: "Aguardando balança...", description: "Buscando dados da balança." });
+    if (connectionStatus !== 'connected') {
+      toast({
+        variant: "destructive",
+        title: "Balança Desconectada",
+        description: "Verifique a conexão com a balança antes de buscar o peso.",
+      });
       return;
     }
-    if (!liveScaleData) {
-      toast({ variant: "destructive", title: "Balança Offline", description: "Não foi possível obter o peso da balança. Verifique a conexão." });
-      return;
-    }
-
-    const weight = liveScaleData.peso || 0;
-    handleInputChange(setId, itemId, field, weight.toString());
-    toast({ title: "Peso Capturado!", description: `Peso de ${weight}kg aplicado ao campo ${field}.` });
+    handleInputChange(setId, itemId, field, liveWeight.toString());
+    toast({ title: "Peso Capturado!", description: `Peso de ${liveWeight}kg aplicado ao campo ${field}.` });
   };
 
 
@@ -305,6 +319,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       <div className="flex justify-between items-center mb-4 px-2 print:hidden">
         <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
         <div className="flex items-center gap-2">
+            {weighingMode === 'electronic' && <ConnectionStatusIndicator status={connectionStatus} />}
             <TooltipProvider>
             <ToggleGroup 
                 type="single" 
@@ -421,7 +436,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                     {weighingMode === 'electronic' ? (
                         <Button variant="outline" className="h-8 w-full justify-between" onClick={() => firstSet && firstItem && handleFetchLiveWeight(firstSet.id, firstItem.id, initialWeightField)}>
                             <span>{formatNumber(initialWeightValue) || "Buscar"}</span>
-                            {isScaleDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                            {connectionStatus === 'connecting' ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
                         </Button>
                     ) : (
                         <Input 
@@ -485,7 +500,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                   {weighingMode === 'electronic' ? (
                                      <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
                                           <span>{formatNumber(item.bruto) || "Buscar"}</span>
-                                          {isScaleDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                                          {connectionStatus === 'connecting' ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
                                      </Button>
                                   ) : (
                                     <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.bruto)} onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)} className="text-right h-8 print:hidden w-full" />
@@ -497,7 +512,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                     {weighingMode === 'electronic' ? (
                                          <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
                                               <span>{formatNumber(item.tara) || "Buscar"}</span>
-                                              {isScaleDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                                              {connectionStatus === 'connecting' ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
                                          </Button>
                                     ) : (
                                       <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.tara)} onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)} className="text-right h-8 print:hidden w-full" />
@@ -546,7 +561,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                 {weighingMode === 'electronic' ? (
                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
                                         <span>{formatNumber(item.bruto) || "Buscar Peso"}</span>
-                                        {isScaleDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                                        {connectionStatus === 'connecting' ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
                                     </Button>
                                 ) : (
                                   <Input
@@ -566,7 +581,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                 {weighingMode === 'electronic' ? (
                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
                                         <span>{formatNumber(item.tara) || "Buscar Peso"}</span>
-                                        {isScaleDataLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
+                                        {connectionStatus === 'connecting' ? <Loader2 className="h-4 w-4 animate-spin"/> : <Weight className="h-4 w-4" />}
                                     </Button>
                                 ) : (
                                   <Input
