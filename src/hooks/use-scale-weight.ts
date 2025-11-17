@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const BALANCA_URL = 'wss://192.168.18.8:3000';
+const BALANCA_URL = 'wss://192.168.18.8:3005';
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
