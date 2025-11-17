@@ -6,9 +6,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 type ConnectionConfig = { ip: string; port: string } | null;
 
-// TEMPORARILY HARDCODED FOR DIAGNOSTICS
-const BALANCA_URL = 'wss://192.168.18.8:3005';
-
 export function useScaleWeight(config: ConnectionConfig) {
   const [weight, setWeight] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
@@ -26,7 +23,6 @@ export function useScaleWeight(config: ConnectionConfig) {
     
     setConnectionStatus('connecting');
     
-    // Use the hardcoded URL for this test
     const finalUrl = `wss://${config.ip}:${config.port}`;
     console.log("Attempting to connect to WebSocket at:", finalUrl);
 
@@ -84,10 +80,13 @@ export function useScaleWeight(config: ConnectionConfig) {
       disconnect();
     }
 
+    // A função de limpeza deve apenas desconectar.
+    // A dependência `connect` pode causar reconexões indesejadas em loops.
     return () => {
       disconnect();
     };
-  }, [config, connect, disconnect]);
+  }, [config, disconnect, connect]);
+
 
   return { weight, connectionStatus, connect, disconnect };
 }

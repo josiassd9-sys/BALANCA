@@ -133,6 +133,8 @@ const ScaleCalculator = forwardRef((props, ref) => {
     localStorage.setItem("scalePort", scalePort);
     toast({ title: "Configurações Salvas", description: "O endereço da balança foi salvo." });
     disconnectFromScale();
+    // A reconexão será acionada pelo useEffect que observa a mudança no 'config' do useScaleWeight
+    // Forçar a reconexão imediatamente
     setTimeout(() => connectToScale(), 100);
   };
 
