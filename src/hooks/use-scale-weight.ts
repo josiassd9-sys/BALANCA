@@ -77,3 +77,5 @@ export function useScaleWeight() {
 
   return { weight, connectionStatus };
 }
+
+    

@@ -377,10 +377,18 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                             <Label htmlFor="port" className="text-right">
                                 Porta
                             </Label>
-                            <Input id="port" defaultValue="8081" className="col-span-3" />
+                            <Input id="port" defaultValue="3001" className="col-span-3" />
+                        </div>
+                         <div className="col-span-4">
+                            <p className="text-sm text-muted-foreground">
+                                Se a conexão falhar, seu navegador pode estar bloqueando um certificado SSL autoassinado. Clique no botão abaixo para abrir o endereço da balança em uma nova aba e aceite o risco de segurança.
+                            </p>
                         </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="sm:justify-between">
+                         <Button variant="outline" onClick={() => window.open('https://192.168.18.8:3001', '_blank')}>
+                            Aceitar Certificado
+                        </Button>
                         <DialogClose asChild>
                             <Button type="button">Salvar</Button>
                         </DialogClose>
