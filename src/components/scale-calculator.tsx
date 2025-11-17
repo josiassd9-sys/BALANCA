@@ -377,7 +377,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                             <Label htmlFor="port" className="text-right">
                                 Porta
                             </Label>
-                            <Input id="port" defaultValue="3001" className="col-span-3" />
+                            <Input id="port" defaultValue="3000" className="col-span-3" />
                         </div>
                          <div className="col-span-4">
                             <p className="text-sm text-muted-foreground">
@@ -386,7 +386,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                         </div>
                     </div>
                     <DialogFooter className="sm:justify-between">
-                         <Button variant="outline" onClick={() => window.open('https://192.168.18.8:3001', '_blank')}>
+                         <Button variant="outline" onClick={() => window.open('https://192.168.18.8:3000', '_blank')}>
                             Aceitar Certificado
                         </Button>
                         <DialogClose asChild>
@@ -704,5 +704,3 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    
