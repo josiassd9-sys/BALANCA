@@ -10,7 +10,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
-import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, Signal, Network, Wifi, WifiOff } from "lucide-react";
+import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, Loader2, PenSquare, Signal, Network, Wifi, WifiOff, RefreshCw } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "./ui/dialog";
@@ -37,7 +37,7 @@ type WeighingMode = 'manual' | 'electronic';
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
-const ConnectionStatusIndicator: React.FC<{ status: ConnectionStatus }> = ({ status }) => {
+const ConnectionStatusIndicator: React.FC<{ status: ConnectionStatus, onReconnect: () => void }> = ({ status, onReconnect }) => {
   const getStatusInfo = () => {
     switch (status) {
       case 'connecting':
@@ -47,18 +47,33 @@ const ConnectionStatusIndicator: React.FC<{ status: ConnectionStatus }> = ({ sta
       case 'disconnected':
         return { icon: <WifiOff className="h-4 w-4" />, text: 'Desconectado', color: 'text-red-500' };
       case 'error':
-        return { icon: <WifiOff className="h-4 w-4" />, text: 'Erro de Conexão', color: 'text-red-500' };
+        return { icon: <WifiOff className="h-4 w-4" />, text: 'Erro', color: 'text-red-500' };
       default:
         return { icon: <WifiOff className="h-4 w-4" />, text: 'Desconhecido', color: 'text-muted-foreground' };
     }
   };
 
   const { icon, text, color } = getStatusInfo();
+  const canReconnect = status === 'disconnected' || status === 'error';
 
   return (
     <div className={`flex items-center gap-2 text-xs font-medium ${color}`}>
       {icon}
       <span>{text}</span>
+      {canReconnect && (
+         <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onReconnect}>
+                        <RefreshCw className="h-3 w-3" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Reconectar</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+      )}
     </div>
   );
 };
@@ -116,7 +131,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const handleNetworkSave = () => {
     localStorage.setItem("scaleIp", scaleIp);
     localStorage.setItem("scalePort", scalePort);
-    toast({ title: "Configurações Salvas", description: "O endereço da balança foi salvo. A conexão será reiniciada." });
+    toast({ title: "Configurações Salvas", description: "O endereço da balança foi salvo." });
     disconnectFromScale();
     setTimeout(() => connectToScale(), 100);
   };
@@ -335,7 +350,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       <div className="flex justify-between items-center mb-4 px-2 print:hidden">
         <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
         <div className="flex items-center gap-2">
-            {weighingMode === 'electronic' && <ConnectionStatusIndicator status={connectionStatus} />}
+            {weighingMode === 'electronic' && <ConnectionStatusIndicator status={connectionStatus} onReconnect={connectToScale} />}
             <TooltipProvider>
             <ToggleGroup 
                 type="single" 

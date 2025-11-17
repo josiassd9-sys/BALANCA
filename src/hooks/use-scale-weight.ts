@@ -10,24 +10,15 @@ export function useScaleWeight(config: ConnectionConfig) {
   const [weight, setWeight] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const socketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const connect = useCallback(() => {
     if (!config) {
-      if (socketRef.current) {
-        socketRef.current.onclose = null;
-        socketRef.current.close();
-        setConnectionStatus('disconnected');
-      }
+      setConnectionStatus('disconnected');
       return;
     }
 
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-    
     if (socketRef.current && (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING)) {
-        return; // Already connecting or connected
+        return; 
     }
     
     setConnectionStatus('connecting');
@@ -41,7 +32,6 @@ export function useScaleWeight(config: ConnectionConfig) {
       socket.onopen = () => {
         console.log("WebSocket conectado com sucesso em", BALANCA_URL);
         setConnectionStatus('connected');
-        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       };
 
       socket.onmessage = (event) => {
@@ -54,8 +44,7 @@ export function useScaleWeight(config: ConnectionConfig) {
 
       socket.onclose = () => {
         setConnectionStatus('disconnected');
-        console.log("WebSocket desconectado. Tentando reconectar em 3 segundos...");
-        reconnectTimeoutRef.current = setTimeout(connect, 3000);
+        console.log("WebSocket desconectado.");
       };
 
       socket.onerror = (error) => {
@@ -67,14 +56,10 @@ export function useScaleWeight(config: ConnectionConfig) {
     } catch (error) {
       console.error("Falha ao construir o WebSocket:", error);
       setConnectionStatus('error');
-      reconnectTimeoutRef.current = setTimeout(connect, 3000);
     }
   }, [config]);
 
   const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
     if (socketRef.current) {
       socketRef.current.onclose = null; 
       socketRef.current.close();
