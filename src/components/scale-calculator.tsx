@@ -75,10 +75,18 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const { toast } = useToast();
   const [operationType, setOperationType] = useState<OperationType>('loading');
   const [weighingMode, setWeighingMode] = useState<WeighingMode>('electronic');
-  const { weight: liveWeight, connectionStatus } = useScaleWeight();
+  
+  const [scaleIp, setScaleIp] = useState("192.168.18.8");
+  const [scalePort, setScalePort] = useState("3005");
 
+  const { weight: liveWeight, connectionStatus, connect: connectToScale, disconnect: disconnectFromScale } = useScaleWeight(weighingMode === 'electronic' ? { ip: scaleIp, port: scalePort } : null);
 
   useEffect(() => {
+    const savedIp = localStorage.getItem("scaleIp");
+    const savedPort = localStorage.getItem("scalePort");
+    if (savedIp) setScaleIp(savedIp);
+    if (savedPort) setScalePort(savedPort);
+
     const savedData = localStorage.getItem("scaleData");
     if (savedData) {
       try {
@@ -104,6 +112,14 @@ const ScaleCalculator = forwardRef((props, ref) => {
       setActiveSetId(newSet.id);
     }
   }, []);
+
+  const handleNetworkSave = () => {
+    localStorage.setItem("scaleIp", scaleIp);
+    localStorage.setItem("scalePort", scalePort);
+    toast({ title: "Configurações Salvas", description: "O endereço da balança foi salvo. A conexão será reiniciada." });
+    disconnectFromScale();
+    setTimeout(() => connectToScale(), 100);
+  };
 
   const handleHeaderChange = (field: keyof typeof headerData, value: string) => {
     if (field === 'plate') {
@@ -371,13 +387,13 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                             <Label htmlFor="ip-address" className="text-right">
                                 Endereço IP
                             </Label>
-                            <Input id="ip-address" defaultValue="192.168.18.8" className="col-span-3" />
+                            <Input id="ip-address" value={scaleIp} onChange={(e) => setScaleIp(e.target.value)} className="col-span-3" />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="port" className="text-right">
                                 Porta
                             </Label>
-                            <Input id="port" defaultValue="3000" className="col-span-3" />
+                            <Input id="port" value={scalePort} onChange={(e) => setScalePort(e.target.value)} className="col-span-3" />
                         </div>
                          <div className="col-span-4">
                             <p className="text-sm text-muted-foreground">
@@ -386,11 +402,11 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                         </div>
                     </div>
                     <DialogFooter className="sm:justify-between">
-                         <Button variant="outline" onClick={() => window.open('https://192.168.18.8:3000', '_blank')}>
+                         <Button variant="outline" onClick={() => window.open(`https://${scaleIp}:${scalePort}`, '_blank')}>
                             Aceitar Certificado
                         </Button>
                         <DialogClose asChild>
-                            <Button type="button">Salvar</Button>
+                            <Button type="button" onClick={handleNetworkSave}>Salvar</Button>
                         </DialogClose>
                     </DialogFooter>
                 </DialogContent>
