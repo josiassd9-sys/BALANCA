@@ -32,52 +32,10 @@ type WeighingSet = {
 };
 
 type OperationType = 'loading' | 'unloading';
-type WeighingMode = 'manual' | 'electronic';
+type WeighingMode = 'electronic';
 
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
-
-const ConnectionStatusIndicator: React.FC<{ status: ConnectionStatus, onReconnect: () => void }> = ({ status, onReconnect }) => {
-  const getStatusInfo = () => {
-    switch (status) {
-      case 'connecting':
-        return { icon: <Loader2 className="h-4 w-4 animate-spin" />, text: 'Conectando...', color: 'text-muted-foreground' };
-      case 'connected':
-        return { icon: <Wifi className="h-4 w-4" />, text: 'Conectado', color: 'text-green-500' };
-      case 'disconnected':
-        return { icon: <WifiOff className="h-4 w-4" />, text: 'Desconectado', color: 'text-red-500' };
-      case 'error':
-        return { icon: <WifiOff className="h-4 w-4" />, text: 'Erro', color: 'text-red-500' };
-      default:
-        return { icon: <WifiOff className="h-4 w-4" />, text: 'Desconhecido', color: 'text-muted-foreground' };
-    }
-  };
-
-  const { icon, text, color } = getStatusInfo();
-  const canReconnect = status === 'disconnected' || status === 'error';
-
-  return (
-    <div className={`flex items-center gap-2 text-xs font-medium ${color}`}>
-      {icon}
-      <span>{text}</span>
-      {canReconnect && (
-         <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onReconnect}>
-                        <RefreshCw className="h-3 w-3" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>Reconectar</p>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-      )}
-    </div>
-  );
-};
-
 
 const ScaleCalculator = forwardRef((props, ref) => {
   const [headerData, setHeaderData] = useState({
@@ -133,8 +91,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
     localStorage.setItem("scalePort", scalePort);
     toast({ title: "Configurações Salvas", description: "O endereço da balança foi salvo." });
     disconnectFromScale();
-    // A reconexão será acionada pelo useEffect que observa a mudança no 'config' do useScaleWeight
-    // Forçar a reconexão imediatamente
     setTimeout(() => connectToScale(), 100);
   };
 
@@ -316,7 +272,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       toast({
         variant: "destructive",
         title: "Balança Desconectada",
-        description: "Verifique a conexão com a balança antes de buscar o peso.",
+        description: "A conexão com a balança não está ativa.",
       });
       return;
     }
@@ -351,83 +307,15 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
       <div className="flex justify-between items-center mb-4 px-2 print:hidden">
         <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
-        <div className="flex items-center gap-2">
-            {weighingMode === 'electronic' && <ConnectionStatusIndicator status={connectionStatus} onReconnect={connectToScale} />}
-            <TooltipProvider>
-            <ToggleGroup 
-                type="single" 
-                variant="outline"
-                value={weighingMode} 
-                onValueChange={(value) => {
-                if (value) setWeighingMode(value as WeighingMode);
-                }}
-                className="p-1"
-            >
-                <Tooltip>
-                <TooltipTrigger asChild>
-                    <ToggleGroupItem value="manual" aria-label="Manual">
-                    <PenSquare className="h-5 w-5" />
-                    </ToggleGroupItem>
-                </TooltipTrigger>
-                <TooltipContent><p>Pesagem Manual</p></TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                <TooltipTrigger asChild>
-                    <ToggleGroupItem value="electronic" aria-label="Eletrônica">
-                    <Signal className="h-5 w-5" />
-                    </ToggleGroupItem>
-                </TooltipTrigger>
-                <TooltipContent><p>Pesagem Eletrônica</p></TooltipContent>
-                </Tooltip>
-            </ToggleGroup>
-            </TooltipProvider>
-
-            <Dialog>
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                             <DialogTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <Network className="h-5 w-5" />
-                                </Button>
-                            </DialogTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Configurar Conexão da Balança</p></TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Configuração de Rede da Balança</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="ip-address" className="text-right">
-                                Endereço IP
-                            </Label>
-                            <Input id="ip-address" value={scaleIp} onChange={(e) => setScaleIp(e.target.value)} className="col-span-3" />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="port" className="text-right">
-                                Porta
-                            </Label>
-                            <Input id="port" value={scalePort} onChange={(e) => setScalePort(e.target.value)} className="col-span-3" />
-                        </div>
-                         <div className="col-span-4">
-                            <p className="text-sm text-muted-foreground">
-                                Se a conexão falhar, seu navegador pode estar bloqueando um certificado SSL autoassinado. Clique no botão abaixo para abrir o endereço da balança em uma nova aba e aceite o risco de segurança.
-                            </p>
-                        </div>
-                    </div>
-                    <DialogFooter className="sm:justify-between">
-                         <Button variant="outline" onClick={() => window.open(`https://${scaleIp}:${scalePort}`, '_blank')}>
-                            Aceitar Certificado
-                        </Button>
-                        <DialogClose asChild>
-                            <Button type="button" onClick={handleNetworkSave}>Salvar</Button>
-                        </DialogClose>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+        <div className="flex items-center gap-4">
+            <div className="text-right">
+                <p className="text-sm text-muted-foreground">Peso na Balança</p>
+                <div className="flex items-center justify-end gap-2 p-2 rounded-md bg-muted border h-10 w-40">
+                    {/* Este é o novo campo para o peso em tempo real */}
+                    <span className="text-2xl font-bold text-foreground"></span>
+                    <span className="text-lg font-semibold text-muted-foreground">kg</span>
+                </div>
+            </div>
         </div>
       </div>
 
@@ -737,3 +625,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
