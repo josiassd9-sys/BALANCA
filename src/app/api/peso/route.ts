@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const HTTP_PORT = process.env.SCALE_HTTP_PORT || '3005';
+const HTTP_PORT = process.env.SCALE_HTTP_PORT || '3000';
 const SCALE_HOST = process.env.SCALE_HOST || '192.168.18.8';
 
 const CANDIDATES = [
