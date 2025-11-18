@@ -13,7 +13,7 @@ const ScaleCalculator = dynamic(
 
 export default function Home() {
   return (
-    <main className="container mx-auto p-2 md:p-6 lg:p-8">
+    <main className="container mx-auto p-px md:p-6 lg:p-8">
       <ScaleCalculator />
     </main>
   );
