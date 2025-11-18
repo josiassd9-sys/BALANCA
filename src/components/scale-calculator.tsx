@@ -32,7 +32,7 @@ type WeighingSet = {
 };
 
 type OperationType = 'loading' | 'unloading';
-type WeighingMode = 'electronic';
+type WeighingMode = 'electronic' | 'manual';
 
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
@@ -85,14 +85,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
       setActiveSetId(newSet.id);
     }
   }, []);
-
-  const handleNetworkSave = () => {
-    localStorage.setItem("scaleIp", scaleIp);
-    localStorage.setItem("scalePort", scalePort);
-    toast({ title: "Configurações Salvas", description: "O endereço da balança foi salvo." });
-    disconnectFromScale();
-    setTimeout(() => connectToScale(), 100);
-  };
 
   const handleHeaderChange = (field: keyof typeof headerData, value: string) => {
     if (field === 'plate') {
@@ -311,11 +303,41 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
             <div className="text-right">
                 <p className="text-sm text-muted-foreground">Peso na Balança</p>
                 <div className="flex items-center justify-end gap-2 p-2 rounded-md bg-muted border h-10 w-40">
-                    {/* Este é o novo campo para o peso em tempo real */}
                     <span className="text-2xl font-bold text-foreground"></span>
                     <span className="text-lg font-semibold text-muted-foreground">kg</span>
                 </div>
             </div>
+             <ToggleGroup
+              type="single"
+              value={weighingMode}
+              onValueChange={(value) => {
+                if (value) setWeighingMode(value as WeighingMode);
+              }}
+              className="gap-1"
+            >
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ToggleGroupItem value="electronic" aria-label="Pesagem Eletrônica">
+                      <Signal className="h-5 w-5" />
+                    </ToggleGroupItem>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Modo Eletrônico (Balança)</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ToggleGroupItem value="manual" aria-label="Pesagem Manual">
+                      <PenSquare className="h-5 w-5" />
+                    </ToggleGroupItem>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Modo Manual</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </ToggleGroup>
         </div>
       </div>
 
