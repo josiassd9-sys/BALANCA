@@ -86,9 +86,28 @@ const ScaleCalculator = forwardRef((props, ref) => {
 
   const handleInputChange = (setId: string, itemId: string, field: keyof WeighingItem, value: string) => {
     const numValue = parseInt(value.replace(/\D/g, ''), 10) || 0;
-    setWeighingSets(prevSets =>
-      prevSets.map(set => {
+    
+    setWeighingSets(prevSets => {
+      // Ensure the first item exists if we're trying to edit it
+      if (prevSets.length === 0 && setId && itemId) {
+        const newSet = { 
+          ...initialWeighingSet, 
+          id: setId, 
+          items: [{ ...initialItem, id: itemId, [field]: numValue, liquido: (field === 'bruto' ? numValue : 0) - (field === 'tara' ? numValue : 0) }]
+        };
+        setActiveSetId(newSet.id);
+        return [newSet];
+      }
+
+      return prevSets.map(set => {
         if (set.id === setId) {
+          // If the set has no items, create the first one
+          if (set.items.length === 0 && itemId) {
+             const newItem = { ...initialItem, id: itemId, [field]: numValue };
+             newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
+             return { ...set, items: [newItem] };
+          }
+          
           const newItems = set.items.map(item => {
             if (item.id === itemId) {
               const updatedItem = { ...item, [field]: numValue };
@@ -103,8 +122,8 @@ const ScaleCalculator = forwardRef((props, ref) => {
           return { ...set, items: newItems };
         }
         return set;
-      })
-    );
+      });
+    });
   };
   
   const handleMaterialChange = (setId: string, itemId: string, newMaterial: string) => {
@@ -208,10 +227,15 @@ const ScaleCalculator = forwardRef((props, ref) => {
     setWeighingSets(prev => {
         const newSets = prev.filter(s => s.id !== setId);
         // Renumber sets to keep names sequential
-        return newSets.map((s, index) => ({
+        const renumberedSets = newSets.map((s, index) => ({
             ...s,
             name: `CAÇAMBA ${index + 1}`
         }));
+        setWeighingSets(renumberedSets);
+        if (activeSetId === setId) {
+            setActiveSetId(renumberedSets[0]?.id || null);
+        }
+        return renumberedSets;
     });
   };
 
@@ -289,10 +313,10 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
     return total + (setItemsTotal - set.descontoCacamba);
   }, 0);
 
-  const firstSet = weighingSets.length > 0 ? weighingSets[0] : null;
-  const firstItem = firstSet && firstSet.items.length > 0 ? firstSet.items[0] : null;
+  const firstSet = weighingSets.length > 0 ? weighingSets[0] : { ...initialWeighingSet, id: activeSetId || uuidv4() };
+  const firstItem = firstSet.items.length > 0 ? firstSet.items[0] : { ...initialItem, id: uuidv4() };
   const initialWeightField = operationType === 'loading' ? 'tara' : 'bruto';
-  const initialWeightValue = firstItem ? firstItem[initialWeightField] : 0;
+  const initialWeightValue = firstSet.items.length > 0 ? firstSet.items[0][initialWeightField] : 0;
 
   return (
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
@@ -388,7 +412,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                  <div className="space-y-px flex-none w-28">
                     <Label className="text-xs sm:text-sm">{operationType === 'loading' ? 'Tara (kg)' : 'Bruto (kg)'}</Label>
                     {weighingMode === 'electronic' ? (
-                        <Button variant="outline" className="h-8 w-full justify-between" onClick={() => firstSet && firstItem && handleFetchLiveWeight(firstSet.id, firstItem.id, initialWeightField)}>
+                        <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(firstSet.id, firstItem.id, initialWeightField)}>
                             <span>{formatNumber(initialWeightValue) || "Buscar"}</span>
                             {<Weight className="h-4 w-4" />}
                         </Button>
@@ -398,7 +422,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                             inputMode="decimal" 
                             placeholder="0" 
                             value={formatNumber(initialWeightValue)} 
-                            onChange={(e) => firstSet && firstItem && handleInputChange(firstSet.id, firstItem.id, initialWeightField, e.target.value)} 
+                            onChange={(e) => handleInputChange(firstSet.id, firstItem.id, initialWeightField, e.target.value)} 
                             className="text-right h-8 print:hidden w-full" 
                         />
                     )}
