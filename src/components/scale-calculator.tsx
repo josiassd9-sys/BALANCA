@@ -98,6 +98,19 @@ const ScaleCalculator = forwardRef((props, ref) => {
         setActiveSetId(newSet.id);
         return [newSet];
       }
+      
+      // If we are editing but there are no sets, create the first one
+      if (prevSets.length === 0) {
+        const newSet = { 
+          ...initialWeighingSet,
+          id: setId || uuidv4(),
+          items: [{ ...initialItem, id: itemId || uuidv4(), [field]: numValue }]
+        };
+        const newItem = newSet.items[0];
+        newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
+        setActiveSetId(newSet.id);
+        return [newSet];
+      }
 
       return prevSets.map(set => {
         if (set.id === setId) {
@@ -655,7 +668,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
             </div>
          </CardContent>
       </Card>
-      <div className="flex items-center gap-4 justify-center pt-1 print:hidden">
+      <div className="flex items-center gap-8 justify-center pt-1 print:hidden">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
