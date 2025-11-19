@@ -170,26 +170,25 @@ const ScaleCalculator = forwardRef((props, ref) => {
     );
   };
   
-  const addBitrem = () => {
-    if (weighingSets.length >= 2) return;
-
+  const addNewSet = () => {
     const firstSet = weighingSets[0];
-    const firstItemOfFirstSet = firstSet.items[0];
+    const firstItemOfFirstSet = firstSet?.items[0];
 
     if (!firstItemOfFirstSet) {
         toast({
             variant: "destructive",
             title: "Primeira caçamba vazia",
-            description: "Adicione e pese pelo menos um material na Caçamba 1 antes de adicionar o bitrem.",
+            description: "Adicione e pese pelo menos um material na Caçamba 1 antes de adicionar outra.",
         });
         return;
     }
 
     const truckTara = firstItemOfFirstSet.tara;
+    const newSetNumber = weighingSets.length + 1;
 
     const newSet: WeighingSet = {
         id: uuidv4(),
-        name: "BITREM / CAÇAMBA 2",
+        name: `CAÇAMBA ${newSetNumber}`,
         items: [{
             id: uuidv4(),
             material: "BARRA CHATA",
@@ -203,6 +202,17 @@ const ScaleCalculator = forwardRef((props, ref) => {
 
     setWeighingSets(prev => [...prev, newSet]);
     setActiveSetId(newSet.id);
+  };
+
+  const removeSet = (setId: string) => {
+    setWeighingSets(prev => {
+        const newSets = prev.filter(s => s.id !== setId);
+        // Renumber sets to keep names sequential
+        return newSets.map((s, index) => ({
+            ...s,
+            name: `CAÇAMBA ${index + 1}`
+        }));
+    });
   };
 
   const handleClear = () => {
@@ -407,11 +417,26 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
          return (
           <Card key={set.id} className="mb-px print:border-none print:shadow-none print:p-0 print:mb-0.5">
             <CardHeader className="p-px flex flex-row items-center justify-between print:p-0 print:mb-0.5">
-              <Input 
-                value={set.name}
-                onChange={(e) => handleSetNameChange(set.id, e.target.value)}
-                className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto"
-              />
+                <div className="flex items-center gap-2">
+                    <Input 
+                        value={set.name}
+                        onChange={(e) => handleSetNameChange(set.id, e.target.value)}
+                        className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto w-48"
+                    />
+                    {setIndex > 0 && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={() => removeSet(set.id)} className="h-7 w-7 text-muted-foreground hover:text-destructive print:hidden">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Remover Caçamba</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                </div>
+
               <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
@@ -583,7 +608,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                          <p className="text-lg font-bold print:text-black">{formatNumber(subtotalLiquido)} kg</p>
                      </div>
                       <div className="text-right flex-shrink-0">
-                         <p className="text-sm text-muted-foreground">{setIndex === 0 ? "Caçamba 1" : "Bitrem / Caçamba 2"}</p>
+                         <p className="text-sm text-muted-foreground">{set.name}</p>
                          <p className="text-xl font-bold text-primary print:text-black">{formatNumber(totalLiquidoSet)} kg</p>
                      </div>
                  </div>
@@ -592,11 +617,11 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
         );
       })}
 
-      {weighingSets.length < 2 && (
+      
         <div className="flex justify-center my-px print:hidden">
-          <Button variant="secondary" onClick={addBitrem} size="sm" className="h-8 px-2"><Tractor className="mr-2 h-4 w-4" /> + Bitrem / Caçamba 2</Button>
+          <Button variant="secondary" onClick={addNewSet} size="sm" className="h-8 px-2"><Tractor className="mr-2 h-4 w-4" /> + Adicionar Caçamba</Button>
         </div>
-      )}
+      
 
       <Card className="mt-px bg-primary/10 border-primary/20 print:border print:border-accent-price print:shadow-none print:p-0.5">
          <CardContent className="p-px flex justify-end items-center">
@@ -640,3 +665,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
