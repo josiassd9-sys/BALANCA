@@ -668,7 +668,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
             </div>
          </CardContent>
       </Card>
-      <div className="flex items-center gap-20 justify-center pt-1 print:hidden">
+      <div className="flex items-center gap-16 justify-center pt-1 print:hidden">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
