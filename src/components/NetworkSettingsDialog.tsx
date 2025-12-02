@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScaleConfig } from "@/hooks/use-scale";
+import { type ScaleConfig } from "@/hooks/use-scale";
 
 interface NetworkSettingsDialogProps {
   isOpen: boolean;
@@ -34,7 +34,7 @@ export function NetworkSettingsDialog({
         <DialogHeader>
           <DialogTitle>Configuração de Rede da Balança</DialogTitle>
           <DialogDescription>
-            Defina o endereço e as portas para comunicação com o servidor da balança.
+            Defina o endereço de rede (IP) do computador onde o servidor da balança está rodando.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -50,36 +50,6 @@ export function NetworkSettingsDialog({
               }
               className="col-span-3"
               placeholder="Ex: 192.168.18.8"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="scale-ws-port" className="text-right">
-              Porta (WebSocket)
-            </Label>
-            <Input
-              id="scale-ws-port"
-              type="number"
-              value={config.wsPort}
-              onChange={(e) =>
-                onConfigChange({ ...config, wsPort: parseInt(e.target.value) || 0 })
-              }
-              className="col-span-3"
-              placeholder="Ex: 3001"
-            />
-          </div>
-           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="scale-http-port" className="text-right">
-              Porta (HTTP)
-            </Label>
-            <Input
-              id="scale-http-port"
-              type="number"
-              value={config.httpPort}
-              onChange={(e) =>
-                onConfigChange({ ...config, httpPort: parseInt(e.target.value) || 0 })
-              }
-              className="col-span-3"
-              placeholder="Ex: 3002"
             />
           </div>
         </div>
