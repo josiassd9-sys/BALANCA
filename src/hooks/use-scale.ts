@@ -32,13 +32,7 @@ export function useScale() {
 
   const saveConfig = () => {
     try {
-      // Keep the wsPort and httpPort from the current state (defaults)
-      const configToSave = {
-        host: config.host,
-        wsPort: DEFAULT_WS_PORT,
-        httpPort: DEFAULT_HTTP_PORT,
-      };
-      localStorage.setItem('scaleConfig', JSON.stringify(configToSave));
+      localStorage.setItem('scaleConfig', JSON.stringify(config));
       // Trigger reconnection with new config
       disconnect();
       setTimeout(connect, 100);
@@ -139,8 +133,8 @@ export function useScale() {
         const parsedConfig = JSON.parse(savedConfig);
         setConfig({
           host: parsedConfig.host || DEFAULT_HOST,
-          wsPort: DEFAULT_WS_PORT, // Always use default
-          httpPort: DEFAULT_HTTP_PORT, // Always use default
+          wsPort: parsedConfig.wsPort || DEFAULT_WS_PORT,
+          httpPort: parsedConfig.httpPort || DEFAULT_HTTP_PORT,
         });
       } else {
          setConfig({

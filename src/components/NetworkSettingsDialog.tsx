@@ -34,7 +34,7 @@ export function NetworkSettingsDialog({
         <DialogHeader>
           <DialogTitle>Configuração de Rede da Balança</DialogTitle>
           <DialogDescription>
-            Defina o endereço de rede (IP) do computador onde o servidor da balança está rodando.
+            Defina o endereço de rede (IP) e as portas do computador onde o servidor da balança (ponte) está rodando.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -50,6 +50,34 @@ export function NetworkSettingsDialog({
               }
               className="col-span-3"
               placeholder="Ex: 192.168.18.8"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="ws-port" className="text-right">
+              Porta WebSocket
+            </Label>
+            <Input
+              id="ws-port"
+              type="number"
+              value={config.wsPort}
+              onChange={(e) =>
+                onConfigChange({ ...config, wsPort: parseInt(e.target.value, 10) || 0 })
+              }
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="http-port" className="text-right">
+              Porta HTTP
+            </Label>
+            <Input
+              id="http-port"
+              type="number"
+              value={config.httpPort}
+              onChange={(e) =>
+                onConfigChange({ ...config, httpPort: parseInt(e.target.value, 10) || 0 })
+              }
+              className="col-span-3"
             />
           </div>
         </div>
