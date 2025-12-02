@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from ".
 import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, PenSquare, Signal, Network } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { LiveWeightFromBalanca } from "./LiveWeightFromBalanca";
+import { useScale } from "@/hooks/use-scale";
+import { LiveScaleInfo } from "./LiveScaleInfo";
 import { NetworkSettingsDialog } from "./NetworkSettingsDialog";
 
 type WeighingItem = {
@@ -32,19 +33,13 @@ type WeighingSet = {
 
 type OperationType = 'loading' | 'unloading';
 type WeighingMode = 'electronic' | 'manual';
-type ScaleConfig = { ip: string; port: string; };
 
 const initialItem: WeighingItem = { id: '', material: 'SUCATA', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
 const ScaleCalculator = forwardRef((props, ref) => {
-  const [scaleConfig, setScaleConfig] = useState<ScaleConfig>({ ip: '192.168.18.8', port: '3000' });
-  const { weight: liveWeight, refresh: refreshWeight } = LiveWeightFromBalanca(scaleConfig);
-  const [headerData, setHeaderData] = useState({
-    client: "",
-    plate: "",
-    driver: "",
-  });
+  const { weight: liveWeight, status, connectionType, config, setConfig, saveConfig } = useScale();
+  const [headerData, setHeaderData] = useState({ client: "", plate: "", driver: "" });
   const [weighingSets, setWeighingSets] = useState<WeighingSet[]>([]);
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -53,15 +48,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   useEffect(() => {
-    try {
-      const savedConfig = localStorage.getItem('scaleConfig');
-      if (savedConfig) {
-        setScaleConfig(JSON.parse(savedConfig));
-      }
-    } catch (e) {
-      console.error("Could not read scale config from localStorage.", e);
-    }
-    
     const savedData = localStorage.getItem("scaleData");
     if (savedData) {
       try {
@@ -87,16 +73,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
       setActiveSetId(newSet.id);
     }
   }, []);
-
-  const handleSaveConfig = () => {
-    try {
-      localStorage.setItem('scaleConfig', JSON.stringify(scaleConfig));
-      toast({ title: "Configuração Salva!", description: "A nova configuração da balança foi salva." });
-      setIsSettingsOpen(false);
-    } catch (e) {
-      toast({ variant: "destructive", title: "Erro ao Salvar", description: "Não foi possível salvar a configuração." });
-    }
-  };
 
   const handleHeaderChange = (field: keyof typeof headerData, value: string) => {
     if (field === 'plate') {
@@ -330,11 +306,11 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   };
 
   const handleFetchLiveWeight = (setId: string, itemId: string, field: 'bruto' | 'tara') => {
-    if (weighingMode !== 'electronic') {
+    if (weighingMode !== 'electronic' || status !== 'connected') {
       toast({
         variant: "destructive",
-        title: "Modo Manual Ativado",
-        description: "Alterne para o modo eletrônico para capturar o peso da balança.",
+        title: "Balança não conectada",
+        description: "Alterne para o modo eletrônico e verifique a conexão com a balança.",
       });
       return;
     }
@@ -370,24 +346,19 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       <NetworkSettingsDialog 
         isOpen={isSettingsOpen}
         onOpenChange={setIsSettingsOpen}
-        config={scaleConfig}
-        onConfigChange={setScaleConfig}
-        onSave={handleSaveConfig}
+        config={config}
+        onConfigChange={setConfig}
+        onSave={saveConfig}
       />
       <div className="flex justify-between items-center mb-4 px-2 print:hidden">
         <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
         <div className="flex items-center gap-4">
-             <button 
-              onClick={refreshWeight}
-              className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-lg border-2 border-primary/30 hover:bg-primary/20 transition-colors cursor-pointer active:scale-95"
-              title="Clique para atualizar o peso"
-            >
-              <Weight className="h-5 w-5 text-primary" />
-              <div>
-                <div className="text-xs text-muted-foreground">Peso Ao Vivo</div>
-                <div className="text-2xl font-bold text-primary">{formatNumber(liveWeight)} kg</div>
-              </div>
-            </button>
+             <LiveScaleInfo 
+                status={status}
+                weight={liveWeight}
+                connectionType={connectionType}
+                host={config.host}
+             />
              <ToggleGroup
               type="single"
               value={weighingMode}
@@ -475,11 +446,11 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                 </div>
                  <div className="space-y-px flex-none w-28">
                     <Label className="text-xs sm:text-sm">{operationType === 'loading' ? 'Tara (kg)' : 'Bruto (kg)'}</Label>
-                    {weighingMode === 'electronic' && weighingSets.length > 0 && firstSet.items.length > 0 ? (
-                        <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(firstSet.id, firstItem.id, initialWeightField)}>
-                            <span>{formatNumber(initialWeightValue) || "Buscar"}</span>
-                            {<Weight className="h-4 w-4" />}
-                        </Button>
+                    {(weighingMode === 'electronic' && status === 'connected') ? (
+                         <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(firstSet.id, firstItem.id, initialWeightField)}>
+                             <span>{formatNumber(initialWeightValue) || "Buscar"}</span>
+                             {<Weight className="h-4 w-4" />}
+                         </Button>
                     ) : (
                         <Input 
                             type="text" 
@@ -566,7 +537,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                           <div className="grid grid-cols-4 gap-0.5">
                               <div className="space-y-px">
                                   <Label className="text-xs text-muted-foreground">Bruto (kg)</Label>
-                                  {weighingMode === 'electronic' ? (
+                                  {(weighingMode === 'electronic' && status === 'connected') ? (
                                      <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
                                           <span>{formatNumber(item.bruto) || "Buscar"}</span>
                                           {<Weight className="h-4 w-4" />}
@@ -578,7 +549,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                               </div>
                                <div className="space-y-px">
                                   <Label className="text-xs text-muted-foreground">Tara (kg)</Label>
-                                    {weighingMode === 'electronic' ? (
+                                    {(weighingMode === 'electronic' && status === 'connected') ? (
                                          <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
                                               <span>{formatNumber(item.tara) || "Buscar"}</span>
                                               {<Weight className="h-4 w-4" />}
@@ -628,7 +599,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                       </TableCell>
                       <TableCell className="p-0 sm:p-px">
                             <div className="flex items-center justify-end gap-1">
-                                {weighingMode === 'electronic' ? (
+                                {(weighingMode === 'electronic' && status === 'connected') ? (
                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
                                         <span>{formatNumber(item.bruto) || "Buscar Peso"}</span>
                                         {<Weight className="h-4 w-4" />}
@@ -648,7 +619,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                       </TableCell>
                       <TableCell className="p-0 sm:p-px">
                             <div className="flex items-center justify-end gap-1">
-                                {weighingMode === 'electronic' ? (
+                                {(weighingMode === 'electronic' && status === 'connected') ? (
                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
                                         <span>{formatNumber(item.tara) || "Buscar Peso"}</span>
                                         {<Weight className="h-4 w-4" />}
