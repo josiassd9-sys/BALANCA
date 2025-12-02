@@ -400,7 +400,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
           <div className="w-full space-y-0.5">
             <div className="flex justify-between items-end">
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
-                <div className="flex gap-1 text-xs text-muted-foreground">
+                <div className="flex text-xs text-muted-foreground -mr-1">
                     <span className="w-28 text-center">Tara</span>
                     <span className="w-28 text-center">Bruto</span>
                 </div>
@@ -708,8 +708,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
             <TooltipTrigger asChild>
               <Button onClick={handlePrint} variant="outline" size="icon" className="h-8 w-8"><Printer className="h-4 w-4" /></Button>
             </TooltipTrigger>
-            <TooltipContent><p>Imprimir / Salvar PDF</p></TooltipContent>
-          </Tooltip>
+            <TooltipContent><p>Imprimir / Salvar PDF</p></TooltipContent>          </Tooltip>
         </TooltipProvider>
       </div>
     </div>
@@ -722,3 +721,4 @@ export default ScaleCalculator;
     
 
     
+
