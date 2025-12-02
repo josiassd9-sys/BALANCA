@@ -8,10 +8,11 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
-import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, PenSquare, Signal } from "lucide-react";
+import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, PenSquare, Signal, Network } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { LiveWeightFromBalanca } from "./LiveWeightFromBalanca";
+import { NetworkSettingsDialog } from "./NetworkSettingsDialog";
 
 type WeighingItem = {
   id: string;
@@ -31,12 +32,14 @@ type WeighingSet = {
 
 type OperationType = 'loading' | 'unloading';
 type WeighingMode = 'electronic' | 'manual';
+type ScaleConfig = { ip: string; port: string; };
 
-const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
+const initialItem: WeighingItem = { id: '', material: 'SUCATA', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
 const ScaleCalculator = forwardRef((props, ref) => {
-  const { weight: liveWeight, refresh: refreshWeight } = LiveWeightFromBalanca();
+  const [scaleConfig, setScaleConfig] = useState<ScaleConfig>({ ip: '192.168.18.8', port: '3000' });
+  const { weight: liveWeight, refresh: refreshWeight } = LiveWeightFromBalanca(scaleConfig);
   const [headerData, setHeaderData] = useState({
     client: "",
     plate: "",
@@ -47,8 +50,18 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const { toast } = useToast();
   const [operationType, setOperationType] = useState<OperationType>('loading');
   const [weighingMode, setWeighingMode] = useState<WeighingMode>('electronic');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   useEffect(() => {
+    try {
+      const savedConfig = localStorage.getItem('scaleConfig');
+      if (savedConfig) {
+        setScaleConfig(JSON.parse(savedConfig));
+      }
+    } catch (e) {
+      console.error("Could not read scale config from localStorage.", e);
+    }
+    
     const savedData = localStorage.getItem("scaleData");
     if (savedData) {
       try {
@@ -59,21 +72,31 @@ const ScaleCalculator = forwardRef((props, ref) => {
         if (savedSets && savedSets.length > 0) {
             setActiveSetId(savedSets[0]?.id);
         } else {
-            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA" }] };
+            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4() }] };
             setWeighingSets([newSet]);
             setActiveSetId(newSet.id);
         }
       } catch (e) {
-        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA" }] };
+        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4() }] };
         setWeighingSets([newSet]);
         setActiveSetId(newSet.id);
       }
     } else if (weighingSets.length === 0) {
-      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4(), material: "SUCATA" }] };
+      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4() }] };
       setWeighingSets([newSet]);
       setActiveSetId(newSet.id);
     }
   }, []);
+
+  const handleSaveConfig = () => {
+    try {
+      localStorage.setItem('scaleConfig', JSON.stringify(scaleConfig));
+      toast({ title: "Configuração Salva!", description: "A nova configuração da balança foi salva." });
+      setIsSettingsOpen(false);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Erro ao Salvar", description: "Não foi possível salvar a configuração." });
+    }
+  };
 
   const handleHeaderChange = (field: keyof typeof headerData, value: string) => {
     if (field === 'plate') {
@@ -88,34 +111,25 @@ const ScaleCalculator = forwardRef((props, ref) => {
     const numValue = parseInt(value.replace(/\D/g, ''), 10) || 0;
     
     setWeighingSets(prevSets => {
-      // Ensure the first item exists if we're trying to edit it
-      if (prevSets.length === 0 && setId && itemId) {
-        const newSet = { 
-          ...initialWeighingSet, 
-          id: setId, 
-          items: [{ ...initialItem, id: itemId, [field]: numValue, liquido: (field === 'bruto' ? numValue : 0) - (field === 'tara' ? numValue : 0) }]
-        };
-        setActiveSetId(newSet.id);
-        return [newSet];
-      }
-      
-      // If we are editing but there are no sets, create the first one
       if (prevSets.length === 0) {
-        const newSet = { 
+        const newSet = {
           ...initialWeighingSet,
           id: setId || uuidv4(),
-          items: [{ ...initialItem, id: itemId || uuidv4(), [field]: numValue }]
+          items: [{ ...initialItem, id: itemId || uuidv4(), [field]: numValue }],
         };
         const newItem = newSet.items[0];
-        newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
+        if (field === 'bruto') {
+            newItem.liquido = numValue - newItem.tara - newItem.descontos;
+        } else if (field === 'tara' || field === 'descontos') {
+            newItem.liquido = newItem.bruto - numValue - (field === 'tara' ? newItem.descontos : newItem.tara);
+        }
         setActiveSetId(newSet.id);
         return [newSet];
       }
 
       return prevSets.map(set => {
         if (set.id === setId) {
-          // If the set has no items, create the first one
-          if (set.items.length === 0 && itemId) {
+          if (set.items.length === 0) {
              const newItem = { ...initialItem, id: itemId, [field]: numValue };
              newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
              return { ...set, items: [newItem] };
@@ -239,7 +253,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const removeSet = (setId: string) => {
     setWeighingSets(prev => {
         const newSets = prev.filter(s => s.id !== setId);
-        // Renumber sets to keep names sequential
         const renumberedSets = newSets.map((s, index) => ({
             ...s,
             name: `CAÇAMBA ${index + 1}`
@@ -252,8 +265,29 @@ const ScaleCalculator = forwardRef((props, ref) => {
     });
   };
 
+  const removeMaterial = (setId: string, itemId: string) => {
+    setWeighingSets(prevSets =>
+        prevSets.map(set => {
+            if (set.id === setId) {
+                // Não permite remover o último item
+                if (set.items.length <= 1) {
+                    toast({
+                        variant: "destructive",
+                        title: "Ação não permitida",
+                        description: "Não é possível remover o único material da caçamba.",
+                    });
+                    return set;
+                }
+                const newItems = set.items.filter(item => item.id !== itemId);
+                return { ...set, items: newItems };
+            }
+            return set;
+        })
+    );
+  };
+
   const handleClear = () => {
-    const newWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [{ ...initialItem, id: uuidv4(), material: "SUCATA" }], descontoCacamba: 0 };
+    const newWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [{ ...initialItem, id: uuidv4() }], descontoCacamba: 0 };
     setWeighingSets([newWeighingSet]);
     setActiveSetId(newWeighingSet.id);
     setHeaderData({ client: "", plate: "", driver: "" });
@@ -333,6 +367,13 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 
   return (
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
+      <NetworkSettingsDialog 
+        isOpen={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        config={scaleConfig}
+        onConfigChange={setScaleConfig}
+        onSave={handleSaveConfig}
+      />
       <div className="flex justify-between items-center mb-4 px-2 print:hidden">
         <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
         <div className="flex items-center gap-4">
@@ -343,7 +384,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
             >
               <Weight className="h-5 w-5 text-primary" />
               <div>
-                <div className="text-xs text-muted-foreground">Peso Ao Vivo (clique p/ atualizar)</div>
+                <div className="text-xs text-muted-foreground">Peso Ao Vivo</div>
                 <div className="text-2xl font-bold text-primary">{formatNumber(liveWeight)} kg</div>
               </div>
             </button>
@@ -374,6 +415,16 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Modo Manual</p>
+                  </TooltipContent>
+                </Tooltip>
+                 <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => setIsSettingsOpen(true)}>
+                      <Network className="h-5 w-5"/>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Configurações de Rede</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -424,7 +475,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                 </div>
                  <div className="space-y-px flex-none w-28">
                     <Label className="text-xs sm:text-sm">{operationType === 'loading' ? 'Tara (kg)' : 'Bruto (kg)'}</Label>
-                    {weighingMode === 'electronic' ? (
+                    {weighingMode === 'electronic' && weighingSets.length > 0 && firstSet.items.length > 0 ? (
                         <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(firstSet.id, firstItem.id, initialWeightField)}>
                             <span>{formatNumber(initialWeightValue) || "Buscar"}</span>
                             {<Weight className="h-4 w-4" />}
@@ -492,13 +543,25 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   {set.items.map((item) => {
                       return (
                       <div key={item.id} className="border-b p-0.5 space-y-0.5">
-                          <div className="space-y-px">
-                            <Label className="text-xs text-muted-foreground">Material</Label>
-                             <Input
-                              value={item.material}
-                              onChange={(e) => handleMaterialChange(set.id, item.id, e.target.value)}
-                              className="w-full justify-between h-8"
-                            />
+                          <div className="flex items-end gap-1">
+                            <div className="space-y-px flex-grow">
+                              <Label className="text-xs text-muted-foreground">Material</Label>
+                              <Input
+                                value={item.material}
+                                onChange={(e) => handleMaterialChange(set.id, item.id, e.target.value)}
+                                className="w-full justify-between h-8"
+                              />
+                            </div>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" onClick={() => removeMaterial(set.id, item.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive print:hidden">
+                                      <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Remover Material</p></TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                           <div className="grid grid-cols-4 gap-0.5">
                               <div className="space-y-px">
@@ -544,25 +607,26 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
               <Table className="hidden sm:table table-fixed">
                 <TableHeader>
                    <TableRow className="print:text-black">
-                    <TableHead className="w-[30%]">Material</TableHead>
-                    <TableHead className="text-right w-[17.5%]">Bruto (kg)</TableHead>
-                    <TableHead className="text-right w-[17.5%]">Tara (kg)</TableHead>
-                    <TableHead className="text-right w-[17.5%]">A/L (kg)</TableHead>
-                    <TableHead className="text-right font-semibold w-[17.5%]">Líquido (kg)</TableHead>
+                    <TableHead className="w-auto">Material</TableHead>
+                    <TableHead className="text-right w-[16%]">Bruto (kg)</TableHead>
+                    <TableHead className="text-right w-[16%]">Tara (kg)</TableHead>
+                    <TableHead className="text-right w-[16%]">A/L (kg)</TableHead>
+                    <TableHead className="text-right font-semibold w-[16%]">Líquido (kg)</TableHead>
+                    <TableHead className="w-[5%] print:hidden"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {set.items.map((item) => {
                       return (
                     <TableRow key={item.id} className="print:text-black">
-                      <TableCell className="w-[30%] font-medium p-0 sm:p-px">
+                      <TableCell className="font-medium p-0 sm:p-px">
                            <Input
                               value={item.material}
                               onChange={(e) => handleMaterialChange(set.id, item.id, e.target.value)}
                               className="w-full justify-between h-8"
                             />
                       </TableCell>
-                      <TableCell className="w-[17.5%] p-0 sm:p-px">
+                      <TableCell className="p-0 sm:p-px">
                             <div className="flex items-center justify-end gap-1">
                                 {weighingMode === 'electronic' ? (
                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
@@ -576,13 +640,13 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                     placeholder="0"
                                     value={formatNumber(item.bruto)}
                                     onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)}
-                                    className="text-right h-8 print:hidden w-24"
+                                    className="text-right h-8 print:hidden w-full"
                                   />
                                 )}
                             </div>
                             <span className="hidden print:block text-right print:text-black">{formatNumber(item.bruto)}</span>
                       </TableCell>
-                      <TableCell className="w-[17.5%] p-0 sm:p-px">
+                      <TableCell className="p-0 sm:p-px">
                             <div className="flex items-center justify-end gap-1">
                                 {weighingMode === 'electronic' ? (
                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
@@ -596,13 +660,13 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                   placeholder="0"
                                   value={formatNumber(item.tara)}
                                   onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)}
-                                  className="text-right h-8 print:hidden w-24"
+                                  className="text-right h-8 print:hidden w-full"
                                   />
                                 )}
                             </div>
                             <span className="hidden print:block text-right print:text-black">{formatNumber(item.tara)}</span>
                       </TableCell>
-                      <TableCell className="w-[17.5%] p-0 sm:p-px">
+                      <TableCell className="p-0 sm:p-px">
                             <div className="flex justify-end">
                                 <Input
                                 type="text"
@@ -610,15 +674,27 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                                 placeholder="0"
                                 value={formatNumber(item.descontos)}
                                 onChange={(e) => handleInputChange(set.id, item.id, 'descontos', e.target.value)}
-                                className="text-right h-8 print:hidden w-24"
+                                className="text-right h-8 print:hidden w-full"
                                 />
                             </div>
                             <span className="hidden print:block text-right print:text-black">{formatNumber(item.descontos)}</span>
                       </TableCell>
-                      <TableCell className="w-[17.5%] text-right font-semibold p-0 sm:p-px">
+                      <TableCell className="text-right font-semibold p-0 sm:p-px">
                             <div className="h-8 sm:h-full flex items-center justify-end">
                                 <span className="print:text-black">{formatNumber(item.liquido)}</span>
                             </div>
+                      </TableCell>
+                      <TableCell className="p-0 sm:p-px text-center print:hidden">
+                          <TooltipProvider>
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" onClick={() => removeMaterial(set.id, item.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                                          <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Remover Material</p></TooltipContent>
+                              </Tooltip>
+                          </TooltipProvider>
                       </TableCell>
                     </TableRow>
                   )})}
@@ -628,7 +704,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
             <CardContent className="p-px border-t print:border-t print:border-border print:p-0 print:pt-0.5">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-1">
                      <div className="flex items-center gap-0.5">
-                         <Label htmlFor={`desconto-cacamba-${set.id}`} className="shrink-0 text-sm md:text-base">Caçamba (kg)</Label>
+                         <Label htmlFor={`desconto-cacamba-${set.id}`} className="shrink-0 text-sm md:text-base">Desconto (kg)</Label>
                          <Input
                              id={`desconto-cacamba-${set.id}`}
                              type="text"
@@ -668,7 +744,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
             </div>
          </CardContent>
       </Card>
-      <div className="flex items-center gap-16 justify-center pt-1 print:hidden">
+      <div className="flex items-center justify-center pt-1 print:hidden gap-16">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -702,5 +778,3 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    
