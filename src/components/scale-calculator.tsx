@@ -400,6 +400,10 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
           <div className="w-full space-y-0.5">
             <div className="flex justify-between items-end">
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
+                <div className="flex gap-1 text-xs text-muted-foreground">
+                    <span className="w-28 text-center">Tara</span>
+                    <span className="w-28 text-center">Bruto</span>
+                </div>
             </div>
             <div className="flex flex-col gap-0.5">
               <Input id="cliente" value={headerData.client} onChange={e => handleHeaderChange('client', e.target.value)} className="h-8 print:hidden"/>
