@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
@@ -399,11 +400,6 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
           <div className="w-full space-y-0.5">
             <div className="flex justify-between items-end">
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
-                <div className="flex justify-end gap-0.5 text-xs sm:text-sm flex-none w-auto">
-                    <div className="w-28 text-center">
-                        <span className="text-muted-foreground">{operationType === 'loading' ? 'Tara' : 'Bruto'}</span>
-                    </div>
-                </div>
             </div>
             <div className="flex flex-col gap-0.5">
               <Input id="cliente" value={headerData.client} onChange={e => handleHeaderChange('client', e.target.value)} className="h-8 print:hidden"/>
@@ -421,7 +417,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   <span className="hidden print:block print:text-black">{headerData.plate || 'N/A'}</span>
                 </div>
                  <div className="space-y-px flex-none w-28">
-                    <Label className="text-xs sm:text-sm invisible">Peso Inicial</Label>
+                    <Label className="text-xs sm:text-sm text-muted-foreground text-center block w-full">{operationType === 'loading' ? 'Tara' : 'Bruto'}</Label>
                     <div className="flex items-center">
                       <Input 
                           type="text" 
@@ -718,5 +714,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
 
     
