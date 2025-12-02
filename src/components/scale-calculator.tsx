@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
 import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, PenSquare, Signal, Network } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useScale } from "@/hooks/use-scale";
 import { LiveScaleInfo } from "./LiveScaleInfo";
 import { NetworkSettingsDialog } from "./NetworkSettingsDialog";
@@ -32,7 +31,6 @@ type WeighingSet = {
 };
 
 type OperationType = 'loading' | 'unloading';
-type WeighingMode = 'electronic' | 'manual';
 
 const initialItem: WeighingItem = { id: '', material: 'SUCATA', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
@@ -44,7 +42,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
   const { toast } = useToast();
   const [operationType, setOperationType] = useState<OperationType>('loading');
-  const [weighingMode, setWeighingMode] = useState<WeighingMode>('electronic');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   useEffect(() => {
@@ -306,11 +303,11 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   };
 
   const handleFetchLiveWeight = (setId: string, itemId: string, field: 'bruto' | 'tara') => {
-    if (weighingMode !== 'electronic' || status !== 'connected') {
+    if (status !== 'connected') {
       toast({
         variant: "destructive",
         title: "Balança não conectada",
-        description: "Alterne para o modo eletrônico e verifique a conexão com a balança.",
+        description: "Verifique a conexão com a balança.",
       });
       return;
     }
@@ -381,35 +378,8 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   </Tooltip>
                 </TooltipProvider>
               </div>
-             <ToggleGroup
-              type="single"
-              value={weighingMode}
-              onValueChange={(value) => {
-                if (value) setWeighingMode(value as WeighingMode);
-              }}
-              className="gap-1"
-            >
+             
               <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <ToggleGroupItem value="electronic" aria-label="Pesagem Eletrônica">
-                      <Signal className="h-5 w-5" />
-                    </ToggleGroupItem>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Modo Eletrônico (Balança)</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <ToggleGroupItem value="manual" aria-label="Pesagem Manual">
-                      <PenSquare className="h-5 w-5" />
-                    </ToggleGroupItem>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Modo Manual</p>
-                  </TooltipContent>
-                </Tooltip>
                  <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => setIsSettingsOpen(true)}>
@@ -421,7 +391,6 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-            </ToggleGroup>
         </div>
       </div>
 
@@ -448,21 +417,26 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                 </div>
                  <div className="space-y-px flex-none w-28">
                     <Label className="text-xs sm:text-sm">{operationType === 'loading' ? 'Tara (kg)' : 'Bruto (kg)'}</Label>
-                    {(weighingMode === 'electronic' && status === 'connected') ? (
-                         <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(firstSet.id, firstItem.id, initialWeightField)}>
-                             <span>{formatNumber(initialWeightValue) || "Buscar"}</span>
-                             {<Weight className="h-4 w-4" />}
-                         </Button>
-                    ) : (
-                        <Input 
-                            type="text" 
-                            inputMode="decimal" 
-                            placeholder="0" 
-                            value={formatNumber(initialWeightValue)} 
-                            onChange={(e) => handleInputChange(firstSet.id, firstItem.id, initialWeightField, e.target.value)} 
-                            className="text-right h-8 print:hidden w-full" 
-                        />
-                    )}
+                    <div className="flex items-center">
+                      <Input 
+                          type="text" 
+                          inputMode="decimal" 
+                          placeholder="0" 
+                          value={formatNumber(initialWeightValue)} 
+                          onChange={(e) => handleInputChange(firstSet.id, firstItem.id, initialWeightField, e.target.value)} 
+                          className="text-right h-8 print:hidden w-full rounded-r-none"
+                      />
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-l-none" onClick={() => handleFetchLiveWeight(firstSet.id, firstItem.id, initialWeightField)} disabled={status !== 'connected'}>
+                                <Weight className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Buscar Peso da Balança</p></TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <span className="hidden print:block text-right print:text-black">{formatNumber(initialWeightValue)}</span>
                 </div>
               </div>
@@ -539,26 +513,22 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                           <div className="grid grid-cols-4 gap-0.5">
                               <div className="space-y-px">
                                   <Label className="text-xs text-muted-foreground">Bruto (kg)</Label>
-                                  {(weighingMode === 'electronic' && status === 'connected') ? (
-                                     <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
-                                          <span>{formatNumber(item.bruto) || "Buscar"}</span>
-                                          {<Weight className="h-4 w-4" />}
-                                     </Button>
-                                  ) : (
-                                    <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.bruto)} onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)} className="text-right h-8 print:hidden w-full" />
-                                  )}
+                                  <div className="flex items-center">
+                                    <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.bruto)} onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)} className="text-right h-8 print:hidden w-full rounded-r-none" />
+                                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-l-none" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')} disabled={status !== 'connected'}>
+                                        <Weight className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                    <span className="hidden print:block text-right print:text-black">{formatNumber(item.bruto)}</span>
                               </div>
                                <div className="space-y-px">
                                   <Label className="text-xs text-muted-foreground">Tara (kg)</Label>
-                                    {(weighingMode === 'electronic' && status === 'connected') ? (
-                                         <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
-                                              <span>{formatNumber(item.tara) || "Buscar"}</span>
-                                              {<Weight className="h-4 w-4" />}
-                                         </Button>
-                                    ) : (
-                                      <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.tara)} onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)} className="text-right h-8 print:hidden w-full" />
-                                    )}
+                                  <div className="flex items-center">
+                                      <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.tara)} onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)} className="text-right h-8 print:hidden w-full rounded-r-none" />
+                                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-l-none" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')} disabled={status !== 'connected'}>
+                                        <Weight className="h-4 w-4" />
+                                      </Button>
+                                    </div>
                                    <span className="hidden print:block text-right print:text-black">{formatNumber(item.tara)}</span>
                               </div>
                                <div className="space-y-px">
@@ -600,42 +570,34 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                             />
                       </TableCell>
                       <TableCell className="p-0 sm:p-px">
-                            <div className="flex items-center justify-end gap-1">
-                                {(weighingMode === 'electronic' && status === 'connected') ? (
-                                    <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')}>
-                                        <span>{formatNumber(item.bruto) || "Buscar Peso"}</span>
-                                        {<Weight className="h-4 w-4" />}
-                                    </Button>
-                                ) : (
+                            <div className="flex items-center justify-end">
                                   <Input
                                     type="text"
                                     inputMode="decimal"
                                     placeholder="0"
                                     value={formatNumber(item.bruto)}
                                     onChange={(e) => handleInputChange(set.id, item.id, 'bruto', e.target.value)}
-                                    className="text-right h-8 print:hidden w-full"
+                                    className="text-right h-8 print:hidden w-full rounded-r-none"
                                   />
-                                )}
+                                  <Button variant="outline" size="icon" className="h-8 w-8 rounded-l-none" onClick={() => handleFetchLiveWeight(set.id, item.id, 'bruto')} disabled={status !== 'connected'}>
+                                      <Weight className="h-4 w-4" />
+                                  </Button>
                             </div>
                             <span className="hidden print:block text-right print:text-black">{formatNumber(item.bruto)}</span>
                       </TableCell>
                       <TableCell className="p-0 sm:p-px">
-                            <div className="flex items-center justify-end gap-1">
-                                {(weighingMode === 'electronic' && status === 'connected') ? (
-                                    <Button variant="outline" className="h-8 w-full justify-between" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')}>
-                                        <span>{formatNumber(item.tara) || "Buscar Peso"}</span>
-                                        {<Weight className="h-4 w-4" />}
-                                    </Button>
-                                ) : (
+                            <div className="flex items-center justify-end">
                                   <Input
                                   type="text"
                                   inputMode="decimal"
                                   placeholder="0"
                                   value={formatNumber(item.tara)}
                                   onChange={(e) => handleInputChange(set.id, item.id, 'tara', e.target.value)}
-                                  className="text-right h-8 print:hidden w-full"
+                                  className="text-right h-8 print:hidden w-full rounded-r-none"
                                   />
-                                )}
+                                  <Button variant="outline" size="icon" className="h-8 w-8 rounded-l-none" onClick={() => handleFetchLiveWeight(set.id, item.id, 'tara')} disabled={status !== 'connected'}>
+                                    <Weight className="h-4 w-4" />
+                                  </Button>
                             </div>
                             <span className="hidden print:block text-right print:text-black">{formatNumber(item.tara)}</span>
                       </TableCell>
@@ -751,3 +713,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    
