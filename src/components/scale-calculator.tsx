@@ -189,14 +189,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
     const newSet: WeighingSet = {
         id: uuidv4(),
         name: `CAÇAMBA ${newSetNumber}`,
-        items: [{
-            id: uuidv4(),
-            material: "",
-            bruto: 0,
-            tara: truckTara,
-            descontos: 0,
-            liquido: 0 - truckTara,
-        }],
+        items: [],
         descontoCacamba: 0
     };
 
@@ -338,14 +331,14 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       <div className="mb-4 print:hidden text-center">
         <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
       </div>
-       <div className="flex justify-between items-center gap-1 mb-4 print:hidden">
+       <div className="flex justify-between items-center mb-4 print:hidden gap-1">
         <div className="flex-grow">
           <LiveScaleInfo 
               status={status}
               weight={liveWeight}
           />
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0">
              <TooltipProvider>
                  <Tooltip>
                   <TooltipTrigger asChild>
@@ -384,7 +377,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       <Card className="mb-px print:border-none print:shadow-none print:p-0">
         <CardContent className="p-0">
           <div className="w-full space-y-0.5">
-             <div className="flex justify-between items-end pb-0.5">
+            <div className="flex justify-between items-end pb-0.5">
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
                 <div className="flex items-center text-xs text-muted-foreground mr-1.5 space-x-5">
                     <div className="text-center w-28">{operationType === 'loading' ? 'Tara' : 'Bruto'}</div>
