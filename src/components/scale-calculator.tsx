@@ -351,7 +351,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
         onSave={saveConfig}
       />
       <div className="mb-4 px-2 print:hidden">
-        <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
+        <h2 className="text-xl font-bold text-center">Pesagem Avulsa</h2>
       </div>
       <div className="flex justify-end items-center mb-4 px-2 print:hidden">
         <div className="flex items-center gap-4">
