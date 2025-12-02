@@ -72,6 +72,16 @@ const ScaleCalculator = forwardRef((props, ref) => {
     }
   }, []);
 
+  useEffect(() => {
+    // When sets are cleared or loaded, ensure the first one is active
+    if (weighingSets.length > 0 && !weighingSets.find(s => s.id === activeSetId)) {
+      setActiveSetId(weighingSets[0].id);
+    } else if (weighingSets.length === 0) {
+      setActiveSetId(null);
+    }
+  }, [weighingSets, activeSetId]);
+
+
   const handleHeaderChange = (field: keyof typeof headerData, value: string) => {
     if (field === 'plate') {
         let formattedValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
@@ -85,30 +95,8 @@ const ScaleCalculator = forwardRef((props, ref) => {
     const numValue = parseInt(value.replace(/\D/g, ''), 10) || 0;
     
     setWeighingSets(prevSets => {
-      if (prevSets.length === 0) {
-        const newSet = {
-          ...initialWeighingSet,
-          id: setId || uuidv4(),
-          items: [{ ...initialItem, id: itemId || uuidv4(), [field]: numValue }],
-        };
-        const newItem = newSet.items[0];
-        if (field === 'bruto') {
-            newItem.liquido = numValue - newItem.tara - newItem.descontos;
-        } else if (field === 'tara' || field === 'descontos') {
-            newItem.liquido = newItem.bruto - numValue - (field === 'tara' ? newItem.descontos : newItem.tara);
-        }
-        setActiveSetId(newSet.id);
-        return [newSet];
-      }
-
       return prevSets.map(set => {
         if (set.id === setId) {
-          if (set.items.length === 0) {
-             const newItem = { ...initialItem, id: itemId, [field]: numValue };
-             newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
-             return { ...set, items: [newItem] };
-          }
-          
           const newItems = set.items.map(item => {
             if (item.id === itemId) {
               const updatedItem = { ...item, [field]: numValue };
@@ -159,7 +147,8 @@ const ScaleCalculator = forwardRef((props, ref) => {
       prevSets.map(set => {
         if (set.id === setId) {
           const lastItem = set.items[set.items.length - 1];
-          // if (!lastItem) return set;
+          const firstSetFirstItem = weighingSets[0]?.items[0];
+          const initialWeight = firstSetFirstItem ? (operationType === 'loading' ? firstSetFirstItem.tara : firstSetFirstItem.bruto) : 0;
           
           let newItem: WeighingItem;
 
@@ -168,7 +157,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
               id: uuidv4(),
               material: "",
               bruto: 0,
-              tara: lastItem?.bruto ?? initialWeightValue, // Tara do novo é o bruto do anterior
+              tara: lastItem?.bruto ?? initialWeight, // Tara do novo é o bruto do anterior
               descontos: 0,
               liquido: 0,
             };
@@ -176,7 +165,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
             newItem = {
               id: uuidv4(),
               material: "",
-              bruto: lastItem?.tara ?? initialWeightValue, // Bruto do novo é a tara do anterior
+              bruto: lastItem?.tara ?? initialWeight, // Bruto do novo é a tara do anterior
               tara: 0,
               descontos: 0,
               liquido: 0,
@@ -194,18 +183,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
     const firstSet = weighingSets[0];
     const firstItemOfFirstSet = firstSet?.items[0];
 
-    // This check is removed to allow adding a new set even if the first one is empty.
-    // The tara will be taken from the initial weight field.
-    // if (!firstItemOfFirstSet) {
-    //     toast({
-    //         variant: "destructive",
-    //         title: "Primeira caçamba vazia",
-    //         description: "Adicione e pese pelo menos um material na Caçamba 1 antes de adicionar outra.",
-    //     });
-    //     return;
-    // }
-
-    const truckTara = firstItemOfFirstSet?.tara ?? (operationType === 'loading' ? initialWeightValue : 0);
+    const truckTara = firstItemOfFirstSet?.tara ?? (operationType === 'loading' ? (firstSet.items.length > 0 ? firstSet.items[0].tara : 0) : 0);
     const newSetNumber = weighingSets.length + 1;
 
     const newSet: WeighingSet = {
@@ -245,15 +223,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
     setWeighingSets(prevSets =>
         prevSets.map(set => {
             if (set.id === setId) {
-                // Keep this logic to prevent removing the last item if you want.
-                // if (set.items.length <= 1) {
-                //     toast({
-                //         variant: "destructive",
-                //         title: "Ação não permitida",
-                //         description: "Não é possível remover o único material da caçamba.",
-                //     });
-                //     return set;
-                // }
                 const newItems = set.items.filter(item => item.id !== itemId);
                 return { ...set, items: newItems };
             }
@@ -336,10 +305,13 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
     return total + (setItemsTotal - set.descontoCacamba);
   }, 0);
 
-  const firstSet = weighingSets.length > 0 ? weighingSets[0] : { ...initialWeighingSet, id: activeSetId || uuidv4() };
-  const firstItem = firstSet.items.length > 0 ? firstSet.items[0] : { ...initialItem, id: uuidv4() };
+  const firstSet = weighingSets.length > 0 ? weighingSets[0] : null;
+  const firstItem = firstSet?.items.length > 0 ? firstSet.items[0] : null;
   const initialWeightField = operationType === 'loading' ? 'tara' : 'bruto';
-  const initialWeightValue = firstSet.items.length > 0 ? firstSet.items[0][initialWeightField] : 0;
+  const initialWeightValue = firstItem ? firstItem[initialWeightField] : (firstSet?.items[0] ? firstSet.items[0][initialWeightField] : 0);
+
+  const activeSet = weighingSets.find(s => s.id === activeSetId) || firstSet || { ...initialWeighingSet, id: uuidv4() };
+  const activeFirstItem = activeSet.items.length > 0 ? activeSet.items[0] : { ...initialItem, id: uuidv4() };
 
   return (
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
@@ -353,7 +325,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       <div className="mb-4 print:hidden text-center">
         <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
       </div>
-       <div className="flex justify-between items-center gap-4 mb-4 print:hidden px-0">
+       <div className="flex justify-between items-center gap-4 mb-4 print:hidden">
         <div className="flex-grow">
           <LiveScaleInfo 
               status={status}
@@ -361,6 +333,18 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
           />
         </div>
         <div className="flex items-center gap-2">
+             <TooltipProvider>
+                 <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => setIsSettingsOpen(true)}>
+                      <Network className="h-5 w-5"/>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Configurações de Rede</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
              <div className="flex items-center gap-px rounded-full border bg-muted p-0.5 print:hidden">
                 <TooltipProvider>
                   <Tooltip>
@@ -381,30 +365,17 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   </Tooltip>
                 </TooltipProvider>
               </div>
-             
-              <TooltipProvider>
-                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => setIsSettingsOpen(true)}>
-                      <Network className="h-5 w-5"/>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Configurações de Rede</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
         </div>
       </div>
 
       <Card className="mb-px print:border-none print:shadow-none print:p-0">
         <CardContent className="p-px print:p-0">
           <div className="w-full space-y-0.5">
-            <div className="flex justify-between items-end">
+             <div className="flex justify-between items-end">
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
-                <div className="flex items-center text-xs text-muted-foreground mr-1.5">
-                    <span className={operationType === 'unloading' ? 'text-transparent' : ''}>Tara</span>
-                    <span className={`ml-5 ${operationType === 'loading' ? 'text-transparent' : ''}`}>Bruto</span>
+                 <div className="flex items-center text-xs text-muted-foreground mr-1.5 space-x-[20px]">
+                    <div className="text-center w-28">Tara</div>
+                    <div className="text-center w-28">Bruto</div>
                 </div>
             </div>
             <div className="flex flex-col gap-0.5">
@@ -423,20 +394,20 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   <span className="hidden print:block print:text-black">{headerData.plate || 'N/A'}</span>
                 </div>
                  <div className="space-y-px flex-none w-28">
-                    <Label className="text-xs sm:text-sm text-muted-foreground text-center block w-full">{operationType === 'loading' ? 'Tara' : 'Bruto'}</Label>
+                    <Label className="text-xs sm:text-sm text-muted-foreground text-center block w-full invisible">{operationType === 'loading' ? 'Tara' : 'Bruto'}</Label>
                     <div className="flex items-center">
                       <Input 
                           type="text" 
                           inputMode="decimal" 
                           placeholder="0" 
-                          value={formatNumber(initialWeightValue)} 
-                          onChange={(e) => handleInputChange(firstSet.id, firstItem.id, initialWeightField, e.target.value)} 
+                          value={formatNumber(activeSet?.items[0]?.[initialWeightField] ?? 0)} 
+                          onChange={(e) => handleInputChange(activeSet.id, activeFirstItem.id, initialWeightField, e.target.value)} 
                           className="text-right h-8 print:hidden w-full rounded-r-none"
                       />
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-l-none" onClick={() => handleFetchLiveWeight(firstSet.id, firstItem.id, initialWeightField)} disabled={status !== 'connected'}>
+                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-l-none" onClick={() => handleFetchLiveWeight(activeSet.id, activeFirstItem.id, initialWeightField)} disabled={status !== 'connected'}>
                                 <Weight className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -721,12 +692,5 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    
-
-    
-
-
-
 
     
