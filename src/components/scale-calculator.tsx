@@ -59,7 +59,7 @@ const WeightInput = ({ value, onChange, onFetch, placeholder, className }: Weigh
   const handlePointerDown = () => {
     pressTimer.current = setTimeout(() => {
       setIsEditing(true);
-      inputRef.current?.focus();
+      setTimeout(() => inputRef.current?.focus(), 0);
     }, 500); // 500ms for long press
   };
 
@@ -70,7 +70,7 @@ const WeightInput = ({ value, onChange, onFetch, placeholder, className }: Weigh
     }
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
     if (!isEditing) {
       onFetch();
     }
@@ -79,26 +79,30 @@ const WeightInput = ({ value, onChange, onFetch, placeholder, className }: Weigh
   useEffect(() => {
     if (isEditing) {
       inputRef.current?.focus();
+      inputRef.current?.select();
     }
   }, [isEditing]);
 
   return (
-    <Input
-      ref={inputRef}
-      type="text"
-      inputMode="decimal"
-      placeholder={placeholder || "0"}
-      value={isEditing ? value || '' : formatNumber(value)}
-      onChange={(e) => onChange(e.target.value)}
-      onFocus={() => setIsEditing(true)}
-      onBlur={() => setIsEditing(false)}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onClick={handleClick}
-      className={cn("text-right h-8 print:hidden w-full", className, {
-        'cursor-pointer': !isEditing
-      })}
-    />
+    <div className={cn("relative w-full", className)}>
+        <Input
+          ref={inputRef}
+          type="text"
+          inputMode="decimal"
+          placeholder={placeholder || "0"}
+          value={isEditing ? value || '' : formatNumber(value)}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setIsEditing(true)}
+          onBlur={() => setIsEditing(false)}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onClick={handleClick}
+          className={cn("text-right h-8 print:hidden w-full", {
+            'cursor-pointer': !isEditing
+          })}
+        />
+        <span className="hidden print:block text-right print:text-black">{formatNumber(value)}</span>
+    </div>
   );
 };
 
@@ -123,13 +127,13 @@ const ScaleCalculator = forwardRef((props, ref) => {
         if (savedSets && savedSets.length > 0) {
             setActiveSetId(savedSets[0]?.id);
         } else {
-            handleClear();
+            handleClear(true);
         }
       } catch (e) {
-        handleClear();
+        handleClear(true);
       }
     } else {
-      handleClear();
+      handleClear(true);
     }
   }, []);
 
@@ -226,8 +230,12 @@ const ScaleCalculator = forwardRef((props, ref) => {
         if (set.id === setId) {
           const lastItem = set.items[set.items.length - 1];
           const firstSetFirstItem = weighingSets[0]?.items[0];
-          const initialWeight = firstSetFirstItem ? (operationType === 'loading' ? firstSetFirstItem.tara : firstSetFirstItem.bruto) : 0;
           
+          let initialWeight = 0;
+          if (firstSetFirstItem) {
+              initialWeight = operationType === 'loading' ? firstSetFirstItem.tara : firstSetFirstItem.bruto
+          }
+
           let newItem: WeighingItem;
 
           if (operationType === 'loading') { // Venda - Carregamento
@@ -297,12 +305,15 @@ const ScaleCalculator = forwardRef((props, ref) => {
     );
   };
 
-  const handleClear = () => {
+  const handleClear = (isInitialLoad = false) => {
     const newWeighingSet: WeighingSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
     setWeighingSets([newWeighingSet]);
     setActiveSetId(newWeighingSet.id);
     setHeaderData({ client: "", plate: "", driver: "" });
     setOperationType('loading');
+    if (!isInitialLoad) {
+      toast({ title: "Limpo!", description: "Todos os campos foram resetados." });
+    }
   };
 
   const handleSave = () => {
@@ -384,15 +395,33 @@ const ScaleCalculator = forwardRef((props, ref) => {
     setWeighingSets(prev => {
         const newSets = [...prev];
         if (newSets.length > 0) {
+            // If the first set has no items, add one to store the initial weight
             if (newSets[0].items.length === 0) {
-                newSets[0].items.push({ ...initialItem, id: uuidv4(), [initialWeightField]: numValue });
+                newSets[0].items.push({ 
+                    ...initialItem, 
+                    id: uuidv4(), 
+                    [initialWeightField]: numValue 
+                });
             } else {
-                newSets[0].items[0] = { ...newSets[0].items[0], [initialWeightField]: numValue };
+                // Otherwise, update the existing first item
+                const firstItem = { ...newSets[0].items[0] };
+                
+                // If we are switching operation type, the other field should be cleared
+                // to avoid carrying over old weights.
+                const otherField = initialWeightField === 'bruto' ? 'tara' : 'bruto';
+                if(firstItem[otherField] !== 0) {
+                  firstItem[otherField] = 0;
+                }
+                
+                firstItem[initialWeightField] = numValue;
+                
+                 // Recalculate liquido for the first item
+                firstItem.liquido = firstItem.bruto - firstItem.tara - firstItem.descontos;
+
+                newSets[0].items[0] = firstItem;
             }
-             // Recalculate liquido for the first item
-            const item = newSets[0].items[0];
-            item.liquido = item.bruto - item.tara - item.descontos;
         } else {
+             // This case should ideally not happen with the new logic, but as a fallback
              const newSet = { ...initialWeighingSet, id: uuidv4(), items: [{...initialItem, id: uuidv4(), [initialWeightField]: numValue}] };
              return [newSet];
         }
@@ -468,9 +497,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
           <div className="w-full space-y-0.5">
             <div className="flex justify-between items-end pb-0.5">
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
-                <div className="flex items-center text-xs text-muted-foreground gap-2">
-                     <div className="text-center w-28 text-muted-foreground">{operationType === 'loading' ? 'Tara' : 'Bruto'}</div>
-                </div>
             </div>
             <div className="flex flex-col gap-0.5">
               <Input id="cliente" value={headerData.client} onChange={e => handleHeaderChange('client', e.target.value)} className="h-8 print:hidden"/>
@@ -488,13 +514,12 @@ const ScaleCalculator = forwardRef((props, ref) => {
                   <span className="hidden print:block print:text-black">{headerData.plate || 'N/A'}</span>
                 </div>
                  <div className="space-y-px flex-none w-28">
-                    <Label className="text-xs sm:text-sm text-muted-foreground text-center block w-full invisible">Peso Inicial</Label>
+                    <Label className="text-xs sm:text-sm text-center block w-full">Peso Inicial</Label>
                     <WeightInput 
                         value={initialWeightValue}
                         onChange={handleInitialWeightChange}
                         onFetch={handleInitialWeightFetch}
                     />
-                    <span className="hidden print:block text-right print:text-black">{formatNumber(initialWeightValue)}</span>
                 </div>
               </div>
             </div>
@@ -545,6 +570,10 @@ const ScaleCalculator = forwardRef((props, ref) => {
               {/* Mobile Layout */}
               <div className="sm:hidden">
                   {set.items.map((item) => {
+                      // Do not render the first item if it's only for the initial weight
+                      if (setIndex === 0 && weighingSets[0].items.length === 1 && item.material === "" && item.bruto === 0 && item.descontos === 0 && item.tara > 0) return null;
+                      if (setIndex === 0 && weighingSets[0].items.length === 1 && item.material === "" && item.tara === 0 && item.descontos === 0 && item.bruto > 0) return null;
+
                       return (
                       <div key={item.id} className="border-b p-0.5 space-y-0.5">
                           <div className="flex items-end gap-1">
@@ -576,7 +605,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
                                       onChange={(value) => handleInputChange(set.id, item.id, 'bruto', value)}
                                       onFetch={() => handleFetchLiveWeight((w) => handleInputChange(set.id, item.id, 'bruto', w))}
                                   />
-                                   <span className="hidden print:block text-right print:text-black">{formatNumber(item.bruto)}</span>
                               </div>
                                <div className="space-y-px">
                                   <Label className="text-xs text-muted-foreground">Tara (kg)</Label>
@@ -585,7 +613,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
                                       onChange={(value) => handleInputChange(set.id, item.id, 'tara', value)}
                                       onFetch={() => handleFetchLiveWeight((w) => handleInputChange(set.id, item.id, 'tara', w))}
                                   />
-                                   <span className="hidden print:block text-right print:text-black">{formatNumber(item.tara)}</span>
                               </div>
                                <div className="space-y-px">
                                   <Label className="text-xs text-muted-foreground">A/L (kg)</Label>
@@ -615,7 +642,16 @@ const ScaleCalculator = forwardRef((props, ref) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {set.items.map((item) => {
+                  {set.items.map((item, itemIndex) => {
+                      if (setIndex === 0 && itemIndex === 0) {
+                         if (weighingSets[0].items.length > 1) {
+                           // Show a modified first row if there are more items
+                         } else {
+                           // If it's the ONLY item, and it's just for initial weight, don't render it.
+                           if (item.material === "" && item.descontos === 0 && (item.bruto === 0 || item.tara === 0)) return null;
+                         }
+                      }
+                      
                       return (
                     <TableRow key={item.id} className="print:text-black">
                       <TableCell className="font-medium p-0 sm:p-px">
@@ -632,7 +668,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
                                 onChange={(value) => handleInputChange(set.id, item.id, 'bruto', value)}
                                 onFetch={() => handleFetchLiveWeight((w) => handleInputChange(set.id, item.id, 'bruto', w))}
                             />
-                            <span className="hidden print:block text-right print:text-black">{formatNumber(item.bruto)}</span>
                       </TableCell>
                       <TableCell className="p-0 sm:p-px">
                             <WeightInput 
@@ -640,7 +675,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
                                 onChange={(value) => handleInputChange(set.id, item.id, 'tara', value)}
                                 onFetch={() => handleFetchLiveWeight((w) => handleInputChange(set.id, item.id, 'tara', w))}
                             />
-                            <span className="hidden print:block text-right print:text-black">{formatNumber(item.tara)}</span>
                       </TableCell>
                       <TableCell className="p-0 sm:p-px">
                             <div className="flex justify-end">
@@ -724,7 +758,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button onClick={handleClear} variant="outline" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
+              <Button onClick={() => handleClear(false)} variant="outline" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
             </TooltipTrigger>
             <TooltipContent><p>Limpar Tudo</p></TooltipContent>
           </Tooltip>
