@@ -361,6 +361,26 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                 connectionType={connectionType}
                 host={config.host}
              />
+             <div className="flex items-center gap-px rounded-full border bg-muted p-0.5 print:hidden">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('loading')}>
+                        <ArrowUpFromLine className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Carregamento (Venda / Saída de Material)</p></TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('unloading')}>
+                        <ArrowDownToLine className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Descarregamento (Compra / Entrada de Material)</p></TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
              <ToggleGroup
               type="single"
               value={weighingMode}
@@ -410,26 +430,6 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
           <div className="w-full space-y-0.5">
             <div className="flex justify-between items-center">
               <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
-              <div className="flex items-center gap-px rounded-full border bg-muted p-0.5 print:hidden">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('loading')}>
-                        <ArrowUpFromLine className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Carregamento (Venda / Saída de Material)</p></TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('unloading')}>
-                        <ArrowDownToLine className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Descarregamento (Compra / Entrada de Material)</p></TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
             </div>
             <div className="flex flex-col gap-0.5">
               <Input id="cliente" value={headerData.client} onChange={e => handleHeaderChange('client', e.target.value)} className="h-8 print:hidden"/>
