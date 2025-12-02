@@ -33,7 +33,7 @@ type WeighingSet = {
 
 type OperationType = 'loading' | 'unloading';
 
-const initialItem: WeighingItem = { id: '', material: 'SUCATA', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
+const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
 const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
 
 const ScaleCalculator = forwardRef((props, ref) => {
@@ -56,17 +56,17 @@ const ScaleCalculator = forwardRef((props, ref) => {
         if (savedSets && savedSets.length > 0) {
             setActiveSetId(savedSets[0]?.id);
         } else {
-            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4() }] };
+            const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
             setWeighingSets([newSet]);
             setActiveSetId(newSet.id);
         }
       } catch (e) {
-        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4() }] };
+        const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
         setWeighingSets([newSet]);
         setActiveSetId(newSet.id);
       }
     } else if (weighingSets.length === 0) {
-      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [ { ...initialItem, id: uuidv4() }] };
+      const newSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
       setWeighingSets([newSet]);
       setActiveSetId(newSet.id);
     }
@@ -159,24 +159,24 @@ const ScaleCalculator = forwardRef((props, ref) => {
       prevSets.map(set => {
         if (set.id === setId) {
           const lastItem = set.items[set.items.length - 1];
-          if (!lastItem) return set;
+          // if (!lastItem) return set;
           
           let newItem: WeighingItem;
 
           if (operationType === 'loading') { // Venda - Carregamento
              newItem = {
               id: uuidv4(),
-              material: "SUCATA",
+              material: "",
               bruto: 0,
-              tara: lastItem.bruto, // Tara do novo é o bruto do anterior
+              tara: lastItem?.bruto ?? initialWeightValue, // Tara do novo é o bruto do anterior
               descontos: 0,
               liquido: 0,
             };
           } else { // Compra - Descarregamento
             newItem = {
               id: uuidv4(),
-              material: "SUCATA",
-              bruto: lastItem.tara, // Bruto do novo é a tara do anterior
+              material: "",
+              bruto: lastItem?.tara ?? initialWeightValue, // Bruto do novo é a tara do anterior
               tara: 0,
               descontos: 0,
               liquido: 0,
@@ -194,16 +194,18 @@ const ScaleCalculator = forwardRef((props, ref) => {
     const firstSet = weighingSets[0];
     const firstItemOfFirstSet = firstSet?.items[0];
 
-    if (!firstItemOfFirstSet) {
-        toast({
-            variant: "destructive",
-            title: "Primeira caçamba vazia",
-            description: "Adicione e pese pelo menos um material na Caçamba 1 antes de adicionar outra.",
-        });
-        return;
-    }
+    // This check is removed to allow adding a new set even if the first one is empty.
+    // The tara will be taken from the initial weight field.
+    // if (!firstItemOfFirstSet) {
+    //     toast({
+    //         variant: "destructive",
+    //         title: "Primeira caçamba vazia",
+    //         description: "Adicione e pese pelo menos um material na Caçamba 1 antes de adicionar outra.",
+    //     });
+    //     return;
+    // }
 
-    const truckTara = firstItemOfFirstSet.tara;
+    const truckTara = firstItemOfFirstSet?.tara ?? (operationType === 'loading' ? initialWeightValue : 0);
     const newSetNumber = weighingSets.length + 1;
 
     const newSet: WeighingSet = {
@@ -211,7 +213,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
         name: `CAÇAMBA ${newSetNumber}`,
         items: [{
             id: uuidv4(),
-            material: "SUCATA",
+            material: "",
             bruto: 0,
             tara: truckTara,
             descontos: 0,
@@ -243,15 +245,15 @@ const ScaleCalculator = forwardRef((props, ref) => {
     setWeighingSets(prevSets =>
         prevSets.map(set => {
             if (set.id === setId) {
-                // Não permite remover o último item
-                if (set.items.length <= 1) {
-                    toast({
-                        variant: "destructive",
-                        title: "Ação não permitida",
-                        description: "Não é possível remover o único material da caçamba.",
-                    });
-                    return set;
-                }
+                // Keep this logic to prevent removing the last item if you want.
+                // if (set.items.length <= 1) {
+                //     toast({
+                //         variant: "destructive",
+                //         title: "Ação não permitida",
+                //         description: "Não é possível remover o único material da caçamba.",
+                //     });
+                //     return set;
+                // }
                 const newItems = set.items.filter(item => item.id !== itemId);
                 return { ...set, items: newItems };
             }
@@ -261,7 +263,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
   };
 
   const handleClear = () => {
-    const newWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [{ ...initialItem, id: uuidv4() }], descontoCacamba: 0 };
+    const newWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
     setWeighingSets([newWeighingSet]);
     setActiveSetId(newWeighingSet.id);
     setHeaderData({ client: "", plate: "", driver: "" });
@@ -351,7 +353,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       <div className="mb-4 print:hidden text-center">
         <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
       </div>
-      <div className="flex justify-end items-center gap-4 mb-4 print:hidden">
+       <div className="flex justify-between items-center gap-4 mb-4 print:hidden px-0">
         <div className="flex-grow">
           <LiveScaleInfo 
               status={status}
@@ -400,9 +402,9 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
           <div className="w-full space-y-0.5">
             <div className="flex justify-between items-end">
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
-                <div className="flex text-xs text-muted-foreground -mr-1">
-                    <span className="w-28 text-center">Tara</span>
-                    <span className="w-28 text-center ml-1.5">Bruto</span>
+                <div className="flex items-center text-xs text-muted-foreground mr-1.5">
+                    <span className={operationType === 'unloading' ? 'text-transparent' : ''}>Tara</span>
+                    <span className={`ml-5 ${operationType === 'loading' ? 'text-transparent' : ''}`}>Bruto</span>
                 </div>
             </div>
             <div className="flex flex-col gap-0.5">
@@ -500,6 +502,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                               <Label className="text-xs text-muted-foreground">Material</Label>
                               <Input
                                 value={item.material}
+                                placeholder="SUCATA"
                                 onChange={(e) => handleMaterialChange(set.id, item.id, e.target.value)}
                                 className="w-full justify-between h-8"
                               />
@@ -570,6 +573,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                       <TableCell className="font-medium p-0 sm:p-px">
                            <Input
                               value={item.material}
+                              placeholder="SUCATA"
                               onChange={(e) => handleMaterialChange(set.id, item.id, e.target.value)}
                               className="w-full justify-between h-8"
                             />
@@ -723,3 +727,6 @@ export default ScaleCalculator;
     
 
 
+
+
+    
