@@ -116,24 +116,54 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const [operationType, setOperationType] = useState<OperationType>('loading');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
+  const clearState = (isInitial = false) => {
+    const newId = uuidv4();
+    const newWeighingSet: WeighingSet = { ...initialWeighingSet, id: newId, items: [] };
+    setWeighingSets([newWeighingSet]);
+    setActiveSetId(newId);
+    setHeaderData({ client: "", plate: "", driver: "" });
+    setOperationType('loading');
+
+    // Add a single item to the first set if it's the initial load or a full clear
+     if (weighingSets.length === 0 || !isInitial) {
+        setWeighingSets([{
+            ...newWeighingSet,
+            items: [] // No items initially
+        }]);
+    }
+
+    if (!isInitial) {
+      toast({ title: "Limpo!", description: "Todos os campos foram resetados." });
+    }
+  };
+
+
   useEffect(() => {
     const savedData = localStorage.getItem("scaleData");
     if (savedData) {
       try {
         const { weighingSets: savedSets, headerData: savedHeader, operationType: savedOpType } = JSON.parse(savedData);
-        setWeighingSets(savedSets || []);
+        
+        if (!savedSets || savedSets.length === 0 || !savedSets.every((s: any) => s.id && s.name && Array.isArray(s.items))) {
+            clearState(true);
+            return;
+        }
+
+        setWeighingSets(savedSets);
         setHeaderData(savedHeader || { client: "", plate: "", driver: "" });
         setOperationType(savedOpType || 'loading');
-        if (savedSets && savedSets.length > 0) {
+        
+        if (savedSets.length > 0) {
             setActiveSetId(savedSets[0]?.id);
         } else {
-            handleClear(true);
+            clearState(true);
         }
+
       } catch (e) {
-        handleClear(true);
+        clearState(true);
       }
     } else {
-      handleClear(true);
+      clearState(true);
     }
   }, []);
 
@@ -306,14 +336,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
   };
 
   const handleClear = (isInitialLoad = false) => {
-    const newWeighingSet: WeighingSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
-    setWeighingSets([newWeighingSet]);
-    setActiveSetId(newWeighingSet.id);
-    setHeaderData({ client: "", plate: "", driver: "" });
-    setOperationType('loading');
-    if (!isInitialLoad) {
-      toast({ title: "Limpo!", description: "Todos os campos foram resetados." });
-    }
+    clearState(isInitialLoad);
   };
 
   const handleSave = () => {
@@ -436,9 +459,11 @@ const ScaleCalculator = forwardRef((props, ref) => {
   }
 
   const activeSet = weighingSets.find(s => s.id === activeSetId) || firstSet;
+  const initialLabel = operationType === 'loading' ? 'Tara' : 'Bruto';
+  const finalLabel = operationType === 'loading' ? 'Bruto' : 'Tara';
   
   return (
-    <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
+    <div className="bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
       <NetworkSettingsDialog 
         isOpen={isSettingsOpen}
         onOpenChange={setIsSettingsOpen}
@@ -457,38 +482,38 @@ const ScaleCalculator = forwardRef((props, ref) => {
           />
         </div>
         <div className="flex items-center gap-1">
-             <TooltipProvider>
-                 <Tooltip>
-                  <TooltipTrigger asChild>
+            <TooltipProvider>
+                <Tooltip>
+                <TooltipTrigger asChild>
                     <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => setIsSettingsOpen(true)}>
-                      <Network className="h-5 w-5"/>
+                    <Network className="h-5 w-5"/>
                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
+                </TooltipTrigger>
+                <TooltipContent>
                     <p>Configurações de Rede</p>
-                  </TooltipContent>
+                </TooltipContent>
                 </Tooltip>
-              </TooltipProvider>
-             <div className="flex items-center gap-px rounded-full border bg-muted p-0.5 print:hidden">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('loading')}>
-                        <ArrowUpFromLine className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Carregamento (Venda / Saída de Material)</p></TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('unloading')}>
-                        <ArrowDownToLine className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Descarregamento (Compra / Entrada de Material)</p></TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+            </TooltipProvider>
+            <div className="flex items-center gap-px rounded-full border bg-muted p-0.5 print:hidden">
+            <TooltipProvider>
+                <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('loading')}>
+                    <ArrowUpFromLine className="h-5 w-5" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Carregamento (Venda / Saída de Material)</p></TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('unloading')}>
+                    <ArrowDownToLine className="h-5 w-5" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Descarregamento (Compra / Entrada de Material)</p></TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+            </div>
         </div>
       </div>
 
@@ -497,6 +522,10 @@ const ScaleCalculator = forwardRef((props, ref) => {
           <div className="w-full space-y-0.5">
             <div className="flex justify-between items-end pb-0.5">
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
+                 <div className="flex items-center text-sm text-muted-foreground font-medium">
+                  <span className="w-28 text-center">{initialLabel}</span>
+                  <span className="w-28 text-center">{finalLabel}</span>
+                </div>
             </div>
             <div className="flex flex-col gap-0.5">
               <Input id="cliente" value={headerData.client} onChange={e => handleHeaderChange('client', e.target.value)} className="h-8 print:hidden"/>
@@ -570,10 +599,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
               {/* Mobile Layout */}
               <div className="sm:hidden">
                   {set.items.map((item) => {
-                      // Do not render the first item if it's only for the initial weight
-                      if (setIndex === 0 && weighingSets[0].items.length === 1 && item.material === "" && item.bruto === 0 && item.descontos === 0 && item.tara > 0) return null;
-                      if (setIndex === 0 && weighingSets[0].items.length === 1 && item.material === "" && item.tara === 0 && item.descontos === 0 && item.bruto > 0) return null;
-
                       return (
                       <div key={item.id} className="border-b p-0.5 space-y-0.5">
                           <div className="flex items-end gap-1">
@@ -642,16 +667,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {set.items.map((item, itemIndex) => {
-                      if (setIndex === 0 && itemIndex === 0) {
-                         if (weighingSets[0].items.length > 1) {
-                           // Show a modified first row if there are more items
-                         } else {
-                           // If it's the ONLY item, and it's just for initial weight, don't render it.
-                           if (item.material === "" && item.descontos === 0 && (item.bruto === 0 || item.tara === 0)) return null;
-                         }
-                      }
-                      
+                  {set.items.map((item, itemIndex) => {                      
                       return (
                     <TableRow key={item.id} className="print:text-black">
                       <TableCell className="font-medium p-0 sm:p-px">
