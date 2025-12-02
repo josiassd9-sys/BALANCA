@@ -2,22 +2,34 @@
 'use client';
 
 import { Weight } from "lucide-react";
-import { ConnectionStatus, ConnectionType } from "@/hooks/use-scale";
+import { ConnectionStatus } from "@/hooks/use-scale";
 
 interface LiveScaleInfoProps {
     status: ConnectionStatus;
     weight: number;
-    connectionType: ConnectionType;
-    host: string;
 }
 
-export function LiveScaleInfo({ status, weight, connectionType, host }: LiveScaleInfoProps) {
+export function LiveScaleInfo({ status, weight }: LiveScaleInfoProps) {
     const formattedWeight = new Intl.NumberFormat('pt-BR').format(weight);
 
+    const getStatusColor = () => {
+        switch(status) {
+            case 'connected':
+                return 'text-primary';
+            case 'connecting':
+                return 'text-yellow-500';
+            case 'error':
+            case 'disconnected':
+                return 'text-destructive';
+            default:
+                return 'text-muted-foreground';
+        }
+    }
+
     return (
-        <div className="flex items-center justify-center p-2 rounded-lg border bg-card min-w-[140px]">
-            <div className="text-center">
-                <div className="text-2xl font-bold text-primary">{formattedWeight} kg</div>
+        <div className="flex items-center justify-end p-2 rounded-lg border bg-card w-full">
+            <div className="text-right">
+                <div className={`text-2xl font-bold ${getStatusColor()}`}>{formattedWeight} kg</div>
             </div>
         </div>
     );

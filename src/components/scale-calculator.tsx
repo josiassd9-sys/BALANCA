@@ -350,14 +350,14 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       <div className="mb-4 px-2 print:hidden">
         <h2 className="text-xl font-bold text-center">Pesagem Avulsa</h2>
       </div>
-      <div className="flex justify-end items-center mb-4 px-2 print:hidden">
-        <div className="flex items-center gap-4">
-             <LiveScaleInfo 
-                status={status}
-                weight={liveWeight}
-                connectionType={connectionType}
-                host={config.host}
-             />
+      <div className="flex justify-end items-center gap-4 mb-4 px-2 print:hidden">
+        <div className="flex-grow">
+          <LiveScaleInfo 
+              status={status}
+              weight={liveWeight}
+          />
+        </div>
+        <div className="flex items-center gap-2">
              <div className="flex items-center gap-px rounded-full border bg-muted p-0.5 print:hidden">
                 <TooltipProvider>
                   <Tooltip>
