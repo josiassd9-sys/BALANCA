@@ -348,10 +348,10 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
         onConfigChange={setConfig}
         onSave={saveConfig}
       />
-      <div className="mb-4 px-2 print:hidden text-center">
+      <div className="mb-4 print:hidden text-center">
         <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
       </div>
-      <div className="flex justify-end items-center gap-4 mb-4 px-2 print:hidden">
+      <div className="flex justify-end items-center gap-4 mb-4 print:hidden">
         <div className="flex-grow">
           <LiveScaleInfo 
               status={status}
@@ -402,7 +402,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
                 <div className="flex text-xs text-muted-foreground -mr-1">
                     <span className="w-28 text-center">Tara</span>
-                    <span className="w-28 text-center">Bruto</span>
+                    <span className="w-28 text-center ml-1.5">Bruto</span>
                 </div>
             </div>
             <div className="flex flex-col gap-0.5">
@@ -721,4 +721,5 @@ export default ScaleCalculator;
     
 
     
+
 
