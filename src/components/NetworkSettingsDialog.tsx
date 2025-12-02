@@ -87,6 +87,11 @@ export function NetworkSettingsDialog({
     }
   };
 
+  const handleSaveAndClose = () => {
+    onSave();
+    onOpenChange(false);
+  };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -164,7 +169,7 @@ export function NetworkSettingsDialog({
 
 
         <DialogFooter>
-          <Button onClick={onSave}>Salvar e Reconectar</Button>
+          <Button onClick={handleSaveAndClose}>Salvar e Reconectar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
