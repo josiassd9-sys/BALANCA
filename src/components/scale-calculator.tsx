@@ -347,8 +347,8 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
         onConfigChange={setConfig}
         onSave={saveConfig}
       />
-      <div className="mb-4 px-2 print:hidden">
-        <h2 className="text-xl font-bold text-center">Pesagem Avulsa</h2>
+      <div className="mb-4 px-2 print:hidden text-center">
+        <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
       </div>
       <div className="flex justify-end items-center gap-4 mb-4 px-2 print:hidden">
         <div className="flex-grow">
@@ -399,8 +399,10 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
           <div className="w-full space-y-0.5">
             <div className="flex justify-between items-end">
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
-                <div className="flex-none w-28 text-center">
-                    <span className="text-xs text-muted-foreground">{operationType === 'loading' ? 'Tara' : 'Bruto'}</span>
+                <div className="flex justify-end gap-0.5 text-xs sm:text-sm flex-none w-auto">
+                    <div className="w-28 text-center">
+                        <span className="text-muted-foreground">{operationType === 'loading' ? 'Tara' : 'Bruto'}</span>
+                    </div>
                 </div>
             </div>
             <div className="flex flex-col gap-0.5">
