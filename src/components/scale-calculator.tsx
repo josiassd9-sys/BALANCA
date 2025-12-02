@@ -236,6 +236,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
     setWeighingSets([newWeighingSet]);
     setActiveSetId(newWeighingSet.id);
     setHeaderData({ client: "", plate: "", driver: "" });
+    setOperationType('loading');
   };
 
   const handleSave = () => {
@@ -311,8 +312,20 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   const initialWeightValue = firstItem ? firstItem[initialWeightField] : (firstSet?.items[0] ? firstSet.items[0][initialWeightField] : 0);
 
   const activeSet = weighingSets.find(s => s.id === activeSetId) || firstSet || { ...initialWeighingSet, id: uuidv4() };
-  const activeFirstItem = activeSet.items.length > 0 ? activeSet.items[0] : { ...initialItem, id: uuidv4() };
-
+  let activeFirstItem = activeSet.items.length > 0 ? activeSet.items[0] : null;
+  if (!activeFirstItem && activeSet.items.length === 0) {
+      const newItem = { ...initialItem, id: uuidv4() };
+      activeSet.items.push(newItem);
+      activeFirstItem = newItem;
+  }
+  
+  // This ensures activeFirstItem is never null for the logic below if a set exists.
+  if (activeSet && activeSet.items.length === 0) {
+    const newItem = { ...initialItem, id: uuidv4() };
+    activeSet.items.push(newItem);
+    activeFirstItem = newItem;
+  }
+  
   return (
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
       <NetworkSettingsDialog 
@@ -325,14 +338,14 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       <div className="mb-4 print:hidden text-center">
         <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
       </div>
-       <div className="flex justify-between items-center gap-4 mb-4 print:hidden">
+       <div className="flex justify-between items-center gap-1 mb-4 print:hidden">
         <div className="flex-grow">
           <LiveScaleInfo 
               status={status}
               weight={liveWeight}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
              <TooltipProvider>
                  <Tooltip>
                   <TooltipTrigger asChild>
@@ -369,13 +382,12 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
       </div>
 
       <Card className="mb-px print:border-none print:shadow-none print:p-0">
-        <CardContent className="p-px print:p-0">
+        <CardContent className="p-0">
           <div className="w-full space-y-0.5">
-             <div className="flex justify-between items-end">
+             <div className="flex justify-between items-end pb-0.5">
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
-                 <div className="flex items-center text-xs text-muted-foreground mr-1.5 space-x-[20px]">
-                    <div className="text-center w-28">Tara</div>
-                    <div className="text-center w-28">Bruto</div>
+                <div className="flex items-center text-xs text-muted-foreground mr-1.5 space-x-5">
+                    <div className="text-center w-28">{operationType === 'loading' ? 'Tara' : 'Bruto'}</div>
                 </div>
             </div>
             <div className="flex flex-col gap-0.5">
@@ -394,20 +406,20 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                   <span className="hidden print:block print:text-black">{headerData.plate || 'N/A'}</span>
                 </div>
                  <div className="space-y-px flex-none w-28">
-                    <Label className="text-xs sm:text-sm text-muted-foreground text-center block w-full invisible">{operationType === 'loading' ? 'Tara' : 'Bruto'}</Label>
+                    <Label className="text-xs sm:text-sm text-muted-foreground text-center block w-full invisible">Peso Inicial</Label>
                     <div className="flex items-center">
                       <Input 
                           type="text" 
                           inputMode="decimal" 
                           placeholder="0" 
                           value={formatNumber(activeSet?.items[0]?.[initialWeightField] ?? 0)} 
-                          onChange={(e) => handleInputChange(activeSet.id, activeFirstItem.id, initialWeightField, e.target.value)} 
+                          onChange={(e) => handleInputChange(activeSet!.id, activeFirstItem!.id, initialWeightField, e.target.value)} 
                           className="text-right h-8 print:hidden w-full rounded-r-none"
                       />
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-l-none" onClick={() => handleFetchLiveWeight(activeSet.id, activeFirstItem.id, initialWeightField)} disabled={status !== 'connected'}>
+                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-l-none" onClick={() => handleFetchLiveWeight(activeSet!.id, activeFirstItem!.id, initialWeightField)} disabled={status !== 'connected'}>
                                 <Weight className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
