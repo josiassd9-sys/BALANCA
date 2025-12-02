@@ -350,8 +350,10 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
         onConfigChange={setConfig}
         onSave={saveConfig}
       />
-      <div className="flex justify-between items-center mb-4 px-2 print:hidden">
+      <div className="mb-4 px-2 print:hidden">
         <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
+      </div>
+      <div className="flex justify-end items-center mb-4 px-2 print:hidden">
         <div className="flex items-center gap-4">
              <LiveScaleInfo 
                 status={status}
