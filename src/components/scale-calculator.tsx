@@ -225,7 +225,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
   };
 
   const handleClear = () => {
-    const newWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
+    const newWeighingSet: WeighingSet = { ...initialWeighingSet, id: uuidv4(), items: [] };
     setWeighingSets([newWeighingSet]);
     setActiveSetId(newWeighingSet.id);
     setHeaderData({ client: "", plate: "", driver: "" });
@@ -247,7 +247,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
           if (savedData) {
               const { weighingSets, headerData, operationType } = JSON.parse(savedData);
               setWeighingSets(weighingSets);
-setHeaderData(headerData || { client: "", plate: "", driver: "" });
+              setHeaderData(headerData || { client: "", plate: "", driver: "" });
               setOperationType(operationType || 'loading');
               setActiveSetId(weighingSets[0]?.id || null);
               toast({ title: "Dados Carregados", description: "A última pesagem salva foi carregada." });
@@ -302,22 +302,56 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
   const firstSet = weighingSets.length > 0 ? weighingSets[0] : null;
   const firstItem = firstSet?.items.length > 0 ? firstSet.items[0] : null;
   const initialWeightField = operationType === 'loading' ? 'tara' : 'bruto';
-  const initialWeightValue = firstItem ? firstItem[initialWeightField] : (firstSet?.items[0] ? firstSet.items[0][initialWeightField] : 0);
 
-  const activeSet = weighingSets.find(s => s.id === activeSetId) || firstSet || { ...initialWeighingSet, id: uuidv4() };
-  let activeFirstItem = activeSet.items.length > 0 ? activeSet.items[0] : null;
-  if (!activeFirstItem && activeSet.items.length === 0) {
-      const newItem = { ...initialItem, id: uuidv4() };
-      activeSet.items.push(newItem);
-      activeFirstItem = newItem;
+  const getInitialWeightValue = () => {
+    if (firstSet) {
+        if (firstSet.items.length > 0) {
+            return firstSet.items[0][initialWeightField];
+        }
+    }
+    return 0;
   }
-  
-  // This ensures activeFirstItem is never null for the logic below if a set exists.
-  if (activeSet && activeSet.items.length === 0) {
-    const newItem = { ...initialItem, id: uuidv4() };
-    activeSet.items.push(newItem);
-    activeFirstItem = newItem;
+  const initialWeightValue = getInitialWeightValue();
+
+  const handleInitialWeightChange = (value: string) => {
+    setWeighingSets(prev => {
+        const newSets = [...prev];
+        if (newSets.length > 0) {
+            // Ensure first set and first item exist
+            if (newSets[0].items.length === 0) {
+                newSets[0].items.push({ ...initialItem, id: uuidv4() });
+            }
+            handleInputChange(newSets[0].id, newSets[0].items[0].id, initialWeightField, value);
+        } else {
+             // This case should ideally not happen if a set is always present
+             const newSet = { ...initialWeighingSet, id: uuidv4(), items: [{...initialItem, id: uuidv4()}] };
+             handleInputChange(newSet.id, newSet.items[0].id, initialWeightField, value);
+             return [newSet];
+        }
+        return newSets;
+    });
+  };
+
+  const handleInitialWeightFetch = () => {
+     if (weighingSets.length > 0) {
+        if (weighingSets[0].items.length === 0) {
+             setWeighingSets(prev => {
+                const newSets = [...prev];
+                newSets[0].items.push({ ...initialItem, id: uuidv4() });
+                return newSets;
+            });
+             // Use a timeout to ensure state update before fetching
+            setTimeout(() => {
+                const updatedSet = weighingSets.find(s => s.id === activeSetId) || weighingSets[0];
+                handleFetchLiveWeight(updatedSet.id, updatedSet.items[0].id, initialWeightField);
+            }, 0);
+        } else {
+             handleFetchLiveWeight(weighingSets[0].id, weighingSets[0].items[0].id, initialWeightField);
+        }
+    }
   }
+
+  const activeSet = weighingSets.find(s => s.id === activeSetId) || firstSet;
   
   return (
     <div className="p-px bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
@@ -338,7 +372,7 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
               weight={liveWeight}
           />
         </div>
-        <div className="flex items-center gap-0">
+        <div className="flex items-center gap-1">
              <TooltipProvider>
                  <Tooltip>
                   <TooltipTrigger asChild>
@@ -379,8 +413,8 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
           <div className="w-full space-y-0.5">
             <div className="flex justify-between items-end pb-0.5">
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
-                <div className="flex items-center text-xs text-muted-foreground mr-1.5 space-x-5">
-                    <div className="text-center w-28">{operationType === 'loading' ? 'Tara' : 'Bruto'}</div>
+                <div className="flex items-center text-xs text-muted-foreground mr-1.5">
+                     <div className="text-center w-28">{operationType === 'loading' ? 'Tara' : 'Bruto'}</div>
                 </div>
             </div>
             <div className="flex flex-col gap-0.5">
@@ -405,14 +439,14 @@ setHeaderData(headerData || { client: "", plate: "", driver: "" });
                           type="text" 
                           inputMode="decimal" 
                           placeholder="0" 
-                          value={formatNumber(activeSet?.items[0]?.[initialWeightField] ?? 0)} 
-                          onChange={(e) => handleInputChange(activeSet!.id, activeFirstItem!.id, initialWeightField, e.target.value)} 
+                          value={formatNumber(initialWeightValue)} 
+                          onChange={(e) => handleInitialWeightChange(e.target.value)} 
                           className="text-right h-8 print:hidden w-full rounded-r-none"
                       />
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-l-none" onClick={() => handleFetchLiveWeight(activeSet!.id, activeFirstItem!.id, initialWeightField)} disabled={status !== 'connected'}>
+                            <Button variant="outline" size="icon" className="h-8 w-8 rounded-l-none" onClick={handleInitialWeightFetch} disabled={status !== 'connected'}>
                                 <Weight className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -698,4 +732,3 @@ ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
 
-    
