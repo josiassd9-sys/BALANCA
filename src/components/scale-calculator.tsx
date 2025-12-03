@@ -72,6 +72,7 @@ const WeightInput = ({ value, onChange, onFetch, placeholder, className }: Weigh
 
   const handleClick = (e: React.MouseEvent) => {
     if (!isEditing) {
+      e.preventDefault(); // Prevent focus on short click
       onFetch();
     }
   };
@@ -120,7 +121,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
     const newId = uuidv4();
     const newWeighingSet: WeighingSet = { ...initialWeighingSet, id: newId, items: [] };
     
-    setWeighingSets([{...newWeighingSet, items: []}]);
+    setWeighingSets([{...newWeighingSet, name: 'CAÇAMBA 1', items: []}]);
     setActiveSetId(newId);
     setHeaderData({ client: "", plate: "", driver: "" });
     setOperationType('loading');
@@ -164,7 +165,9 @@ const ScaleCalculator = forwardRef((props, ref) => {
     if (weighingSets.length > 0 && !weighingSets.find(s => s.id === activeSetId)) {
       setActiveSetId(weighingSets[0].id);
     } else if (weighingSets.length === 0) {
-      setActiveSetId(null);
+      const newId = uuidv4();
+      setWeighingSets([{ ...initialWeighingSet, id: newId, items: [] }]);
+      setActiveSetId(newId);
     }
   }, [weighingSets, activeSetId]);
 
@@ -304,11 +307,18 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const removeSet = (setId: string) => {
     setWeighingSets(prev => {
         const newSets = prev.filter(s => s.id !== setId);
+        if (newSets.length === 0) {
+            const newId = uuidv4();
+            const renumberedSets = [{ ...initialWeighingSet, id: newId, name: 'CAÇAMBA 1', items: [] }];
+            setActiveSetId(newId);
+            return renumberedSets;
+        }
+        
         const renumberedSets = newSets.map((s, index) => ({
             ...s,
             name: `CAÇAMBA ${index + 1}`
         }));
-        setWeighingSets(renumberedSets);
+        
         if (activeSetId === setId) {
             setActiveSetId(renumberedSets[0]?.id || null);
         }
@@ -411,36 +421,27 @@ const ScaleCalculator = forwardRef((props, ref) => {
     setWeighingSets(prev => {
         const newSets = [...prev];
         if (newSets.length > 0) {
-            // If the first set has no items, add one to store the initial weight
             if (newSets[0].items.length === 0) {
-                newSets[0].items.push({ 
+                const newItem = { 
                     ...initialItem, 
                     id: uuidv4(),
                     material: '', 
                     [initialWeightField]: numValue 
-                });
+                };
+                newSets[0].items.push(newItem);
+                 // Also update liquido since it might be the only item
+                newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
             } else {
-                // Otherwise, update the existing first item
                 const firstItem = { ...newSets[0].items[0] };
-                
-                // If we are switching operation type, the other field should be cleared
-                // to avoid carrying over old weights.
                 const otherField = initialWeightField === 'bruto' ? 'tara' : 'bruto';
                 if(firstItem[otherField] !== 0) {
                   firstItem[otherField] = 0;
                 }
                 
                 firstItem[initialWeightField] = numValue;
-                
-                 // Recalculate liquido for the first item
                 firstItem.liquido = firstItem.bruto - firstItem.tara - firstItem.descontos;
-
                 newSets[0].items[0] = firstItem;
             }
-        } else {
-             // This case should ideally not happen with the new logic, but as a fallback
-             const newSet = { ...initialWeighingSet, id: uuidv4(), items: [{...initialItem, id: uuidv4(), [initialWeightField]: numValue}] };
-             return [newSet];
         }
         return newSets;
     });
@@ -564,7 +565,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
                     <Input 
                         value={set.name}
                         onChange={(e) => handleSetNameChange(set.id, e.target.value)}
-                        className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto w-48"
+                        className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto w-48 text-white"
                     />
                     {setIndex > 0 && (
                         <TooltipProvider>
