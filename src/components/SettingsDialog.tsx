@@ -18,7 +18,8 @@ import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useTheme } from "@/hooks/use-theme";
-import type { ThemeHex } from "@/hooks/use-theme";
+import type { ThemeHex, AppTheme } from "@/hooks/use-theme";
+import { themes } from "@/lib/themes";
 import { Slider } from "./ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
@@ -183,6 +184,13 @@ const AppearanceTab = () => {
       setTheme({ fontSize: value[0] });
     }
 
+    const handleThemePresetChange = (themeName: string) => {
+        const selectedTheme = themes.find(t => t.name === themeName);
+        if (selectedTheme) {
+            setTheme({ colors: selectedTheme.colors });
+        }
+    };
+
     const colorSettings: { key: keyof ThemeHex; label: string }[] = [
         { key: 'background', label: 'Fundo Principal' },
         { key: 'foreground', label: 'Texto Principal' },
@@ -221,9 +229,26 @@ const AppearanceTab = () => {
           <DialogDescription>
               Personalize a aparência do aplicativo. As alterações são salvas automaticamente no seu navegador.
           </DialogDescription>
-          <ScrollArea className="h-96 w-full pr-4">
+          <ScrollArea className="h-[450px] w-full pr-4">
             <div className="grid grid-cols-1 gap-x-6 gap-y-4 pt-4">
                 
+                {/* Theme Preset Selector */}
+                <div className="space-y-2">
+                    <Label>Temas Predefinidos</Label>
+                    <Select onValueChange={handleThemePresetChange}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecione um tema..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {themes.map(themePreset => (
+                                <SelectItem key={themePreset.name} value={themePreset.name}>{themePreset.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                
+                <div className="w-full h-px bg-border my-4" />
+
                 {/* Font Family */}
                 <div className="space-y-2">
                     <Label>Tipografia</Label>
@@ -262,13 +287,15 @@ const AppearanceTab = () => {
                         onValueChange={handleRadiusChange}
                     />
                 </div>
+                
+                <div className="w-full h-px bg-border my-4" />
 
                 {/* Color Settings */}
                 {colorSettings.map(({ key, label }) => (
                      <div key={key} className="flex items-center justify-between">
                          <Label htmlFor={`color-${key}`}>{label}</Label>
                          <div className="flex items-center gap-2">
-                             <span className="text-sm font-mono text-muted-foreground">{theme.colors[key] || ''}</span>
+                             <span className="text-sm font-mono text-muted-foreground">{theme.colors[key]?.toUpperCase() || ''}</span>
                              <Input
                                  id={`color-${key}`}
                                  type="color"
@@ -282,7 +309,7 @@ const AppearanceTab = () => {
             </div>
           </ScrollArea>
           <div className="pt-4 border-t">
-              <Button variant="ghost" onClick={resetTheme}>Restaurar Padrões</Button>
+              <Button variant="ghost" onClick={resetTheme}>Restaurar Padrão Original</Button>
           </div>
       </div>
     );
@@ -309,7 +336,7 @@ export function SettingsDialog({
           <DialogTitle>Configurações</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="network" className="w-full">
+        <Tabs defaultValue="appearance" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="network">Rede</TabsTrigger>
                 <TabsTrigger value="appearance">Aparência</TabsTrigger>

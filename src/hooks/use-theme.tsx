@@ -2,6 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { themes, defaultTheme } from '@/lib/themes';
 
 // --- Helper Functions ---
 
@@ -40,84 +41,23 @@ function hexToHsl(hex: string): string {
   return `${h} ${s}% ${l}%`;
 }
 
-function hslToHex(hsl: string): string {
-    if (!hsl || typeof hsl !== 'string') return '#000000';
-    const parts = hsl.match(/(\d+(\.\d+)?)/g);
-    if (!parts || parts.length < 3) return '#000000';
-    
-    let h = parseFloat(parts[0]);
-    let s = parseFloat(parts[1]);
-    let l = parseFloat(parts[2]);
-
-    s /= 100;
-    l /= 100;
-
-    let c = (1 - Math.abs(2 * l - 1)) * s;
-    let x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-    let m = l - c / 2;
-    let r = 0, g = 0, b = 0;
-
-    if (0 <= h && h < 60) {
-        r = c; g = x; b = 0;
-    } else if (60 <= h && h < 120) {
-        r = x; g = c; b = 0;
-    } else if (120 <= h && h < 180) {
-        r = 0; g = c; b = x;
-    } else if (180 <= h && h < 240) {
-        r = 0; g = x; b = c;
-    } else if (240 <= h && h < 300) {
-        r = x; g = 0; b = c;
-    } else if (300 <= h && h < 360) {
-        r = c; g = 0; b = x;
-    }
-
-    r = Math.round((r + m) * 255);
-    g = Math.round((g + m) * 255);
-    b = Math.round((b + m) * 255);
-
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-}
-
 
 // --- Theme Definition ---
+export type ThemeHex = { [key: string]: string };
 
-const defaultThemeColorsHsl = {
-  background: '240 5% 15%',
-  foreground: '0 0% 98%',
-  card: '240 5% 12%',
-  cardForeground: '0 0% 98%',
-  popover: '240 6% 9%',
-  popoverForeground: '0 0% 98%',
-  primary: '158 44% 55%',
-  primaryForeground: '158 44% 95%',
-  secondary: '240 3.7% 15.9%',
-  secondaryForeground: '0 0% 98%',
-  muted: '240 3.7% 15.9%',
-  mutedForeground: '240 5% 64.9%',
-  accent: '240 3.7% 15.9%',
-  accentForeground: '0 0% 98%',
-  destructive: '0 62.8% 30.6%',
-  destructiveForeground: '0 0% 98%',
-  border: '240 3.7% 40%',
-  input: '240 3.7% 15.9%',
-  ring: '158 44% 55%',
-  cacambaForeground: '0 0% 98%',
-  accentPrice: '38 95% 55%',
-};
+export interface AppTheme {
+    colors: ThemeHex;
+    radius: number;
+    fontFamily: string;
+    fontSize: number;
+}
 
-const defaultThemeConfig = {
-    colors: (Object.keys(defaultThemeColorsHsl) as Array<keyof typeof defaultThemeColorsHsl>).reduce((acc, key) => {
-        acc[key] = hslToHex(defaultThemeColorsHsl[key]);
-        return acc;
-    }, {} as ThemeHex),
+const defaultThemeConfig: AppTheme = {
+    colors: defaultTheme.colors,
     radius: 0.5,
     fontFamily: 'Inter',
     fontSize: 16,
 };
-
-
-export type ThemeHex = { [key: string]: string };
-export type AppTheme = typeof defaultThemeConfig;
 
 
 const THEME_STORAGE_KEY = 'app-theme-config';
