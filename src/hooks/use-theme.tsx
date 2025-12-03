@@ -181,11 +181,8 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // Apply font family to body
     const newFontClass = `font-${theme.fontFamily.toLowerCase()}`;
-    document.body.className = newFontClass;
+    document.body.className = document.body.className.replace(/font-\w+/g, '').trim() + ` ${newFontClass}`;
     
-    // Also apply to root for good measure, though body is usually sufficient
-    root.className = newFontClass;
-
 
     // Save to localStorage
     try {
