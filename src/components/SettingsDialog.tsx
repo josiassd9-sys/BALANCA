@@ -175,7 +175,7 @@ const AppearanceTab = () => {
         { key: 'primary', label: 'Cor de Destaque' },
         { key: 'foreground', label: 'Texto Principal' },
         { key: 'cardForeground', label: 'Texto dos Cards' },
-        { key: 'caçambaForeground', label: 'Texto da Caçamba' },
+        { key: 'cacambaForeground', label: 'Texto da Caçamba' },
     ];
 
     return (

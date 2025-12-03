@@ -40,33 +40,41 @@ function hexToHsl(hex: string): string {
   return `${h} ${s}% ${l}%`;
 }
 
-// Converts an HSL string 'h s l' back to a hex color string.
+// Converts an HSL string 'h s% l%' back to a hex color string.
 function hslToHex(hsl: string): string {
     if (!hsl || typeof hsl !== 'string') return '#000000';
-    const parts = hsl.split(' ');
-    const h = parseInt(parts[0], 10) / 360;
-    const s = parseInt(parts[1].replace('%', ''), 10) / 100;
-    const l = parseInt(parts[2].replace('%', ''), 10) / 100;
+    const parts = hsl.match(/(\d+)/g);
+    if (!parts || parts.length < 3) return '#000000';
     
-    if (s === 0) {
-      const val = Math.round(l * 255).toString(16).padStart(2, '0');
-      return `#${val}${val}${val}`;
+    let h = parseInt(parts[0], 10);
+    let s = parseInt(parts[1], 10);
+    let l = parseInt(parts[2], 10);
+
+    s /= 100;
+    l /= 100;
+
+    let c = (1 - Math.abs(2 * l - 1)) * s;
+    let x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    let m = l - c / 2;
+    let r = 0, g = 0, b = 0;
+
+    if (0 <= h && h < 60) {
+        r = c; g = x; b = 0;
+    } else if (60 <= h && h < 120) {
+        r = x; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+        r = 0; g = c; b = x;
+    } else if (180 <= h && h < 240) {
+        r = 0; g = x; b = c;
+    } else if (240 <= h && h < 300) {
+        r = x; g = 0; b = c;
+    } else if (300 <= h && h < 360) {
+        r = c; g = 0; b = x;
     }
 
-    const hue2rgb = (p: number, q: number, t: number) => {
-        if (t < 0) t += 1;
-        if (t > 1) t -= 1;
-        if (t < 1 / 6) return p + (q - p) * 6 * t;
-        if (t < 1 / 2) return q;
-        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-        return p;
-    };
-
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    const p = 2 * l - q;
-    const r = Math.round(hue2rgb(p, q, h + 1 / 3) * 255);
-    const g = Math.round(hue2rgb(p, q, h) * 255);
-    const b = Math.round(hue2rgb(p, q, h - 1 / 3) * 255);
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
 
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
@@ -80,7 +88,7 @@ const defaultThemeHsl = {
   primary: '158 44% 55%',
   foreground: '0 0% 98%',
   cardForeground: '0 0% 98%',
-  caçambaForeground: '0 0% 98%',
+  cacambaForeground: '0 0% 98%',
 };
 
 export type ThemeHsl = typeof defaultThemeHsl;
@@ -99,7 +107,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const convertHslToHex = (hslTheme: ThemeHsl): ThemeHex => {
+const convertHslMapToHexMap = (hslTheme: ThemeHsl): ThemeHex => {
     return (Object.keys(hslTheme) as Array<keyof ThemeHsl>).reduce((acc, key) => {
         acc[key] = hslToHex(hslTheme[key]);
         return acc;
@@ -110,55 +118,47 @@ const convertHslToHex = (hslTheme: ThemeHsl): ThemeHex => {
 // --- Theme Provider Component ---
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<ThemeHex>(() => {
-    const defaultHex = convertHslToHex(defaultThemeHsl);
-    if (typeof window === 'undefined') {
-       return defaultHex;
-    }
+  const [theme, setThemeState] = useState<ThemeHex>(() => convertHslMapToHexMap(defaultThemeHsl));
+
+  // On initial client-side mount, load theme from localStorage
+  useEffect(() => {
     try {
       const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-      return storedTheme ? JSON.parse(storedTheme) : defaultHex;
+      if (storedTheme) {
+        setThemeState(JSON.parse(storedTheme));
+      }
     } catch (error) {
-       return defaultHex;
+      console.error("Failed to load theme from localStorage", error);
     }
-  });
+  }, []);
 
   // Apply theme colors as CSS variables whenever the theme changes
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
     const root = document.documentElement;
     (Object.keys(theme) as Array<keyof ThemeHex>).forEach(key => {
-        const variableName = `--${key.replace('caçamba', 'cacamba').replace(/([A-Z])/g, '-$1').toLowerCase()}-hsl`;
+        const variableName = `--${key}-hsl`;
         root.style.setProperty(variableName, hexToHsl(theme[key]));
     });
+    
+    // Also save to localStorage on every change
+    try {
+        window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(theme));
+    } catch (error) {
+        console.error("Failed to save theme to localStorage", error);
+    }
 
   }, [theme]);
 
-  // Function to update the theme state and save to localStorage
+  // Function to update the theme state
   const setTheme = useCallback((newTheme: Partial<ThemeHex>) => {
-    setThemeState(prevTheme => {
-      const updatedTheme = { ...prevTheme, ...newTheme };
-      try {
-         if (typeof window !== 'undefined') {
-            window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(updatedTheme));
-         }
-      } catch (error) {
-        console.error("Failed to save theme to localStorage", error);
-      }
-      return updatedTheme;
-    });
+    setThemeState(prevTheme => ({ ...prevTheme, ...newTheme }));
   }, []);
 
   // Function to reset the theme to defaults
   const resetTheme = useCallback(() => {
-     const defaultHexTheme = convertHslToHex(defaultThemeHsl);
-
-    setThemeState(defaultHexTheme);
+    setThemeState(convertHslMapToHexMap(defaultThemeHsl));
     try {
-        if (typeof window !== 'undefined') {
-            window.localStorage.removeItem(THEME_STORAGE_KEY);
-        }
+        window.localStorage.removeItem(THEME_STORAGE_KEY);
     } catch (error) {
       console.error("Failed to remove theme from localStorage", error);
     }
