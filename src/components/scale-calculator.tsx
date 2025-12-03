@@ -119,18 +119,11 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const clearState = (isInitial = false) => {
     const newId = uuidv4();
     const newWeighingSet: WeighingSet = { ...initialWeighingSet, id: newId, items: [] };
-    setWeighingSets([newWeighingSet]);
+    
+    setWeighingSets([{...newWeighingSet, items: []}]);
     setActiveSetId(newId);
     setHeaderData({ client: "", plate: "", driver: "" });
     setOperationType('loading');
-
-    // Add a single item to the first set if it's the initial load or a full clear
-     if (weighingSets.length === 0 || !isInitial) {
-        setWeighingSets([{
-            ...newWeighingSet,
-            items: [] // No items initially
-        }]);
-    }
 
     if (!isInitial) {
       toast({ title: "Limpo!", description: "Todos os campos foram resetados." });
@@ -422,7 +415,8 @@ const ScaleCalculator = forwardRef((props, ref) => {
             if (newSets[0].items.length === 0) {
                 newSets[0].items.push({ 
                     ...initialItem, 
-                    id: uuidv4(), 
+                    id: uuidv4(),
+                    material: '', 
                     [initialWeightField]: numValue 
                 });
             } else {
@@ -471,51 +465,54 @@ const ScaleCalculator = forwardRef((props, ref) => {
         onConfigChange={setConfig}
         onSave={saveConfig}
       />
-      <div className="mb-4 print:hidden text-center">
-        <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
-      </div>
-       <div className="flex justify-between items-center mb-4 print:hidden gap-1">
-        <div className="flex-grow">
-          <LiveScaleInfo 
-              status={status}
-              weight={liveWeight}
-          />
+      <div className="sticky top-0 z-10 bg-background py-1 print:hidden">
+        <div className="mb-4 print:hidden text-center">
+            <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
         </div>
-        <div className="flex items-center gap-1">
-            <TooltipProvider>
-                <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => setIsSettingsOpen(true)}>
-                    <Network className="h-5 w-5"/>
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>Configurações de Rede</p>
-                </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-            <div className="flex items-center gap-px rounded-full border bg-muted p-0.5 print:hidden">
-            <TooltipProvider>
-                <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('loading')}>
-                    <ArrowUpFromLine className="h-5 w-5" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Carregamento (Venda / Saída de Material)</p></TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('unloading')}>
-                    <ArrowDownToLine className="h-5 w-5" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Descarregamento (Compra / Entrada de Material)</p></TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+        <div className="flex justify-between items-center mb-4 print:hidden gap-1">
+            <div className="flex-grow">
+            <LiveScaleInfo 
+                status={status}
+                weight={liveWeight}
+            />
+            </div>
+            <div className="flex items-center gap-1">
+                <TooltipProvider>
+                    <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => setIsSettingsOpen(true)}>
+                        <Network className="h-5 w-5"/>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Configurações de Rede</p>
+                    </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+                <div className="flex items-center gap-px rounded-full border bg-muted p-0.5 print:hidden">
+                <TooltipProvider>
+                    <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('loading')}>
+                        <ArrowUpFromLine className="h-5 w-5" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Carregamento (Venda / Saída de Material)</p></TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('unloading')}>
+                        <ArrowDownToLine className="h-5 w-5" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Descarregamento (Compra / Entrada de Material)</p></TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+                </div>
             </div>
         </div>
       </div>
+
 
       <Card className="mb-px print:border-none print:shadow-none print:p-0">
         <CardContent className="p-0">
@@ -605,8 +602,8 @@ const ScaleCalculator = forwardRef((props, ref) => {
                             <div className="space-y-px flex-grow">
                               <Label className="text-xs text-muted-foreground">Material</Label>
                               <Input
-                                value={item.material}
                                 placeholder="SUCATA"
+                                value={item.material}
                                 onChange={(e) => handleMaterialChange(set.id, item.id, e.target.value)}
                                 className="w-full justify-between h-8"
                               />
@@ -672,8 +669,8 @@ const ScaleCalculator = forwardRef((props, ref) => {
                     <TableRow key={item.id} className="print:text-black">
                       <TableCell className="font-medium p-0 sm:p-px">
                            <Input
-                              value={item.material}
                               placeholder="SUCATA"
+                              value={item.material}
                               onChange={(e) => handleMaterialChange(set.id, item.id, e.target.value)}
                               className="w-full justify-between h-8"
                             />
