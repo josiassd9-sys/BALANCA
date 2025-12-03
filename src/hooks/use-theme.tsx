@@ -44,7 +44,10 @@ function hexToHsl(hex: string): string {
 function hslToHex(hsl: string): string {
     const [h, s, l] = hsl.split(' ').map((val, i) => parseInt(val.replace('%', ''), 10) / (i > 0 ? 100 : 360));
     
-    if (s === 0) return `#${Math.round(l * 255).toString(16).padStart(2, '0').repeat(3)}`;
+    if (s === 0) {
+      const val = Math.round(l * 255).toString(16).padStart(2, '0');
+      return `#${val}${val}${val}`;
+    }
 
     const hue2rgb = (p: number, q: number, t: number) => {
         if (t < 0) t += 1;
@@ -67,24 +70,26 @@ function hslToHex(hsl: string): string {
 
 // --- Theme Definition ---
 
-const defaultTheme = {
-  background: '#1c1c1e', // hsl(240 5% 15%)
-  card: '#161618',       // hsl(240 5% 12%)
-  primary: '#5ddc9d',      // hsl(158 44% 55%)
-  foreground: '#fcfcfc',   // hsl(0 0% 98%)
-  cardForeground: '#fcfcfc', // hsl(0 0% 98%)
-  caçambaForeground: '#fcfcfc', // hsl(0 0% 98%)
+const defaultThemeHsl = {
+  background: '240 5% 15%',
+  card: '240 5% 12%',
+  primary: '158 44% 55%',
+  foreground: '0 0% 98%',
+  cardForeground: '0 0% 98%',
+  caçambaForeground: '0 0% 98%',
 };
 
-export type Theme = typeof defaultTheme;
+export type ThemeHsl = typeof defaultThemeHsl;
+export type ThemeHex = { [K in keyof ThemeHsl]: string };
 
-const THEME_STORAGE_KEY = 'app-theme-colors';
+
+const THEME_STORAGE_KEY = 'app-theme-colors-hex';
 
 // --- Context Definition ---
 
 interface ThemeContextType {
-  theme: Theme;
-  setTheme: (newTheme: Partial<Theme>) => void;
+  theme: ThemeHex;
+  setTheme: (newTheme: Partial<ThemeHex>) => void;
   resetTheme: () => void;
 }
 
@@ -93,14 +98,25 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 // --- Theme Provider Component ---
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>(() => {
+  const [theme, setThemeState] = useState<ThemeHex>(() => {
     // Lazy initialization from localStorage
-    if (typeof window === 'undefined') return defaultTheme;
+    if (typeof window === 'undefined') {
+       return Object.entries(defaultThemeHsl).reduce((acc, [key, value]) => {
+            acc[key as keyof ThemeHex] = hslToHex(value);
+            return acc;
+        }, {} as ThemeHex);
+    }
     try {
       const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-      return storedTheme ? JSON.parse(storedTheme) : defaultTheme;
+      return storedTheme ? JSON.parse(storedTheme) : Object.entries(defaultThemeHsl).reduce((acc, [key, value]) => {
+            acc[key as keyof ThemeHex] = hslToHex(value);
+            return acc;
+        }, {} as ThemeHex);
     } catch (error) {
-      return defaultTheme;
+       return Object.entries(defaultThemeHsl).reduce((acc, [key, value]) => {
+            acc[key as keyof ThemeHex] = hslTo_hex(value);
+            return acc;
+        }, {} as ThemeHex);
     }
   });
 
@@ -109,17 +125,15 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (typeof window === 'undefined') return;
 
     const root = document.documentElement;
-    root.style.setProperty('--background-hsl', hexToHsl(theme.background));
-    root.style.setProperty('--card-hsl', hexToHsl(theme.card));
-    root.style.setProperty('--primary-hsl', hexToHsl(theme.primary));
-    root.style.setProperty('--foreground-hsl', hexToHsl(theme.foreground));
-    root.style.setProperty('--card-foreground-hsl', hexToHsl(theme.cardForeground));
-    root.style.setProperty('--cacamba-foreground-hsl', hexToHsl(theme.caçambaForeground));
+    (Object.keys(theme) as Array<keyof ThemeHex>).forEach(key => {
+        const variableName = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}-hsl`;
+        root.style.setProperty(variableName, hexToHsl(theme[key]));
+    });
 
   }, [theme]);
 
   // Function to update the theme state and save to localStorage
-  const setTheme = useCallback((newTheme: Partial<Theme>) => {
+  const setTheme = useCallback((newTheme: Partial<ThemeHex>) => {
     setThemeState(prevTheme => {
       const updatedTheme = { ...prevTheme, ...newTheme };
       try {
@@ -135,7 +149,12 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   // Function to reset the theme to defaults
   const resetTheme = useCallback(() => {
-    setThemeState(defaultTheme);
+     const defaultHexTheme = Object.entries(defaultThemeHsl).reduce((acc, [key, value]) => {
+        acc[key as keyof ThemeHex] = hslToHex(value);
+        return acc;
+     }, {} as ThemeHex);
+
+    setThemeState(defaultHexTheme);
     try {
         if (typeof window !== 'undefined') {
             window.localStorage.removeItem(THEME_STORAGE_KEY);

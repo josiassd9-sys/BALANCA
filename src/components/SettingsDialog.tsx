@@ -18,6 +18,8 @@ import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useTheme } from "@/hooks/use-theme";
+import type { ThemeHex } from "@/hooks/use-theme";
+
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -163,18 +165,18 @@ const NetworkTab = ({ scaleConfig, onScaleConfigChange }: { scaleConfig: ScaleCo
 const AppearanceTab = () => {
     const { theme, setTheme, resetTheme } = useTheme();
 
-    const handleColorChange = (key: keyof typeof theme, value: string) => {
+    const handleColorChange = (key: keyof ThemeHex, value: string) => {
         setTheme({ [key]: value });
     };
 
-    const colorSettings = [
+    const colorSettings: { key: keyof ThemeHex; label: string }[] = [
         { key: 'background', label: 'Fundo Principal' },
         { key: 'card', label: 'Fundo dos Cards' },
         { key: 'primary', label: 'Cor de Destaque' },
         { key: 'foreground', label: 'Texto Principal' },
         { key: 'cardForeground', label: 'Texto dos Cards' },
         { key: 'caçambaForeground', label: 'Texto da Caçamba' },
-    ] as const;
+    ];
 
     return (
       <div className="space-y-4">
