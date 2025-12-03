@@ -561,8 +561,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
                     <Input 
                         value={set.name}
                         onChange={(e) => handleSetNameChange(set.id, e.target.value)}
-                        className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto w-48"
-                        style={{ color: 'var(--caçamba-foreground-hsl)' }}
+                        className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto w-48 text-cacamba-foreground"
                     />
                     {setIndex > 0 && (
                         <TooltipProvider>
@@ -756,11 +755,11 @@ const ScaleCalculator = forwardRef((props, ref) => {
         </div>
       
 
-      <Card className="mt-px bg-primary/10 border-primary/20 print:border print:border-accent-price print:shadow-none print:p-0.5">
+      <Card className="mt-px bg-accent-price/10 border-accent-price/20 print:border print:border-accent-price print:shadow-none print:p-0.5">
          <CardContent className="p-px flex justify-end items-center">
              <div className="text-right">
-                <p className="text-lg font-semibold text-primary print:text-2xl print:mb-0.5">Peso Líquido Total</p>
-                <p className="text-4xl font-bold text-primary print:text-black">{new Intl.NumberFormat('pt-BR').format(grandTotalLiquido)} kg</p>
+                <p className="text-lg font-semibold text-accent-price print:text-2xl print:mb-0.5">Peso Líquido Total</p>
+                <p className="text-4xl font-bold text-accent-price print:text-black">{new Intl.NumberFormat('pt-BR').format(grandTotalLiquido)} kg</p>
             </div>
          </CardContent>
       </Card>

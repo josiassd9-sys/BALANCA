@@ -198,6 +198,7 @@ const AppearanceTab = () => {
         { key: 'input', label: 'Fundo dos Inputs' },
         { key: 'ring', label: 'Cor do Anel de Foco' },
         { key: 'cacambaForeground', label: 'Texto Título Caçamba' },
+        { key: 'accentPrice', label: 'Cor de Destaque (Preço)' },
     ];
     
     const fontOptions = [

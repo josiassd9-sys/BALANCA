@@ -102,6 +102,7 @@ const defaultThemeColorsHsl = {
   input: '240 3.7% 15.9%',
   ring: '158 44% 55%',
   cacambaForeground: '0 0% 98%',
+  accentPrice: '38 95% 55%',
 };
 
 const defaultThemeConfig = {
@@ -178,8 +179,13 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // Apply radius
     root.style.setProperty('--radius', `${theme.radius}rem`);
 
-    // Apply font family
-    document.body.style.fontFamily = `var(--font-${theme.fontFamily.toLowerCase()})`;
+    // Apply font family to body
+    const newFontClass = `font-${theme.fontFamily.toLowerCase()}`;
+    document.body.className = newFontClass;
+    
+    // Also apply to root for good measure, though body is usually sufficient
+    root.className = newFontClass;
+
 
     // Save to localStorage
     try {
@@ -213,11 +219,6 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     }
   }, [isClient]);
-  
-  useEffect(() => {
-    document.body.className = `font-${theme.fontFamily.toLowerCase()}`;
-  }, [theme.fontFamily]);
-
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, resetTheme }}>
@@ -235,3 +236,5 @@ export const useTheme = (): ThemeContextType => {
   }
   return context;
 };
+
+    
