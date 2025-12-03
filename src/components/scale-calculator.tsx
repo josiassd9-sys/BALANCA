@@ -9,11 +9,11 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
-import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, PenSquare, Signal, Network } from "lucide-react";
+import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, PenSquare, Signal, Network, Settings } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { useScale } from "@/hooks/use-scale";
 import { LiveScaleInfo } from "./LiveScaleInfo";
-import { NetworkSettingsDialog } from "./NetworkSettingsDialog";
+import { SettingsDialog } from "./SettingsDialog";
 import { cn } from "@/lib/utils";
 
 type WeighingItem = {
@@ -455,11 +455,11 @@ const ScaleCalculator = forwardRef((props, ref) => {
   
   return (
     <div className="bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
-      <NetworkSettingsDialog 
+      <SettingsDialog
         isOpen={isSettingsOpen}
         onOpenChange={setIsSettingsOpen}
-        config={config}
-        onConfigChange={setConfig}
+        scaleConfig={config}
+        onScaleConfigChange={setConfig}
         onSave={saveConfig}
       />
       <div className="sticky top-0 z-10 bg-background py-1 print:hidden">
@@ -478,11 +478,11 @@ const ScaleCalculator = forwardRef((props, ref) => {
                     <Tooltip>
                     <TooltipTrigger asChild>
                         <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => setIsSettingsOpen(true)}>
-                        <Network className="h-5 w-5"/>
+                        <Settings className="h-5 w-5"/>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Configurações de Rede</p>
+                        <p>Configurações</p>
                     </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
@@ -516,7 +516,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
           <div className="w-full space-y-0.5">
             <div className="flex justify-between items-end pb-0.5">
                 <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
-                 <div className="flex items-center text-sm text-muted-foreground font-medium">
+                <div className="flex items-center text-sm text-muted-foreground font-medium">
                   <span className="w-28 text-center">{initialLabel}</span>
                   <span className="w-28 text-center">{finalLabel}</span>
                 </div>
@@ -561,7 +561,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
                     <Input 
                         value={set.name}
                         onChange={(e) => handleSetNameChange(set.id, e.target.value)}
-                        className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto w-48 text-foreground"
+                        className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto w-48 text-[var(--caçamba-foreground)]"
                     />
                     {setIndex > 0 && (
                         <TooltipProvider>
@@ -742,8 +742,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
                      </div>
                       <div className="text-right flex-shrink-0">
                          <p className="text-sm text-muted-foreground">{set.name}</p>
-                         <p className="text-xl font-bold text-primary print:text-black">{formatNumber(totalLiquidoSet)} kg</p>
-                     </div>
+                         <p className="text-xl font-bold text-primary print:text-black">{formatNumber(totalLiquidoSet)} kg</p>                     </div>
                  </div>
             </CardContent>
           </Card>
