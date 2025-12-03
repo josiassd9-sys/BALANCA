@@ -84,7 +84,7 @@ const NetworkTab = ({ scaleConfig, onScaleConfigChange }: { scaleConfig: ScaleCo
       case 'idle': return "Aguardando teste...";
       case 'testing': return "Testando conexão...";
       case 'success': return "Conexão bem-sucedida!";
-      case 'falha': return "Falha na conexão.";
+      case 'error': return "Falha na conexão.";
       default: return "";
     }
   };
@@ -211,6 +211,9 @@ const AppearanceTab = () => {
         { value: 'Inter', label: 'Inter' },
         { value: 'Roboto', label: 'Roboto' },
         { value: 'Lato', label: 'Lato' },
+        { value: 'Poppins', label: 'Poppins' },
+        { value: 'Open Sans', label: 'Open Sans' },
+        { value: 'Nunito', label: 'Nunito' },
     ];
 
     return (
@@ -265,7 +268,7 @@ const AppearanceTab = () => {
                      <div key={key} className="flex items-center justify-between">
                          <Label htmlFor={`color-${key}`}>{label}</Label>
                          <div className="flex items-center gap-2">
-                             <span className="text-sm font-mono text-muted-foreground">{theme.colors[key]}</span>
+                             <span className="text-sm font-mono text-muted-foreground">{theme.colors[key] || ''}</span>
                              <Input
                                  id={`color-${key}`}
                                  type="color"
@@ -326,5 +329,3 @@ export function SettingsDialog({
     </Dialog>
   );
 }
-
-    

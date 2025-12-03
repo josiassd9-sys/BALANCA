@@ -181,8 +181,16 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     root.style.setProperty('--radius', `${theme.radius}rem`);
 
     // Apply font family to body
-    const newFontClass = `font-${theme.fontFamily.toLowerCase()}`;
-    document.body.className = document.body.className.replace(/font-\w+/g, '').trim() + ` ${newFontClass}`;
+    const fontClassMap: { [key: string]: string } = {
+        'Inter': 'font-inter',
+        'Roboto': 'font-roboto',
+        'Lato': 'font-lato',
+        'Poppins': 'font-poppins',
+        'Open Sans': 'font-open-sans',
+        'Nunito': 'font-nunito',
+    };
+    const newFontClass = fontClassMap[theme.fontFamily] || 'font-inter';
+    document.body.className = document.body.className.replace(/font-\w+(-\w+)?/g, '').trim() + ` ${newFontClass}`;
     
     // Apply font size
     root.style.fontSize = `${theme.fontSize}px`;
@@ -236,5 +244,3 @@ export const useTheme = (): ThemeContextType => {
   }
   return context;
 };
-
-    

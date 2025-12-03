@@ -29,6 +29,9 @@ export default {
         inter: ['var(--font-inter)'],
         roboto: ['var(--font-roboto)'],
         lato: ['var(--font-lato)'],
+        poppins: ['var(--font-poppins)'],
+        'open-sans': ['var(--font-open-sans)'],
+        nunito: ['var(--font-nunito)'],
       },
       colors: {
         border: 'hsl(var(--border-hsl))',
@@ -98,5 +101,3 @@ export default {
   },
   plugins: [require('tailwindcss-animate')],
 } satisfies Config;
-
-    
