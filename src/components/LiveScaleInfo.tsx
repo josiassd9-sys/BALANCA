@@ -17,7 +17,7 @@ export function LiveScaleInfo({ status, weight }: LiveScaleInfoProps) {
             case 'connected':
                 return 'text-primary';
             case 'connecting':
-                return 'text-yellow-500';
+                return 'text-ring'; // Use ring color for connecting
             case 'error':
             case 'disconnected':
                 return 'text-destructive';

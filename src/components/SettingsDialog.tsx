@@ -108,7 +108,7 @@ const NetworkTab = ({ scaleConfig, onScaleConfigChange }: { scaleConfig: ScaleCo
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="ws-port" className="text-right">
+            <Label htmlFor="ws-port" className-="text-right">
               Porta WebSocket
             </Label>
             <Input
@@ -171,11 +171,24 @@ const AppearanceTab = () => {
 
     const colorSettings: { key: keyof ThemeHex; label: string }[] = [
         { key: 'background', label: 'Fundo Principal' },
-        { key: 'card', label: 'Fundo dos Cards' },
-        { key: 'primary', label: 'Cor de Destaque' },
         { key: 'foreground', label: 'Texto Principal' },
+        { key: 'card', label: 'Fundo dos Cards' },
         { key: 'cardForeground', label: 'Texto dos Cards' },
-        { key: 'cacambaForeground', label: 'Texto da Caçamba' },
+        { key: 'cacambaForeground', label: 'Texto Título Caçamba' },
+        { key: 'primary', label: 'Cor Primária (Destaques)' },
+        { key: 'primaryForeground', label: 'Texto Cor Primária' },
+        { key: 'secondary', label: 'Cor Secundária (Ex: Botões)' },
+        { key: 'secondaryForeground', label: 'Texto Cor Secundária' },
+        { key: 'muted', label: 'Fundo Silenciado (Ex: Botões)' },
+        { key: 'mutedForeground', label: 'Texto Silenciado (Ex: Labels)' },
+        { key: 'accent', label: 'Cor de Ênfase (Hover)' },
+        { key: 'accentForeground', label: 'Texto Cor de Ênfase' },
+        { key: 'destructive', label: 'Cor Destrutiva (Erros)' },
+        { key: 'destructiveForeground', label: 'Texto Cor Destrutiva' },
+        { key: 'border', label: 'Cor das Bordas' },
+        { key: 'input', label: 'Fundo dos Inputs' },
+        { key: 'ring', label: 'Cor do Anel de Foco' },
+
     ];
 
     return (
@@ -183,23 +196,25 @@ const AppearanceTab = () => {
           <DialogDescription>
               Personalize as cores da interface do aplicativo. As alterações são salvas automaticamente no seu navegador.
           </DialogDescription>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 pt-4">
-              {colorSettings.map(({ key, label }) => (
-                   <div key={key} className="flex items-center justify-between">
-                       <Label htmlFor={`color-${key}`}>{label}</Label>
-                       <div className="flex items-center gap-2">
-                           <span className="text-sm font-mono text-muted-foreground">{theme[key]}</span>
-                           <Input
-                               id={`color-${key}`}
-                               type="color"
-                               value={theme[key] || ''}
-                               onChange={(e) => handleColorChange(key, e.target.value)}
-                               className="w-10 h-10 p-1"
-                           />
-                       </div>
-                   </div>
-              ))}
-          </div>
+          <ScrollArea className="h-96 w-full pr-4">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-4 pt-4">
+                {colorSettings.map(({ key, label }) => (
+                     <div key={key} className="flex items-center justify-between">
+                         <Label htmlFor={`color-${key}`}>{label}</Label>
+                         <div className="flex items-center gap-2">
+                             <span className="text-sm font-mono text-muted-foreground">{theme[key]}</span>
+                             <Input
+                                 id={`color-${key}`}
+                                 type="color"
+                                 value={theme[key] || '#000000'}
+                                 onChange={(e) => handleColorChange(key, e.target.value)}
+                                 className="w-10 h-10 p-1"
+                             />
+                         </div>
+                     </div>
+                ))}
+            </div>
+          </ScrollArea>
           <div className="pt-4 border-t">
               <Button variant="ghost" onClick={resetTheme}>Restaurar Cores Padrão</Button>
           </div>

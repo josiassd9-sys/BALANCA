@@ -7,6 +7,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, Rea
 
 // Converts a hex color string to an HSL string 'h s l'.
 function hexToHsl(hex: string): string {
+  if (!hex || !hex.startsWith('#')) return '0 0% 0%';
   let r = 0, g = 0, b = 0;
   if (hex.length === 4) {
     r = parseInt(hex[1] + hex[1], 16);
@@ -43,12 +44,12 @@ function hexToHsl(hex: string): string {
 // Converts an HSL string 'h s% l%' back to a hex color string.
 function hslToHex(hsl: string): string {
     if (!hsl || typeof hsl !== 'string') return '#000000';
-    const parts = hsl.match(/(\d+)/g);
+    const parts = hsl.match(/(\d+(\.\d+)?)/g);
     if (!parts || parts.length < 3) return '#000000';
     
-    let h = parseInt(parts[0], 10);
-    let s = parseInt(parts[1], 10);
-    let l = parseInt(parts[2], 10);
+    let h = parseFloat(parts[0]);
+    let s = parseFloat(parts[1]);
+    let l = parseFloat(parts[2]);
 
     s /= 100;
     l /= 100;
@@ -84,10 +85,24 @@ function hslToHex(hsl: string): string {
 
 const defaultThemeHsl = {
   background: '240 5% 15%',
-  card: '240 5% 12%',
-  primary: '158 44% 55%',
   foreground: '0 0% 98%',
+  card: '240 5% 12%',
   cardForeground: '0 0% 98%',
+  popover: '240 6% 9%',
+  popoverForeground: '0 0% 98%',
+  primary: '158 44% 55%',
+  primaryForeground: '158 44% 95%',
+  secondary: '240 3.7% 15.9%',
+  secondaryForeground: '0 0% 98%',
+  muted: '240 3.7% 15.9%',
+  mutedForeground: '240 5% 64.9%',
+  accent: '240 3.7% 15.9%',
+  accentForeground: '0 0% 98%',
+  destructive: '0 62.8% 30.6%',
+  destructiveForeground: '0 0% 98%',
+  border: '240 3.7% 40%',
+  input: '240 3.7% 15.9%',
+  ring: '158 44% 55%',
   cacambaForeground: '0 0% 98%',
 };
 
@@ -119,24 +134,32 @@ const convertHslMapToHexMap = (hslTheme: ThemeHsl): ThemeHex => {
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<ThemeHex>(() => convertHslMapToHexMap(defaultThemeHsl));
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // On initial client-side mount, load theme from localStorage
   useEffect(() => {
+    if (!isClient) return;
     try {
       const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
       if (storedTheme) {
-        setThemeState(JSON.parse(storedTheme));
+        setThemeState(prevTheme => ({...prevTheme, ...JSON.parse(storedTheme)}));
       }
     } catch (error) {
       console.error("Failed to load theme from localStorage", error);
     }
-  }, []);
+  }, [isClient]);
 
   // Apply theme colors as CSS variables whenever the theme changes
   useEffect(() => {
+    if (!isClient) return;
+
     const root = document.documentElement;
     (Object.keys(theme) as Array<keyof ThemeHex>).forEach(key => {
-        const variableName = `--${key}-hsl`;
+        const variableName = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}-hsl`;
         root.style.setProperty(variableName, hexToHsl(theme[key]));
     });
     
@@ -147,7 +170,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         console.error("Failed to save theme to localStorage", error);
     }
 
-  }, [theme]);
+  }, [theme, isClient]);
 
   // Function to update the theme state
   const setTheme = useCallback((newTheme: Partial<ThemeHex>) => {
@@ -157,12 +180,14 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // Function to reset the theme to defaults
   const resetTheme = useCallback(() => {
     setThemeState(convertHslMapToHexMap(defaultThemeHsl));
-    try {
-        window.localStorage.removeItem(THEME_STORAGE_KEY);
-    } catch (error) {
-      console.error("Failed to remove theme from localStorage", error);
+    if (isClient) {
+        try {
+            window.localStorage.removeItem(THEME_STORAGE_KEY);
+        } catch (error) {
+          console.error("Failed to remove theme from localStorage", error);
+        }
     }
-  }, []);
+  }, [isClient]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, resetTheme }}>
