@@ -561,7 +561,8 @@ const ScaleCalculator = forwardRef((props, ref) => {
                     <Input 
                         value={set.name}
                         onChange={(e) => handleSetNameChange(set.id, e.target.value)}
-                        className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto w-48 text-[var(--caçamba-foreground)]"
+                        className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto w-48"
+                        style={{ color: 'var(--caçamba-foreground-hsl)' }}
                     />
                     {setIndex > 0 && (
                         <TooltipProvider>
