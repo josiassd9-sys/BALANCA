@@ -164,10 +164,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
   useEffect(() => {
     if (weighingSets.length > 0 && !weighingSets.find(s => s.id === activeSetId)) {
       setActiveSetId(weighingSets[0].id);
-    } else if (weighingSets.length === 0) {
-      const newId = uuidv4();
-      setWeighingSets([{ ...initialWeighingSet, id: newId, items: [] }]);
-      setActiveSetId(newId);
     }
   }, [weighingSets, activeSetId]);
 
@@ -565,7 +561,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
                     <Input 
                         value={set.name}
                         onChange={(e) => handleSetNameChange(set.id, e.target.value)}
-                        className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto w-48 text-white"
+                        className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto w-48 text-foreground"
                     />
                     {setIndex > 0 && (
                         <TooltipProvider>
