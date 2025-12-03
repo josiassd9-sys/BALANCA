@@ -4,12 +4,12 @@
 
 @layer base {
   :root {
-    --background-hsl: 240 5% 55%;
-    --foreground-hsl: 0 0% 10%;
-    --card-hsl: 240 5% 52%;
-    --card-foreground-hsl: 0 0% 10%;
+    --background-hsl: 240 5% 15%;
+    --foreground-hsl: 0 0% 98%;
+    --card-hsl: 240 5% 12%;
+    --card-foreground-hsl: 0 0% 98%;
     --primary-hsl: 158 44% 55%;
-    --cacamba-foreground-hsl: 0 0% 10%;
+    --cacamba-foreground-hsl: 0 0% 98%;
 
     --background: hsl(var(--background-hsl));
     --foreground: hsl(var(--foreground-hsl));

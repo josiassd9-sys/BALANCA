@@ -42,7 +42,11 @@ function hexToHsl(hex: string): string {
 
 // Converts an HSL string 'h s l' back to a hex color string.
 function hslToHex(hsl: string): string {
-    const [h, s, l] = hsl.split(' ').map((val, i) => parseInt(val.replace('%', ''), 10) / (i > 0 ? 100 : 360));
+    if (!hsl || typeof hsl !== 'string') return '#000000';
+    const parts = hsl.split(' ');
+    const h = parseInt(parts[0], 10) / 360;
+    const s = parseInt(parts[1].replace('%', ''), 10) / 100;
+    const l = parseInt(parts[2].replace('%', ''), 10) / 100;
     
     if (s === 0) {
       const val = Math.round(l * 255).toString(16).padStart(2, '0');
@@ -95,28 +99,27 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const convertHslToHex = (hslTheme: ThemeHsl): ThemeHex => {
+    return (Object.keys(hslTheme) as Array<keyof ThemeHsl>).reduce((acc, key) => {
+        acc[key] = hslToHex(hslTheme[key]);
+        return acc;
+    }, {} as ThemeHex);
+};
+
+
 // --- Theme Provider Component ---
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<ThemeHex>(() => {
-    // Lazy initialization from localStorage
+    const defaultHex = convertHslToHex(defaultThemeHsl);
     if (typeof window === 'undefined') {
-       return Object.entries(defaultThemeHsl).reduce((acc, [key, value]) => {
-            acc[key as keyof ThemeHex] = hslToHex(value);
-            return acc;
-        }, {} as ThemeHex);
+       return defaultHex;
     }
     try {
       const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-      return storedTheme ? JSON.parse(storedTheme) : Object.entries(defaultThemeHsl).reduce((acc, [key, value]) => {
-            acc[key as keyof ThemeHex] = hslToHex(value);
-            return acc;
-        }, {} as ThemeHex);
+      return storedTheme ? JSON.parse(storedTheme) : defaultHex;
     } catch (error) {
-       return Object.entries(defaultThemeHsl).reduce((acc, [key, value]) => {
-            acc[key as keyof ThemeHex] = hslTo_hex(value);
-            return acc;
-        }, {} as ThemeHex);
+       return defaultHex;
     }
   });
 
@@ -126,7 +129,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const root = document.documentElement;
     (Object.keys(theme) as Array<keyof ThemeHex>).forEach(key => {
-        const variableName = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}-hsl`;
+        const variableName = `--${key.replace('caçamba', 'cacamba').replace(/([A-Z])/g, '-$1').toLowerCase()}-hsl`;
         root.style.setProperty(variableName, hexToHsl(theme[key]));
     });
 
@@ -149,10 +152,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   // Function to reset the theme to defaults
   const resetTheme = useCallback(() => {
-     const defaultHexTheme = Object.entries(defaultThemeHsl).reduce((acc, [key, value]) => {
-        acc[key as keyof ThemeHex] = hslToHex(value);
-        return acc;
-     }, {} as ThemeHex);
+     const defaultHexTheme = convertHslToHex(defaultThemeHsl);
 
     setThemeState(defaultHexTheme);
     try {
