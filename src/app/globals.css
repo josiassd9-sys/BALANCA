@@ -35,12 +35,14 @@
     @apply border-border;
   }
   body {
-    background-color: hsl(var(--background-hsl));
-    color: hsl(var(--foreground-hsl));
+    @apply bg-background text-foreground;
   }
-  .font-inter { font-family: var(--font-inter), sans-serif; }
-  .font-roboto { font-family: var(--font-roboto), sans-serif; }
-  .font-lato { font-family: var(--font-lato), sans-serif; }
+  .font-inter { font-family: 'Inter', sans-serif; }
+  .font-roboto { font-family: 'Roboto', sans-serif; }
+  .font-lato { font-family: 'Lato', sans-serif; }
+  .font-poppins { font-family: 'Poppins', sans-serif; }
+  .font-open-sans { font-family: 'Open Sans', sans-serif; }
+  .font-nunito { font-family: 'Nunito', sans-serif; }
 }
 
 
@@ -59,5 +61,3 @@
     }
   }
 }
-
-    

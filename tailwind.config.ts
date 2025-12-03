@@ -25,14 +25,6 @@ export default {
         '8xl': ['6rem', { lineHeight: '1' }],
         '9xl': ['8rem', { lineHeight: '1' }],
       },
-      fontFamily: {
-        inter: ['var(--font-inter)'],
-        roboto: ['var(--font-roboto)'],
-        lato: ['var(--font-lato)'],
-        poppins: ['var(--font-poppins)'],
-        'open-sans': ['var(--font-open-sans)'],
-        nunito: ['var(--font-nunito)'],
-      },
       colors: {
         border: 'hsl(var(--border-hsl))',
         input: 'hsl(var(--input-hsl))',
