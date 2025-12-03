@@ -26,7 +26,6 @@
     --ring-hsl: 158 44% 55%;
     --cacamba-foreground-hsl: 0 0% 98%;
     --accent-price-hsl: 38 95% 55%;
-
     --radius: 0.5rem;
   }
 }
@@ -60,3 +59,5 @@
     }
   }
 }
+
+    

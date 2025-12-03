@@ -84,7 +84,7 @@ const NetworkTab = ({ scaleConfig, onScaleConfigChange }: { scaleConfig: ScaleCo
       case 'idle': return "Aguardando teste...";
       case 'testing': return "Testando conexão...";
       case 'success': return "Conexão bem-sucedida!";
-      case 'error': return "Falha na conexão.";
+      case 'falha': return "Falha na conexão.";
       default: return "";
     }
   };
@@ -179,11 +179,17 @@ const AppearanceTab = () => {
         setTheme({ fontFamily: value });
     }
 
+    const handleFontSizeChange = (value: number[]) => {
+      setTheme({ fontSize: value[0] });
+    }
+
     const colorSettings: { key: keyof ThemeHex; label: string }[] = [
         { key: 'background', label: 'Fundo Principal' },
         { key: 'foreground', label: 'Texto Principal' },
         { key: 'card', label: 'Fundo dos Cards' },
         { key: 'cardForeground', label: 'Texto dos Cards' },
+        { key: 'popover', label: 'Fundo Popover' },
+        { key: 'popoverForeground', label: 'Texto Popover' },
         { key: 'primary', label: 'Cor Primária (Destaques)' },
         { key: 'primaryForeground', label: 'Texto Cor Primária' },
         { key: 'secondary', label: 'Cor Secundária' },
@@ -228,6 +234,18 @@ const AppearanceTab = () => {
                             ))}
                         </SelectContent>
                     </Select>
+                </div>
+
+                {/* Font Size */}
+                <div className="space-y-2">
+                    <Label>Tamanho da Fonte Base ({theme.fontSize}px)</Label>
+                    <Slider
+                        min={12}
+                        max={20}
+                        step={0.5}
+                        value={[theme.fontSize]}
+                        onValueChange={handleFontSizeChange}
+                    />
                 </div>
                 
                 {/* Border Radius */}

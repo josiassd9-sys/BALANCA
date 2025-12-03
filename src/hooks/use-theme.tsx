@@ -112,6 +112,7 @@ const defaultThemeConfig = {
     }, {} as ThemeHex),
     radius: 0.5,
     fontFamily: 'Inter',
+    fontSize: 16,
 };
 
 
@@ -183,6 +184,8 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const newFontClass = `font-${theme.fontFamily.toLowerCase()}`;
     document.body.className = document.body.className.replace(/font-\w+/g, '').trim() + ` ${newFontClass}`;
     
+    // Apply font size
+    root.style.fontSize = `${theme.fontSize}px`;
 
     // Save to localStorage
     try {
