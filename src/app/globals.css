@@ -27,6 +27,10 @@
     --accent-price-hsl: 38 95% 55%;
 
     --radius: 0.5rem;
+
+    --font-inter: 'Inter', sans-serif;
+    --font-roboto: 'Roboto', sans-serif;
+    --font-lato: 'Lato', sans-serif;
   }
 }
 
@@ -38,6 +42,9 @@
     background-color: hsl(var(--background-hsl));
     color: hsl(var(--foreground-hsl));
   }
+  .font-inter { font-family: var(--font-inter); }
+  .font-roboto { font-family: var(--font-roboto); }
+  .font-lato { font-family: var(--font-lato); }
 }
 
 

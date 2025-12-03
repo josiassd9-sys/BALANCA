@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useTheme } from "@/hooks/use-theme";
 import type { ThemeHex } from "@/hooks/use-theme";
+import { Slider } from "./ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 
 interface SettingsDialogProps {
@@ -166,8 +168,16 @@ const AppearanceTab = () => {
     const { theme, setTheme, resetTheme } = useTheme();
 
     const handleColorChange = (key: keyof ThemeHex, value: string) => {
-        setTheme({ [key]: value });
+        setTheme({ colors: { ...theme.colors, [key]: value } });
     };
+
+    const handleRadiusChange = (value: number[]) => {
+      setTheme({ radius: value[0] });
+    }
+    
+    const handleFontChange = (value: string) => {
+        setTheme({ fontFamily: value });
+    }
 
     const colorSettings: { key: keyof ThemeHex; label: string }[] = [
         { key: 'background', label: 'Fundo Principal' },
@@ -176,37 +186,71 @@ const AppearanceTab = () => {
         { key: 'cardForeground', label: 'Texto dos Cards' },
         { key: 'primary', label: 'Cor Primária (Destaques)' },
         { key: 'primaryForeground', label: 'Texto Cor Primária' },
-        { key: 'destructive', label: 'Cor Destrutiva (Erros)' },
-        { key: 'destructiveForeground', label: 'Texto Cor Destrutiva' },
-        { key: 'cacambaForeground', label: 'Texto Título Caçamba' },
-        { key: 'secondary', label: 'Cor Secundária (Ex: Botões)' },
+        { key: 'secondary', label: 'Cor Secundária' },
         { key: 'secondaryForeground', label: 'Texto Cor Secundária' },
-        { key: 'muted', label: 'Fundo Silenciado (Ex: Botões)' },
-        { key: 'mutedForeground', label: 'Texto Silenciado (Ex: Labels)' },
+        { key: 'muted', label: 'Fundo Muted' },
+        { key: 'mutedForeground', label: 'Texto Muted' },
         { key: 'accent', label: 'Cor de Ênfase (Hover)' },
         { key: 'accentForeground', label: 'Texto Cor de Ênfase' },
+        { key: 'destructive', label: 'Cor Destrutiva (Erros)' },
+        { key: 'destructiveForeground', label: 'Texto Cor Destrutiva' },
         { key: 'border', label: 'Cor das Bordas' },
         { key: 'input', label: 'Fundo dos Inputs' },
         { key: 'ring', label: 'Cor do Anel de Foco' },
-
+        { key: 'cacambaForeground', label: 'Texto Título Caçamba' },
+    ];
+    
+    const fontOptions = [
+        { value: 'Inter', label: 'Inter' },
+        { value: 'Roboto', label: 'Roboto' },
+        { value: 'Lato', label: 'Lato' },
     ];
 
     return (
       <div className="space-y-4">
           <DialogDescription>
-              Personalize as cores da interface do aplicativo. As alterações são salvas automaticamente no seu navegador.
+              Personalize a aparência do aplicativo. As alterações são salvas automaticamente no seu navegador.
           </DialogDescription>
           <ScrollArea className="h-96 w-full pr-4">
             <div className="grid grid-cols-1 gap-x-6 gap-y-4 pt-4">
+                
+                {/* Font Family */}
+                <div className="space-y-2">
+                    <Label>Tipografia</Label>
+                    <Select value={theme.fontFamily} onValueChange={handleFontChange}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma fonte" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {fontOptions.map(font => (
+                                <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                
+                {/* Border Radius */}
+                <div className="space-y-2">
+                    <Label>Raio da Borda ({theme.radius}rem)</Label>
+                    <Slider
+                        min={0}
+                        max={2}
+                        step={0.1}
+                        value={[theme.radius]}
+                        onValueChange={handleRadiusChange}
+                    />
+                </div>
+
+                {/* Color Settings */}
                 {colorSettings.map(({ key, label }) => (
                      <div key={key} className="flex items-center justify-between">
                          <Label htmlFor={`color-${key}`}>{label}</Label>
                          <div className="flex items-center gap-2">
-                             <span className="text-sm font-mono text-muted-foreground">{theme[key]}</span>
+                             <span className="text-sm font-mono text-muted-foreground">{theme.colors[key]}</span>
                              <Input
                                  id={`color-${key}`}
                                  type="color"
-                                 value={theme[key] || ''}
+                                 value={theme.colors[key] || '#000000'}
                                  onChange={(e) => handleColorChange(key, e.target.value)}
                                  className="w-10 h-10 p-1"
                              />
@@ -216,7 +260,7 @@ const AppearanceTab = () => {
             </div>
           </ScrollArea>
           <div className="pt-4 border-t">
-              <Button variant="ghost" onClick={resetTheme}>Restaurar Cores Padrão</Button>
+              <Button variant="ghost" onClick={resetTheme}>Restaurar Padrões</Button>
           </div>
       </div>
     );

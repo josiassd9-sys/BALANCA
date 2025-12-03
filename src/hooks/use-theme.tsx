@@ -5,7 +5,6 @@ import React, { createContext, useContext, useEffect, useState, useCallback, Rea
 
 // --- Helper Functions ---
 
-// Converts a hex color string to an HSL string 'h s l'.
 function hexToHsl(hex: string): string {
   if (!hex || !hex.startsWith('#')) return '0 0% 0%';
   let r = 0, g = 0, b = 0;
@@ -41,7 +40,6 @@ function hexToHsl(hex: string): string {
   return `${h} ${s}% ${l}%`;
 }
 
-// Converts an HSL string 'h s% l%' back to a hex color string.
 function hslToHex(hsl: string): string {
     if (!hsl || typeof hsl !== 'string') return '#000000';
     const parts = hsl.match(/(\d+(\.\d+)?)/g);
@@ -83,7 +81,7 @@ function hslToHex(hsl: string): string {
 
 // --- Theme Definition ---
 
-const defaultThemeHsl = {
+const defaultThemeColorsHsl = {
   background: '240 5% 15%',
   foreground: '0 0% 98%',
   card: '240 5% 12%',
@@ -106,34 +104,37 @@ const defaultThemeHsl = {
   cacambaForeground: '0 0% 98%',
 };
 
-export type ThemeHsl = typeof defaultThemeHsl;
-export type ThemeHex = { [K in keyof ThemeHsl]: string };
+const defaultThemeConfig = {
+    colors: (Object.keys(defaultThemeColorsHsl) as Array<keyof typeof defaultThemeColorsHsl>).reduce((acc, key) => {
+        acc[key] = hslToHex(defaultThemeColorsHsl[key]);
+        return acc;
+    }, {} as ThemeHex),
+    radius: 0.5,
+    fontFamily: 'Inter',
+};
 
 
-const THEME_STORAGE_KEY = 'app-theme-colors-hex';
+export type ThemeHex = { [key: string]: string };
+export type AppTheme = typeof defaultThemeConfig;
+
+
+const THEME_STORAGE_KEY = 'app-theme-config';
 
 // --- Context Definition ---
 
 interface ThemeContextType {
-  theme: ThemeHex;
-  setTheme: (newTheme: Partial<ThemeHex>) => void;
+  theme: AppTheme;
+  setTheme: (newTheme: Partial<AppTheme>) => void;
   resetTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const convertHslMapToHexMap = (hslTheme: ThemeHsl): ThemeHex => {
-    return (Object.keys(hslTheme) as Array<keyof ThemeHsl>).reduce((acc, key) => {
-        acc[key] = hslToHex(hslTheme[key]);
-        return acc;
-    }, {} as ThemeHex);
-};
-
 
 // --- Theme Provider Component ---
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<ThemeHex>(() => convertHslMapToHexMap(defaultThemeHsl));
+  const [theme, setThemeState] = useState<AppTheme>(defaultThemeConfig);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -146,24 +147,41 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
       if (storedTheme) {
-        setThemeState(prevTheme => ({...prevTheme, ...JSON.parse(storedTheme)}));
+        const parsed = JSON.parse(storedTheme);
+        // Merge stored theme with defaults to avoid breaking changes
+        setThemeState(prevTheme => ({
+          ...prevTheme,
+          ...parsed,
+          colors: {
+            ...prevTheme.colors,
+            ...(parsed.colors || {}),
+          }
+        }));
       }
     } catch (error) {
       console.error("Failed to load theme from localStorage", error);
     }
   }, [isClient]);
 
-  // Apply theme colors as CSS variables whenever the theme changes
+  // Apply theme as CSS variables whenever it changes
   useEffect(() => {
     if (!isClient) return;
 
     const root = document.documentElement;
-    (Object.keys(theme) as Array<keyof ThemeHex>).forEach(key => {
-        const variableName = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}-hsl`;
-        root.style.setProperty(variableName, hexToHsl(theme[key]));
-    });
     
-    // Also save to localStorage on every change
+    // Apply colors
+    (Object.keys(theme.colors) as Array<keyof ThemeHex>).forEach(key => {
+        const variableName = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+        root.style.setProperty(`${variableName}-hsl`, hexToHsl(theme.colors[key]));
+    });
+
+    // Apply radius
+    root.style.setProperty('--radius', `${theme.radius}rem`);
+
+    // Apply font family
+    document.body.style.fontFamily = `var(--font-${theme.fontFamily.toLowerCase()})`;
+
+    // Save to localStorage
     try {
         window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(theme));
     } catch (error) {
@@ -173,13 +191,20 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [theme, isClient]);
 
   // Function to update the theme state
-  const setTheme = useCallback((newTheme: Partial<ThemeHex>) => {
-    setThemeState(prevTheme => ({ ...prevTheme, ...newTheme }));
+  const setTheme = useCallback((newThemeConfig: Partial<AppTheme>) => {
+    setThemeState(prevTheme => ({
+        ...prevTheme,
+        ...newThemeConfig,
+        colors: {
+            ...prevTheme.colors,
+            ...(newThemeConfig.colors || {})
+        }
+    }));
   }, []);
 
   // Function to reset the theme to defaults
   const resetTheme = useCallback(() => {
-    setThemeState(convertHslMapToHexMap(defaultThemeHsl));
+    setThemeState(defaultThemeConfig);
     if (isClient) {
         try {
             window.localStorage.removeItem(THEME_STORAGE_KEY);
@@ -188,6 +213,11 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     }
   }, [isClient]);
+  
+  useEffect(() => {
+    document.body.className = `font-${theme.fontFamily.toLowerCase()}`;
+  }, [theme.fontFamily]);
+
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, resetTheme }}>
