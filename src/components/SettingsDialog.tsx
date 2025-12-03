@@ -192,7 +192,7 @@ const AppearanceTab = () => {
                            <Input
                                id={`color-${key}`}
                                type="color"
-                               value={theme[key]}
+                               value={theme[key] || ''}
                                onChange={(e) => handleColorChange(key, e.target.value)}
                                className="w-10 h-10 p-1"
                            />
