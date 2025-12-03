@@ -183,7 +183,7 @@ const AppearanceTab = () => {
           <DialogDescription>
               Personalize as cores da interface do aplicativo. As alterações são salvas automaticamente no seu navegador.
           </DialogDescription>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 pt-4">
               {colorSettings.map(({ key, label }) => (
                    <div key={key} className="flex items-center justify-between">
                        <Label htmlFor={`color-${key}`}>{label}</Label>
