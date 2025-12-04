@@ -16,12 +16,12 @@ import { Label } from "@/components/ui/label";
 import { type ScaleConfig } from "@/hooks/use-scale";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useTheme } from "@/hooks/use-theme";
 import type { ThemeHex } from "@/hooks/use-theme";
 import { themes } from "@/lib/themes";
 import { Slider } from "./ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Separator } from "./ui/separator";
 
 
 interface SettingsDialogProps {
@@ -35,8 +35,7 @@ interface SettingsDialogProps {
 type TestStatus = 'idle' | 'testing' | 'success' | 'error';
 
 
-// --- Network Settings Tab ---
-const NetworkTab = ({ scaleConfig, onScaleConfigChange }: { scaleConfig: ScaleConfig, onScaleConfigChange: (newConfig: ScaleConfig) => void }) => {
+const NetworkSettings = ({ scaleConfig, onScaleConfigChange }: { scaleConfig: ScaleConfig, onScaleConfigChange: (newConfig: ScaleConfig) => void }) => {
   const [testStatus, setTestStatus] = useState<TestStatus>('idle');
   const [logs, setLogs] = useState<string[]>([]);
   
@@ -92,9 +91,12 @@ const NetworkTab = ({ scaleConfig, onScaleConfigChange }: { scaleConfig: ScaleCo
 
   return (
     <div className="space-y-4">
-        <DialogDescription>
-            Defina o endereço de rede (IP) e as portas do computador onde o servidor da balança (ponte) está rodando.
-        </DialogDescription>
+        <DialogHeader className="pt-6">
+            <DialogTitle>Rede</DialogTitle>
+            <DialogDescription>
+                Defina o endereço de rede (IP) e as portas do computador onde o servidor da balança (ponte) está rodando.
+            </DialogDescription>
+        </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="scale-ip" className="text-right">
@@ -164,8 +166,7 @@ const NetworkTab = ({ scaleConfig, onScaleConfigChange }: { scaleConfig: ScaleCo
 };
 
 
-// --- Appearance Settings Tab ---
-const AppearanceTab = () => {
+const AppearanceSettings = () => {
     const { theme, setTheme, resetTheme } = useTheme();
 
     const handleColorChange = (key: keyof ThemeHex, value: string) => {
@@ -243,132 +244,134 @@ const AppearanceTab = () => {
 
     return (
       <div className="space-y-4">
-          <DialogDescription>
-              Personalize a aparência do aplicativo. As alterações são salvas automaticamente no seu navegador.
-          </DialogDescription>
-          <ScrollArea className="h-[450px] w-full pr-4">
-            <div className="grid grid-cols-1 gap-x-6 gap-y-4 pt-4">
-                
-                {/* Theme Preset Selector */}
-                <div className="space-y-2">
-                    <Label>Temas Predefinidos</Label>
-                    <Select onValueChange={handleThemePresetChange}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Selecione um tema..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {themes.map(themePreset => (
-                                <SelectItem key={themePreset.name} value={themePreset.name}>{themePreset.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                
-                <div className="w-full h-px bg-border my-4" />
-                
-                <Label className="font-bold text-base">Título Principal</Label>
+          <DialogHeader>
+            <DialogTitle>Aparência</DialogTitle>
+            <DialogDescription>
+                Personalize a aparência do aplicativo. As alterações são salvas automaticamente no seu navegador.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 pt-4">
+              
+              {/* Theme Preset Selector */}
+              <div className="space-y-2">
+                  <Label>Temas Predefinidos</Label>
+                  <Select onValueChange={handleThemePresetChange}>
+                      <SelectTrigger>
+                          <SelectValue placeholder="Selecione um tema..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {themes.map(themePreset => (
+                              <SelectItem key={themePreset.name} value={themePreset.name}>{themePreset.name}</SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+              </div>
+              
+              <div className="w-full h-px bg-border my-4" />
+              
+              <Label className="font-bold text-base">Título Principal</Label>
 
-                {/* Title Text */}
-                 <div className="space-y-2">
-                    <Label>Texto do Título</Label>
-                    <Input
-                        value={theme.appTitle}
-                        onChange={handleTitleChange}
-                    />
-                </div>
+              {/* Title Text */}
+               <div className="space-y-2">
+                  <Label>Texto do Título</Label>
+                  <Input
+                      value={theme.appTitle}
+                      onChange={handleTitleChange}
+                  />
+              </div>
 
-                {/* Title Font Family */}
-                <div className="space-y-2">
-                    <Label>Fonte do Título</Label>
-                    <Select value={theme.titleFontFamily} onValueChange={handleTitleFontChange}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Selecione uma fonte" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {fontOptions.map(font => (
-                                <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                
-                {/* Title Font Size */}
-                <div className="space-y-2">
-                    <Label>Tamanho da Fonte do Título ({theme.titleFontSize}px)</Label>
-                    <Slider
-                        min={16}
-                        max={48}
-                        step={1}
-                        value={[theme.titleFontSize]}
-                        onValueChange={handleTitleFontSizeChange}
-                    />
-                </div>
+              {/* Title Font Family */}
+              <div className="space-y-2">
+                  <Label>Fonte do Título</Label>
+                  <Select value={theme.titleFontFamily} onValueChange={handleTitleFontChange}>
+                      <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma fonte" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {fontOptions.map(font => (
+                              <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+              </div>
+              
+              {/* Title Font Size */}
+              <div className="space-y-2">
+                  <Label>Tamanho da Fonte do Título ({theme.titleFontSize}px)</Label>
+                  <Slider
+                      min={16}
+                      max={48}
+                      step={1}
+                      value={[theme.titleFontSize]}
+                      onValueChange={handleTitleFontSizeChange}
+                  />
+              </div>
 
-                <div className="w-full h-px bg-border my-4" />
+              <div className="w-full h-px bg-border my-4" />
 
-                <Label className="font-bold text-base">Interface Geral</Label>
+              <Label className="font-bold text-base">Interface Geral</Label>
 
-                {/* Font Family */}
-                <div className="space-y-2">
-                    <Label>Tipografia</Label>
-                    <Select value={theme.fontFamily} onValueChange={handleFontChange}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Selecione uma fonte" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {fontOptions.map(font => (
-                                <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+              {/* Font Family */}
+              <div className="space-y-2">
+                  <Label>Tipografia</Label>
+                  <Select value={theme.fontFamily} onValueChange={handleFontChange}>
+                      <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma fonte" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {fontOptions.map(font => (
+                              <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+              </div>
 
-                {/* Font Size */}
-                <div className="space-y-2">
-                    <Label>Tamanho da Fonte Base ({theme.fontSize}px)</Label>
-                    <Slider
-                        min={12}
-                        max={20}
-                        step={0.5}
-                        value={[theme.fontSize]}
-                        onValueChange={handleFontSizeChange}
-                    />
-                </div>
-                
-                {/* Border Radius */}
-                <div className="space-y-2">
-                    <Label>Raio da Borda ({theme.radius}rem)</Label>
-                    <Slider
-                        min={0}
-                        max={2}
-                        step={0.1}
-                        value={[theme.radius]}
-                        onValueChange={handleRadiusChange}
-                    />
-                </div>
-                
-                <div className="w-full h-px bg-border my-4" />
-                
-                <Label className="font-bold text-base">Cores</Label>
+              {/* Font Size */}
+              <div className="space-y-2">
+                  <Label>Tamanho da Fonte Base ({theme.fontSize}px)</Label>
+                  <Slider
+                      min={12}
+                      max={20}
+                      step={0.5}
+                      value={[theme.fontSize]}
+                      onValueChange={handleFontSizeChange}
+                  />
+              </div>
+              
+              {/* Border Radius */}
+              <div className="space-y-2">
+                  <Label>Raio da Borda ({theme.radius}rem)</Label>
+                  <Slider
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      value={[theme.radius]}
+                      onValueChange={handleRadiusChange}
+                  />
+              </div>
+              
+              <div className="w-full h-px bg-border my-4" />
+              
+              <Label className="font-bold text-base">Cores</Label>
 
-                {/* Color Settings */}
-                {colorSettings.map(({ key, label }) => (
-                     <div key={key} className="flex items-center justify-between">
-                         <Label htmlFor={`color-${key}`}>{label}</Label>
-                         <div className="flex items-center gap-2">
-                             <span className="text-sm font-mono text-muted-foreground">{theme.colors[key]?.toUpperCase() || ''}</span>
-                             <Input
-                                 id={`color-${key}`}
-                                 type="color"
-                                 value={theme.colors[key] || '#000000'}
-                                 onChange={(e) => handleColorChange(key, e.target.value)}
-                                 className="w-10 h-10 p-1"
-                             />
-                         </div>
-                     </div>
-                ))}
-            </div>
-          </ScrollArea>
+              {/* Color Settings */}
+              {colorSettings.map(({ key, label }) => (
+                   <div key={key} className="flex items-center justify-between">
+                       <Label htmlFor={`color-${key}`}>{label}</Label>
+                       <div className="flex items-center gap-2">
+                           <span className="text-sm font-mono text-muted-foreground">{theme.colors[key]?.toUpperCase() || ''}</span>
+                           <Input
+                               id={`color-${key}`}
+                               type="color"
+                               value={theme.colors[key] || '#000000'}
+                               onChange={(e) => handleColorChange(key, e.target.value)}
+                               className="w-10 h-10 p-1"
+                           />
+                       </div>
+                   </div>
+              ))}
+          </div>
           <div className="pt-4 border-t">
               <Button variant="ghost" onClick={resetTheme}>Restaurar Padrão Original</Button>
           </div>
@@ -393,27 +396,17 @@ export function SettingsDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Configurações</DialogTitle>
-        </DialogHeader>
-
-        <Tabs defaultValue="appearance" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="appearance">Aparência</TabsTrigger>
-                <TabsTrigger value="network">Rede</TabsTrigger>
-            </TabsList>
-            <TabsContent value="appearance" className="py-4">
-                <AppearanceTab />
-            </TabsContent>
-            <TabsContent value="network" className="py-4">
-                <NetworkTab scaleConfig={scaleConfig} onScaleConfigChange={onScaleConfigChange} />
-            </TabsContent>
-        </Tabs>
-
-        <DialogFooter>
+        <ScrollArea className="max-h-[80vh] pr-6">
+            <AppearanceSettings />
+            <Separator className="my-8"/>
+            <NetworkSettings scaleConfig={scaleConfig} onScaleConfigChange={onScaleConfigChange} />
+        </ScrollArea>
+        <DialogFooter className="pr-6 pt-4">
           <Button onClick={handleSaveAndClose}>Salvar e Fechar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+    
