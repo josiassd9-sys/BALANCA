@@ -462,6 +462,20 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const initialLabel = operationType === 'loading' ? 'Tara' : 'Bruto';
   const finalLabel = operationType === 'loading' ? 'Bruto' : 'Tara';
   
+    const getStatusColor = () => {
+        switch(status) {
+            case 'connected':
+                return 'bg-green-500';
+            case 'connecting':
+                return 'bg-yellow-500';
+            case 'error':
+            case 'disconnected':
+                return 'bg-red-500';
+            default:
+                return 'bg-muted-foreground';
+        }
+    }
+
   return (
     <div className="bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
       <SettingsDialog
@@ -494,8 +508,9 @@ const ScaleCalculator = forwardRef((props, ref) => {
                 <TooltipProvider>
                     <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => setIsSettingsOpen(true)}>
-                        <Settings className="h-5 w-5"/>
+                        <Button variant="outline" size="icon" className="h-10 w-10 relative" onClick={() => setIsSettingsOpen(true)}>
+                            <span className={cn("absolute top-0 right-0 block h-2.5 w-2.5 rounded-full border-2 border-background", getStatusColor())} />
+                            <Settings className="h-5 w-5"/>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
