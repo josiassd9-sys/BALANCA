@@ -42,6 +42,11 @@ export default function PrintableScaleTicket({ autoPrint = true }: PrintableScal
       if (savedData) {
         const parsedData = JSON.parse(savedData);
         setData(parsedData);
+
+        if (parsedData.weighingId) {
+          document.title = parsedData.weighingId;
+        }
+
         if (autoPrint) {
           setTimeout(() => window.print(), 500);
         }
