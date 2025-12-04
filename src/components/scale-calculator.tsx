@@ -111,7 +111,7 @@ const WeightInput = ({ value, onChange, onFetch, placeholder, className }: Weigh
 
 const ScaleCalculator = forwardRef((props, ref) => {
   const { weight: liveWeight, status, connectionType, config, setConfig, saveConfig } = useScale();
-  const { theme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [headerData, setHeaderData] = useState({ client: "", plate: "", driver: "" });
   const [weighingSets, setWeighingSets] = useState<WeighingSet[]>([]);
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
@@ -473,7 +473,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
                     fontFamily: `'${theme.titleFontFamily}', sans-serif`,
                 }}
             >
-                Pesagem Avulsa
+                {theme.appTitle}
             </h2>
         </div>
         <div className="flex justify-between items-center mb-4 print:hidden gap-1">

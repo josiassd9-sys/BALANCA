@@ -184,6 +184,10 @@ const AppearanceTab = () => {
         setTheme({ titleFontFamily: value });
     }
 
+    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setTheme({ appTitle: e.target.value });
+    }
+
     const handleFontSizeChange = (value: number[]) => {
       setTheme({ fontSize: value[0] });
     }
@@ -258,6 +262,15 @@ const AppearanceTab = () => {
                 <div className="w-full h-px bg-border my-4" />
                 
                 <Label className="font-bold text-base">Título Principal</Label>
+
+                {/* Title Text */}
+                 <div className="space-y-2">
+                    <Label>Texto do Título</Label>
+                    <Input
+                        value={theme.appTitle}
+                        onChange={handleTitleChange}
+                    />
+                </div>
 
                 {/* Title Font Family */}
                 <div className="space-y-2">

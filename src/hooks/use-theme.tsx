@@ -52,6 +52,7 @@ export interface AppTheme {
     fontSize: number;
     titleFontFamily: string;
     titleFontSize: number;
+    appTitle: string;
 }
 
 const defaultThemeConfig: AppTheme = {
@@ -61,6 +62,7 @@ const defaultThemeConfig: AppTheme = {
     fontSize: 16,
     titleFontFamily: 'Inter',
     titleFontSize: 24,
+    appTitle: 'Pesagem Avulsa',
 };
 
 
