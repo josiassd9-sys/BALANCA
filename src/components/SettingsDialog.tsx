@@ -18,7 +18,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useTheme } from "@/hooks/use-theme";
-import type { ThemeHex, AppTheme } from "@/hooks/use-theme";
+import type { ThemeHex } from "@/hooks/use-theme";
 import { themes } from "@/lib/themes";
 import { Slider } from "./ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -179,9 +179,17 @@ const AppearanceTab = () => {
     const handleFontChange = (value: string) => {
         setTheme({ fontFamily: value });
     }
+    
+    const handleTitleFontChange = (value: string) => {
+        setTheme({ titleFontFamily: value });
+    }
 
     const handleFontSizeChange = (value: number[]) => {
       setTheme({ fontSize: value[0] });
+    }
+
+    const handleTitleFontSizeChange = (value: number[]) => {
+        setTheme({ titleFontSize: value[0] });
     }
 
     const handleThemePresetChange = (themeName: string) => {
@@ -248,6 +256,39 @@ const AppearanceTab = () => {
                 </div>
                 
                 <div className="w-full h-px bg-border my-4" />
+                
+                <Label className="font-bold text-base">Título Principal</Label>
+
+                {/* Title Font Family */}
+                <div className="space-y-2">
+                    <Label>Fonte do Título</Label>
+                    <Select value={theme.titleFontFamily} onValueChange={handleTitleFontChange}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma fonte" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {fontOptions.map(font => (
+                                <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                
+                {/* Title Font Size */}
+                <div className="space-y-2">
+                    <Label>Tamanho da Fonte do Título ({theme.titleFontSize}px)</Label>
+                    <Slider
+                        min={16}
+                        max={48}
+                        step={1}
+                        value={[theme.titleFontSize]}
+                        onValueChange={handleTitleFontSizeChange}
+                    />
+                </div>
+
+                <div className="w-full h-px bg-border my-4" />
+
+                <Label className="font-bold text-base">Interface Geral</Label>
 
                 {/* Font Family */}
                 <div className="space-y-2">
@@ -289,6 +330,8 @@ const AppearanceTab = () => {
                 </div>
                 
                 <div className="w-full h-px bg-border my-4" />
+                
+                <Label className="font-bold text-base">Cores</Label>
 
                 {/* Color Settings */}
                 {colorSettings.map(({ key, label }) => (

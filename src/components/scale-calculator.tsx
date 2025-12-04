@@ -15,6 +15,7 @@ import { useScale } from "@/hooks/use-scale";
 import { LiveScaleInfo } from "./LiveScaleInfo";
 import { SettingsDialog } from "./SettingsDialog";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/use-theme";
 
 type WeighingItem = {
   id: string;
@@ -110,6 +111,7 @@ const WeightInput = ({ value, onChange, onFetch, placeholder, className }: Weigh
 
 const ScaleCalculator = forwardRef((props, ref) => {
   const { weight: liveWeight, status, connectionType, config, setConfig, saveConfig } = useScale();
+  const { theme } = useTheme();
   const [headerData, setHeaderData] = useState({ client: "", plate: "", driver: "" });
   const [weighingSets, setWeighingSets] = useState<WeighingSet[]>([]);
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
@@ -464,7 +466,15 @@ const ScaleCalculator = forwardRef((props, ref) => {
       />
       <div className="sticky top-0 z-10 bg-background py-1 print:hidden">
         <div className="mb-4 print:hidden text-center">
-            <h2 className="text-xl font-bold">Pesagem Avulsa</h2>
+            <h2 
+                className="font-bold"
+                style={{
+                    fontSize: `${theme.titleFontSize}px`,
+                    fontFamily: `'${theme.titleFontFamily}', sans-serif`,
+                }}
+            >
+                Pesagem Avulsa
+            </h2>
         </div>
         <div className="flex justify-between items-center mb-4 print:hidden gap-1">
             <div className="flex-grow">
@@ -796,3 +806,5 @@ const ScaleCalculator = forwardRef((props, ref) => {
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    

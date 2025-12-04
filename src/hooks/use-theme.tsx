@@ -50,6 +50,8 @@ export interface AppTheme {
     radius: number;
     fontFamily: string;
     fontSize: number;
+    titleFontFamily: string;
+    titleFontSize: number;
 }
 
 const defaultThemeConfig: AppTheme = {
@@ -57,6 +59,8 @@ const defaultThemeConfig: AppTheme = {
     radius: 0.5,
     fontFamily: 'Inter',
     fontSize: 16,
+    titleFontFamily: 'Inter',
+    titleFontSize: 24,
 };
 
 
@@ -129,8 +133,14 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         'Open Sans': 'font-open-sans',
         'Nunito': 'font-nunito',
     };
+    
+    // Clear existing font classes before adding the new one
+    Object.values(fontClassMap).forEach(fontClass => {
+        document.body.classList.remove(fontClass);
+    });
+    
     const newFontClass = fontClassMap[theme.fontFamily] || 'font-inter';
-    document.body.className = document.body.className.replace(/font-\w+(-\w+)?/g, '').trim() + ` ${newFontClass}`;
+    document.body.classList.add(newFontClass);
     
     // Apply font size
     root.style.fontSize = `${theme.fontSize}px`;
@@ -184,3 +194,5 @@ export const useTheme = (): ThemeContextType => {
   }
   return context;
 };
+
+    
