@@ -128,17 +128,22 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // Apply font family to body
     const fontClassMap: { [key: string]: string } = {
-        'Inter': 'font-inter',
-        'Roboto': 'font-roboto',
-        'Lato': 'font-lato',
-        'Poppins': 'font-poppins',
-        'Open Sans': 'font-open-sans',
-        'Nunito': 'font-nunito',
-        'Montserrat': 'font-montserrat',
-        'Playfair Display': 'font-playfair',
-        'Raleway': 'font-raleway',
-        'Bebas Neue': 'font-bebas',
-        'Lobster': 'font-lobster',
+        'Inter': 'font-inter', 'Roboto': 'font-roboto', 'Lato': 'font-lato', 'Poppins': 'font-poppins',
+        'Open Sans': 'font-open-sans', 'Nunito': 'font-nunito', 'Montserrat': 'font-montserrat',
+        'Playfair Display': 'font-playfair', 'Raleway': 'font-raleway', 'Bebas Neue': 'font-bebas',
+        'Lobster': 'font-lobster', 'Oswald': 'font-oswald', 'Source Sans Pro': 'font-source-sans-pro',
+        'Exo 2': 'font-exo-2', 'Ubuntu': 'font-ubuntu', 'PT Sans': 'font-pt-sans',
+        'Titillium Web': 'font-titillium-web', 'Fira Sans': 'font-fira-sans', 'Quicksand': 'font-quicksand',
+        'Merriweather': 'font-merriweather', 'PT Serif': 'font-pt-serif', 'Lora': 'font-lora',
+        'EB Garamond': 'font-eb-garamond', 'Cormorant Garamond': 'font-cormorant-garamond', 'Arvo': 'font-arvo',
+        'Crimson Text': 'font-crimson-text', 'Bitter': 'font-bitter', 'Roboto Slab': 'font-roboto-slab',
+        'Anton': 'font-anton', 'Archivo Black': 'font-archivo-black', 'Righteous': 'font-righteous',
+        'Passion One': 'font-passion-one', 'Russo One': 'font-russo-one', 'Ultra': 'font-ultra',
+        'Staatliches': 'font-staatliches', 'Changa One': 'font-changa-one', 'Teko': 'font-teko',
+        'Yanone Kaffeesatz': 'font-yanone-kaffeesatz', 'Pacifico': 'font-pacifico', 'Dancing Script': 'font-dancing-script',
+        'Satisfy': 'font-satisfy', 'Caveat': 'font-caveat', 'Shadows Into Light': 'font-shadows-into-light',
+        'Kaushan Script': 'font-kaushan-script', 'Great Vibes': 'font-great-vibes', 'Source Code Pro': 'font-source-code-pro',
+        'Special Elite': 'font-special-elite', 'Press Start 2P': 'font-press-start-2p', 'Rock Salt': 'font-rock-salt'
     };
     
     // Clear existing font classes before adding the new one

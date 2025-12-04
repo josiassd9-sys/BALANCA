@@ -229,6 +229,7 @@ const AppearanceSettings = () => {
     ];
     
     const fontOptions = [
+        // Sans-serif
         { value: 'Inter', label: 'Inter' },
         { value: 'Roboto', label: 'Roboto' },
         { value: 'Lato', label: 'Lato' },
@@ -236,11 +237,58 @@ const AppearanceSettings = () => {
         { value: 'Open Sans', label: 'Open Sans' },
         { value: 'Nunito', label: 'Nunito' },
         { value: 'Montserrat', label: 'Montserrat' },
-        { value: 'Playfair Display', label: 'Playfair Display' },
         { value: 'Raleway', label: 'Raleway' },
+        { value: 'Oswald', label: 'Oswald' },
+        { value: 'Source Sans Pro', label: 'Source Sans Pro' },
+        { value: 'Exo 2', label: 'Exo 2' },
+        { value: 'Ubuntu', label: 'Ubuntu' },
+        { value: 'PT Sans', label: 'PT Sans' },
+        { value: 'Titillium Web', label: 'Titillium Web' },
+        { value: 'Fira Sans', label: 'Fira Sans' },
+        { value: 'Quicksand', label: 'Quicksand' },
+
+        // Serif
+        { value: 'Playfair Display', label: 'Playfair Display' },
+        { value: 'Merriweather', label: 'Merriweather' },
+        { value: 'PT Serif', label: 'PT Serif' },
+        { value: 'Lora', label: 'Lora' },
+        { value: 'EB Garamond', label: 'EB Garamond' },
+        { value: 'Cormorant Garamond', label: 'Cormorant Garamond' },
+        { value: 'Arvo', label: 'Arvo' },
+        { value: 'Crimson Text', label: 'Crimson Text' },
+        { value: 'Bitter', label: 'Bitter' },
+        { value: 'Roboto Slab', label: 'Roboto Slab' },
+
+        // Display
         { value: 'Bebas Neue', label: 'Bebas Neue' },
+        { value: 'Anton', label: 'Anton' },
+        { value: 'Archivo Black', label: 'Archivo Black' },
+        { value: 'Righteous', label: 'Righteous' },
+        { value: 'Passion One', label: 'Passion One' },
+        { value: 'Russo One', label: 'Russo One' },
+        { value: 'Ultra', label: 'Ultra' },
+        { value: 'Staatliches', label: 'Staatliches' },
+        { value: 'Changa One', label: 'Changa One' },
+        { value: 'Teko', label: 'Teko' },
+        { value: 'Yanone Kaffeesatz', label: 'Yanone Kaffeesatz' },
+
+        // Handwriting / Script
         { value: 'Lobster', label: 'Lobster' },
+        { value: 'Pacifico', label: 'Pacifico' },
+        { value: 'Dancing Script', label: 'Dancing Script' },
+        { value: 'Satisfy', label: 'Satisfy' },
+        { value: 'Caveat', label: 'Caveat' },
+        { value: 'Shadows Into Light', label: 'Shadows Into Light' },
+        { value: 'Kaushan Script', label: 'Kaushan Script' },
+        { value: 'Great Vibes', label: 'Great Vibes' },
+
+        // Monospace / Typewriter
+        { value: 'Source Code Pro', label: 'Source Code Pro' },
+        { value: 'Special Elite', label: 'Special Elite' },
+        { value: 'Press Start 2P', label: 'Press Start 2P' },
+        { value: 'Rock Salt', label: 'Rock Salt' },
     ];
+
 
     return (
       <div className="space-y-4">
