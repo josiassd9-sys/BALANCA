@@ -508,8 +508,14 @@ const ScaleCalculator = forwardRef((props, ref) => {
                 <TooltipProvider>
                     <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" className="h-10 w-10 relative" onClick={() => setIsSettingsOpen(true)}>
-                            <span className={cn("absolute top-0 right-0 block h-2.5 w-2.5 rounded-full border-2 border-background", getStatusColor())} />
+                        <Button 
+                            variant="outline"
+                            size="icon" 
+                            className="h-10 w-10 relative" 
+                            onClick={() => setIsSettingsOpen(true)}
+                            style={{ backgroundColor: theme.colors.settingsButtonBg }}
+                        >
+                            <span className={cn("absolute top-0 right-0 block h-2.5 w-2.5 rounded-full border-2", getStatusColor())} style={{ borderColor: theme.colors.settingsButtonBg }}/>
                             <Settings className="h-5 w-5"/>
                         </Button>
                     </TooltipTrigger>
@@ -828,3 +834,5 @@ const ScaleCalculator = forwardRef((props, ref) => {
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
+
+    

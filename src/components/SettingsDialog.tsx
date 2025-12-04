@@ -226,6 +226,7 @@ const AppearanceSettings = () => {
         { key: 'ring', label: 'Cor do Anel de Foco' },
         { key: 'cacambaForeground', label: 'Texto Título Caçamba' },
         { key: 'accentPrice', label: 'Cor de Destaque (Preço)' },
+        { key: 'settingsButtonBg', label: 'Fundo Botão Configurações' },
     ];
     
     const fontOptions = [
@@ -457,4 +458,5 @@ export function SettingsDialog({
   );
 }
 
+    
     

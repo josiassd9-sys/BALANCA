@@ -29,6 +29,7 @@ export const defaultTheme: ThemePreset = {
         ring: '#4EE1A0',
         cacambaForeground: '#FAFAFA',
         accentPrice: '#FBBF24',
+        settingsButtonBg: '#131415',
     }
 };
 
@@ -58,6 +59,7 @@ export const themes: ThemePreset[] = [
             ring: '#2563EB',
             cacambaForeground: '#111827',
             accentPrice: '#F59E0B',
+            settingsButtonBg: '#FFFFFF',
         }
     },
     {
@@ -84,6 +86,7 @@ export const themes: ThemePreset[] = [
             ring: '#00f6ff',
             cacambaForeground: '#00f6ff',
             accentPrice: '#ff00ff',
+            settingsButtonBg: '#1a0c36',
         }
     },
     {
@@ -110,6 +113,7 @@ export const themes: ThemePreset[] = [
             ring: '#10b981',
             cacambaForeground: '#065f46',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -136,6 +140,7 @@ export const themes: ThemePreset[] = [
             ring: '#38bdf8',
             cacambaForeground: '#38bdf8',
             accentPrice: '#fbbf24',
+            settingsButtonBg: '#1e293b',
         }
     },
     {
@@ -162,6 +167,7 @@ export const themes: ThemePreset[] = [
             ring: '#f97316',
             cacambaForeground: '#f97316',
             accentPrice: '#eab308',
+            settingsButtonBg: '#3b2a2f',
         }
     },
     {
@@ -188,6 +194,7 @@ export const themes: ThemePreset[] = [
             ring: '#8b5cf6',
             cacambaForeground: '#5b21b6',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -214,6 +221,7 @@ export const themes: ThemePreset[] = [
             ring: '#fafafa',
             cacambaForeground: '#fafafa',
             accentPrice: '#facc15',
+            settingsButtonBg: '#27272a',
         }
     },
     {
@@ -240,6 +248,7 @@ export const themes: ThemePreset[] = [
             ring: '#0ea5e9',
             cacambaForeground: '#0369a1',
             accentPrice: '#f97316',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -266,6 +275,7 @@ export const themes: ThemePreset[] = [
             ring: '#bd93f9',
             cacambaForeground: '#50fa7b',
             accentPrice: '#f1fa8c',
+            settingsButtonBg: '#44475a',
         }
     },
     {
@@ -292,6 +302,7 @@ export const themes: ThemePreset[] = [
             ring: '#ec4899',
             cacambaForeground: '#9d174d',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -318,6 +329,7 @@ export const themes: ThemePreset[] = [
             ring: '#00ff00',
             cacambaForeground: '#ffffff',
             accentPrice: '#00ff00',
+            settingsButtonBg: '#0a0a0a',
         }
     },
     {
@@ -344,6 +356,7 @@ export const themes: ThemePreset[] = [
             ring: '#a67b5b',
             cacambaForeground: '#a67b5b',
             accentPrice: '#d97706',
+            settingsButtonBg: '#2c221a',
         }
     },
     {
@@ -370,6 +383,7 @@ export const themes: ThemePreset[] = [
             ring: '#268bd2',
             cacambaForeground: '#073642',
             accentPrice: '#b58900',
+            settingsButtonBg: '#f6efd5',
         }
     },
     {
@@ -396,6 +410,7 @@ export const themes: ThemePreset[] = [
             ring: '#48bb78',
             cacambaForeground: '#68d391',
             accentPrice: '#f6ad55',
+            settingsButtonBg: '#2d3748',
         }
     },
     {
@@ -422,6 +437,7 @@ export const themes: ThemePreset[] = [
             ring: '#ff8a5b',
             cacambaForeground: '#995a3b',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -448,6 +464,7 @@ export const themes: ThemePreset[] = [
             ring: '#3b82f6',
             cacambaForeground: '#1e3a8a',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -474,6 +491,7 @@ export const themes: ThemePreset[] = [
             ring: '#cc6666',
             cacambaForeground: '#81a2be',
             accentPrice: '#f0c674',
+            settingsButtonBg: '#282a2e',
         }
     },
     {
@@ -500,6 +518,7 @@ export const themes: ThemePreset[] = [
             ring: '#84cc16',
             cacambaForeground: '#4d7c0f',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -526,6 +545,7 @@ export const themes: ThemePreset[] = [
             ring: '#f8fafc',
             cacambaForeground: '#64748b',
             accentPrice: '#ca8a04',
+            settingsButtonBg: '#0f172a',
         }
     },
     {
@@ -552,6 +572,7 @@ export const themes: ThemePreset[] = [
             ring: '#f59e0b',
             cacambaForeground: '#78350f',
             accentPrice: '#ea580c',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -578,6 +599,7 @@ export const themes: ThemePreset[] = [
             ring: '#7aa2f7',
             cacambaForeground: '#e0af68',
             accentPrice: '#ff9e64',
+            settingsButtonBg: '#24283b',
         }
     },
     {
@@ -604,6 +626,7 @@ export const themes: ThemePreset[] = [
             ring: '#6750a4',
             cacambaForeground: '#4a4458',
             accentPrice: '#7d5260',
+            settingsButtonBg: '#f4eff4',
         }
     },
     {
@@ -630,6 +653,7 @@ export const themes: ThemePreset[] = [
             ring: '#d0bcff',
             cacambaForeground: '#cac4d0',
             accentPrice: '#f7b1b0',
+            settingsButtonBg: '#2b2930',
         }
     },
     {
@@ -656,6 +680,7 @@ export const themes: ThemePreset[] = [
             ring: '#88c0d0',
             cacambaForeground: '#a3be8c',
             accentPrice: '#ebcb8b',
+            settingsButtonBg: '#3b4252',
         }
     },
     {
@@ -682,6 +707,7 @@ export const themes: ThemePreset[] = [
             ring: '#6366f1',
             cacambaForeground: '#4f46e5',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -708,6 +734,7 @@ export const themes: ThemePreset[] = [
             ring: '#c084fc',
             cacambaForeground: '#e9d5ff',
             accentPrice: '#facc15',
+            settingsButtonBg: '#1e0c2e',
         }
     },
     {
@@ -734,6 +761,7 @@ export const themes: ThemePreset[] = [
             ring: '#34d399',
             cacambaForeground: '#ffffff',
             accentPrice: '#fbbf24',
+            settingsButtonBg: '#1f1f1f',
         }
     },
     {
@@ -760,6 +788,7 @@ export const themes: ThemePreset[] = [
             ring: '#60a5fa',
             cacambaForeground: '#111827',
             accentPrice: '#f97316',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -786,6 +815,7 @@ export const themes: ThemePreset[] = [
             ring: '#fafafa',
             cacambaForeground: '#ffffff',
             accentPrice: '#eab308',
+            settingsButtonBg: '#333333',
         }
     },
     {
@@ -812,6 +842,7 @@ export const themes: ThemePreset[] = [
             ring: '#4f46e5',
             cacambaForeground: '#111827',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#f9fafb',
         }
     },
     {
@@ -838,6 +869,7 @@ export const themes: ThemePreset[] = [
             ring: '#ec4899',
             cacambaForeground: '#ffffff',
             accentPrice: '#facc15',
+            settingsButtonBg: '#6b7280',
         }
     },
     {
@@ -864,6 +896,7 @@ export const themes: ThemePreset[] = [
             ring: '#8b5cf6',
             cacambaForeground: '#171717',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -890,6 +923,7 @@ export const themes: ThemePreset[] = [
             ring: '#fde047',
             cacambaForeground: '#ffffff',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#1a1a1a',
         }
     },
     {
@@ -916,6 +950,7 @@ export const themes: ThemePreset[] = [
             ring: '#059669',
             cacambaForeground: '#1c1917',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#e7e5e4',
         }
     },
     {
@@ -942,6 +977,7 @@ export const themes: ThemePreset[] = [
             ring: '#a3e635',
             cacambaForeground: '#ffffff',
             accentPrice: '#fbbf24',
+            settingsButtonBg: '#52525b',
         }
     },
     {
@@ -968,6 +1004,7 @@ export const themes: ThemePreset[] = [
             ring: '#d946ef',
             cacambaForeground: '#1e1e1e',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -994,6 +1031,7 @@ export const themes: ThemePreset[] = [
             ring: '#f9fafb',
             cacambaForeground: '#ffffff',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#374151',
         }
     },
     {
@@ -1020,6 +1058,7 @@ export const themes: ThemePreset[] = [
             ring: '#14b8a6',
             cacambaForeground: '#111827',
             accentPrice: '#f59e0b',
+            settingsButtonBg: '#ffffff',
         }
     },
     {
@@ -1046,6 +1085,7 @@ export const themes: ThemePreset[] = [
             ring: '#7c3aed',
             cacambaForeground: '#1c1c1c',
             accentPrice: '#f9a825',
+            settingsButtonBg: '#eeeeee',
         }
     },
     {
@@ -1072,6 +1112,7 @@ export const themes: ThemePreset[] = [
             ring: '#22d3ee',
             cacambaForeground: '#ffffff',
             accentPrice: '#fde047',
+            settingsButtonBg: '#262626',
         }
     },
     {
@@ -1098,6 +1139,7 @@ export const themes: ThemePreset[] = [
             ring: '#db2777',
             cacambaForeground: '#18181b',
             accentPrice: '#f97316',
+            settingsButtonBg: '#e4e4e7',
         }
     },
     {
@@ -1124,6 +1166,7 @@ export const themes: ThemePreset[] = [
             ring: '#ffffff',
             cacambaForeground: '#ffffff',
             accentPrice: '#b0b0b0',
+            settingsButtonBg: '#1c1c1c',
         }
     },
     {
@@ -1150,6 +1193,7 @@ export const themes: ThemePreset[] = [
             ring: '#000000',
             cacambaForeground: '#000000',
             accentPrice: '#6e6e6e',
+            settingsButtonBg: '#f5f5f5',
         }
     },
     {
@@ -1176,6 +1220,7 @@ export const themes: ThemePreset[] = [
             ring: '#7289da',
             cacambaForeground: '#ffffff',
             accentPrice: '#f1c40f',
+            settingsButtonBg: '#2c2f33',
         }
     },
     {
@@ -1202,6 +1247,7 @@ export const themes: ThemePreset[] = [
             ring: '#e67e22',
             cacambaForeground: '#1e1e1e',
             accentPrice: '#f39c12',
+            settingsButtonBg: '#cdcdcd',
         }
     },
     {
@@ -1228,6 +1274,7 @@ export const themes: ThemePreset[] = [
             ring: '#29b6f6',
             cacambaForeground: '#121212',
             accentPrice: '#ffb300',
+            settingsButtonBg: '#b0b0b0',
         }
     },
     {
@@ -1254,6 +1301,7 @@ export const themes: ThemePreset[] = [
             ring: '#1abc9c',
             cacambaForeground: '#ffffff',
             accentPrice: '#f39c12',
+            settingsButtonBg: '#34495e',
         }
     },
     {
@@ -1280,6 +1328,7 @@ export const themes: ThemePreset[] = [
             ring: '#9c27b0',
             cacambaForeground: '#212121',
             accentPrice: '#ffb300',
+            settingsButtonBg: '#f5f5f5',
         }
     },
     {
@@ -1306,6 +1355,7 @@ export const themes: ThemePreset[] = [
             ring: '#ffca28',
             cacambaForeground: '#ffffff',
             accentPrice: '#f57c00',
+            settingsButtonBg: '#757575',
         }
     },
     {
@@ -1332,6 +1382,9 @@ export const themes: ThemePreset[] = [
             ring: '#00897b',
             cacambaForeground: '#263238',
             accentPrice: '#fdd835',
+            settingsButtonBg: '#ffffff',
         }
     }
 ];
+
+    
