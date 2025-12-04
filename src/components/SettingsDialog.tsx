@@ -399,14 +399,14 @@ export function SettingsDialog({
 
         <Tabs defaultValue="appearance" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="network">Rede</TabsTrigger>
                 <TabsTrigger value="appearance">Aparência</TabsTrigger>
+                <TabsTrigger value="network">Rede</TabsTrigger>
             </TabsList>
-            <TabsContent value="network" className="py-4">
-                <NetworkTab scaleConfig={scaleConfig} onScaleConfigChange={onScaleConfigChange} />
-            </TabsContent>
             <TabsContent value="appearance" className="py-4">
                 <AppearanceTab />
+            </TabsContent>
+            <TabsContent value="network" className="py-4">
+                <NetworkTab scaleConfig={scaleConfig} onScaleConfigChange={onScaleConfigChange} />
             </TabsContent>
         </Tabs>
 
@@ -417,5 +417,3 @@ export function SettingsDialog({
     </Dialog>
   );
 }
-
-    
