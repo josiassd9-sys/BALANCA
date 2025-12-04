@@ -16,6 +16,7 @@ import { LiveScaleInfo } from "./LiveScaleInfo";
 import { SettingsDialog } from "./SettingsDialog";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
+import { format } from "date-fns";
 
 type WeighingItem = {
   id: string;
@@ -117,8 +118,11 @@ const ScaleCalculator = forwardRef((props, ref) => {
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
   const { toast } = useToast();
   const [operationType, setOperationType] = useState<OperationType>('loading');
+  const [weighingId, setWeighingId] = useState<string>('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
+  const generateWeighingId = () => format(new Date(), 'ddMMyyHHmm');
+
   const clearState = (isInitial = false) => {
     const newId = uuidv4();
     const newWeighingSet: WeighingSet = { ...initialWeighingSet, id: newId, items: [] };
@@ -127,6 +131,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
     setActiveSetId(newId);
     setHeaderData({ client: "", plate: "", driver: "" });
     setOperationType('loading');
+    setWeighingId(generateWeighingId());
 
     if (!isInitial) {
       toast({ title: "Limpo!", description: "Todos os campos foram resetados." });
@@ -138,13 +143,14 @@ const ScaleCalculator = forwardRef((props, ref) => {
     const savedData = localStorage.getItem("scaleData");
     if (savedData) {
       try {
-        const { weighingSets: savedSets, headerData: savedHeader, operationType: savedOpType } = JSON.parse(savedData);
+        const { weighingId: savedId, weighingSets: savedSets, headerData: savedHeader, operationType: savedOpType } = JSON.parse(savedData);
         
         if (!savedSets || savedSets.length === 0 || !savedSets.every((s: any) => s.id && s.name && Array.isArray(s.items))) {
             clearState(true);
             return;
         }
 
+        setWeighingId(savedId || generateWeighingId());
         setWeighingSets(savedSets);
         setHeaderData(savedHeader || { client: "", plate: "", driver: "" });
         setOperationType(savedOpType || 'loading');
@@ -342,7 +348,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
 
   const handleSave = () => {
       try {
-        localStorage.setItem("scaleData", JSON.stringify({weighingSets, headerData, operationType}));
+        localStorage.setItem("scaleData", JSON.stringify({weighingId, weighingSets, headerData, operationType}));
         toast({ title: "Pesagem Salva!", description: "Os dados da pesagem foram salvos localmente." });
       } catch (e) {
         toast({ variant: "destructive", title: "Erro ao Salvar", description: "Não foi possível salvar os dados." });
@@ -353,7 +359,8 @@ const ScaleCalculator = forwardRef((props, ref) => {
       try {
           const savedData = localStorage.getItem("scaleData");
           if (savedData) {
-              const { weighingSets, headerData, operationType } = JSON.parse(savedData);
+              const { weighingId, weighingSets, headerData, operationType } = JSON.parse(savedData);
+              setWeighingId(weighingId || generateWeighingId());
               setWeighingSets(weighingSets);
               setHeaderData(headerData || { client: "", plate: "", driver: "" });
               setOperationType(operationType || 'loading');
@@ -369,7 +376,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
 
   const handlePrint = () => {
     try {
-        localStorage.setItem("scaleData", JSON.stringify({ weighingSets, headerData, operationType }));
+        localStorage.setItem("scaleData", JSON.stringify({ weighingId, weighingSets, headerData, operationType }));
         window.open('/balanca', '_blank');
     } catch (e) {
         toast({ variant: "destructive", title: "Erro ao Imprimir", description: "Não foi possível preparar os dados para impressão." });
@@ -806,5 +813,3 @@ const ScaleCalculator = forwardRef((props, ref) => {
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;
-
-    

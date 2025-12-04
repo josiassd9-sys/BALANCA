@@ -19,6 +19,7 @@ type WeighingSet = {
 };
 
 interface ScaleData {
+  weighingId: string;
   weighingSets: WeighingSet[];
   headerData: {
     client: string;
@@ -58,7 +59,7 @@ export default function PrintableScaleTicket({ autoPrint = true }: PrintableScal
     );
   }
 
-  const { weighingSets, headerData } = data;
+  const { weighingId, weighingSets, headerData } = data;
 
   const formatNumber = (num: number, useGrouping = false) => {
     if (isNaN(num)) return "0";
@@ -83,6 +84,7 @@ export default function PrintableScaleTicket({ autoPrint = true }: PrintableScal
             PSINOX COMERCIO DE AÇO LTDA
           </h1>
           <p>Fone: (16) 3761-9564 - Cel:(16) 99788-7055</p>
+          <p className="font-bold">Nº da Pesagem: {weighingId}</p>
         </div>
 
         {/* INFO */}
