@@ -134,6 +134,11 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         'Poppins': 'font-poppins',
         'Open Sans': 'font-open-sans',
         'Nunito': 'font-nunito',
+        'Montserrat': 'font-montserrat',
+        'Playfair Display': 'font-playfair',
+        'Raleway': 'font-raleway',
+        'Bebas Neue': 'font-bebas',
+        'Lobster': 'font-lobster',
     };
     
     // Clear existing font classes before adding the new one

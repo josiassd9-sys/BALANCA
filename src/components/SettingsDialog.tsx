@@ -234,6 +234,11 @@ const AppearanceTab = () => {
         { value: 'Poppins', label: 'Poppins' },
         { value: 'Open Sans', label: 'Open Sans' },
         { value: 'Nunito', label: 'Nunito' },
+        { value: 'Montserrat', label: 'Montserrat' },
+        { value: 'Playfair Display', label: 'Playfair Display' },
+        { value: 'Raleway', label: 'Raleway' },
+        { value: 'Bebas Neue', label: 'Bebas Neue' },
+        { value: 'Lobster', label: 'Lobster' },
     ];
 
     return (
