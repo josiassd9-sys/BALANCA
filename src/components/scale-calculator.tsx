@@ -793,11 +793,11 @@ const ScaleCalculator = forwardRef((props, ref) => {
         </div>
       
 
-      <Card className="mt-px bg-accent-price/10 border-accent-price/20 print:border print:border-accent-price print:shadow-none print:p-0.5">
+      <Card className="mt-px bg-accent-price/10 border-accent-price/20 print:border print:border-accent-price print:shadow-none print:p-0.5 text-accent-price">
          <CardContent className="p-px flex justify-end items-center">
              <div className="text-right">
-                <p className="text-lg font-semibold text-accent-price print:text-2xl print:mb-0.5">Peso Líquido Total</p>
-                <p className="text-4xl font-bold text-accent-price print:text-black">{new Intl.NumberFormat('pt-BR').format(grandTotalLiquido)} kg</p>
+                <p className="text-lg font-semibold print:text-2xl print:mb-0.5">Peso Líquido Total</p>
+                <p className="text-4xl font-bold print:text-black">{new Intl.NumberFormat('pt-BR').format(grandTotalLiquido)} kg</p>
             </div>
          </CardContent>
       </Card>
