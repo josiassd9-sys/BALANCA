@@ -9,7 +9,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
-import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, PenSquare, Signal, Network, Settings } from "lucide-react";
+import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, PenSquare, Signal, Network, Settings, Globe } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { useScale } from "@/hooks/use-scale";
 import { LiveScaleInfo } from "./LiveScaleInfo";
@@ -17,6 +17,7 @@ import { SettingsDialog } from "./SettingsDialog";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
 import { format } from "date-fns";
+import Link from "next/link";
 
 type WeighingItem = {
   id: string;
@@ -506,6 +507,24 @@ const ScaleCalculator = forwardRef((props, ref) => {
             </div>
             <div className="flex items-center gap-1">
                 <TooltipProvider>
+                    <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Link href="/navegador">
+                            <Button 
+                                variant="outline"
+                                size="icon" 
+                                className="h-10 w-10"
+                                style={{ backgroundColor: theme.colors.settingsButtonBg }}
+                            >
+                                <Globe className="h-5 w-5"/>
+                            </Button>
+                        </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Internet / Pesquisa</p>
+                    </TooltipContent>
+                    </Tooltip>
+
                     <Tooltip>
                     <TooltipTrigger asChild>
                         <Button 
