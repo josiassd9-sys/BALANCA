@@ -25,7 +25,6 @@ import net from 'net';
 import { WebSocketServer, WebSocket } from 'ws';
 import express from 'express';
 import cors from 'cors';
-import http from 'http';
 
 // --- Configuration ---
 const SCALE_HOST = process.env.SCALE_HOST || '192.168.18.8';

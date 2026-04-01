@@ -1,173 +1,175 @@
 
 "use client";
 
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from "react";
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Card, CardContent, CardHeader } from "./ui/card";
-import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
-import { PlusCircle, Tractor, ArrowDownToLine, ArrowUpFromLine, Trash2, Save, Printer, Weight, PenSquare, Signal, Network, Settings, Globe } from "lucide-react";
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "./ui/tooltip";
+import { Tractor } from "lucide-react";
 import { useScale } from "@/hooks/use-scale";
-import { LiveScaleInfo } from "./LiveScaleInfo";
 import { SettingsDialog } from "./SettingsDialog";
-import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
 import { format } from "date-fns";
-import Link from "next/link";
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
+import { useRouter } from 'next/navigation';
+import { WeighingSetCard } from "@/components/scale/WeighingSetCard";
+import { ScaleCalculatorTopBar } from "@/components/scale/ScaleCalculatorTopBar";
+import { ScaleCalculatorFooter } from "@/components/scale/ScaleCalculatorFooter";
+import { ScaleSessionHeaderCard } from "@/components/scale/ScaleSessionHeaderCard";
+import { useWeighingSessionActions } from "@/hooks/use-weighing-session-actions";
+import { generateWeighingPdf } from "@/services/weighing-pdf";
+import { loadPrintLayoutConfig } from "@/services/print-settings";
+import { applySetVisibility, persistSetVisibilityBySession } from "@/services/weighing-set-visibility";
+import type { OperationType, WeighingItem, WeighingSet } from "@/components/scale/types";
 
-type WeighingItem = {
-  id: string;
-  material: string;
-  bruto: number;
-  tara: number;
-  descontos: number;
-  liquido: number;
-};
+import {
+  createBlankSession,
+  getOpenSessions,
+  WEIGHING_SESSIONS_STORAGE_KEY,
+} from "@/services/weighing-sessions";
 
-type WeighingSet = {
-  id: string;
-  name: string;
-  items: WeighingItem[];
-  descontoCacamba: number;
-};
-
-type OperationType = 'loading' | 'unloading';
-
-const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0 };
-const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0 };
-
-const formatNumber = (num: number) => {
-  if (isNaN(num) || num === 0) return "";
-  return new Intl.NumberFormat('pt-BR', {useGrouping: false}).format(num);
-};
-
-// --- New WeightInput Component ---
-interface WeightInputProps {
-  value: number;
-  onChange: (value: string) => void;
-  onFetch: () => void;
-  placeholder?: string;
-  className?: string;
-}
-
-const WeightInput = ({ value, onChange, onFetch, placeholder, className }: WeightInputProps) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const pressTimer = useRef<NodeJS.Timeout | null>(null);
-
-  const handlePointerDown = () => {
-    pressTimer.current = setTimeout(() => {
-      setIsEditing(true);
-      setTimeout(() => inputRef.current?.focus(), 0);
-    }, 500); // 500ms for long press
-  };
-
-  const handlePointerUp = () => {
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-      pressTimer.current = null;
-    }
-  };
-
-  const handleClick = (e: React.MouseEvent) => {
-    if (!isEditing) {
-      e.preventDefault(); // Prevent focus on short click
-      onFetch();
-    }
-  };
-
-  useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [isEditing]);
-
-  return (
-    <div className={cn("relative w-full", className)}>
-        <Input
-          ref={inputRef}
-          type="text"
-          inputMode="decimal"
-          placeholder={placeholder || "0"}
-          value={isEditing ? value || '' : formatNumber(value)}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setIsEditing(true)}
-          onBlur={() => setIsEditing(false)}
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-          onClick={handleClick}
-          className={cn("text-right h-8 print:hidden w-full", {
-            'cursor-pointer': !isEditing
-          })}
-        />
-        <span className="hidden print:block text-right print:text-black">{formatNumber(value)}</span>
-    </div>
-  );
-};
-
+const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0, locked: false };
+const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAÇAMBA 1", items: [], descontoCacamba: 0, showAll: false, isCollapsed: false };
 
 const ScaleCalculator = forwardRef((props, ref) => {
-  const { weight: liveWeight, status, connectionType, config, setConfig, saveConfig } = useScale();
-  const { theme, setTheme } = useTheme();
+  const router = useRouter();
+  const { weight: liveWeight, status, config, setConfig, saveConfig } = useScale();
+  const { theme } = useTheme();
   const [headerData, setHeaderData] = useState({ client: "", plate: "", driver: "" });
   const [weighingSets, setWeighingSets] = useState<WeighingSet[]>([]);
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
   const { toast } = useToast();
   const [operationType, setOperationType] = useState<OperationType>('loading');
-  const [weighingId, setWeighingId] = useState<string>('');
+  const [hasConfirmedOperationType, setHasConfirmedOperationType] = useState(false);
+  const [, setWeighingId] = useState<string>('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [pendingCopiedWeight, setPendingCopiedWeight] = useState<string | null>(null);
+  const [sessionsRevision, setSessionsRevision] = useState(0);
+  const [isAnyInputFocused, setIsAnyInputFocused] = useState(false);
+  const [, setActiveInput] = useState<{
+    setId?: string;
+    itemId?: string;
+    field?: keyof WeighingItem;
+    type: 'initial' | 'item' | null;
+  }>({ type: null });
   
+    // ====================== MULTI-SESSÕES ======================
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [currentSessionUpdatedAt, setCurrentSessionUpdatedAt] = useState<string | null>(null);
+  const [sessionStatus, setSessionStatus] = useState<'open' | 'closed'>('open');
+  const lastTitleTapRef = useRef<Record<string, number>>({});
+
+  const refreshSessions = useCallback(() => {
+    setSessionsRevision((r) => r + 1);
+  }, []);
+
+  const {
+    handleSessionSelect,
+    handleNewSession,
+    handleFinalize,
+    handleSave,
+  } = useWeighingSessionActions({
+    weighingSets,
+    initialWeighingSet,
+    setCurrentSessionId,
+    setCurrentSessionUpdatedAt,
+    setSessionStatus,
+    setHeaderData,
+    setWeighingSets,
+    setOperationType,
+    setWeighingId,
+    setActiveSetId,
+    refreshSessions,
+    toast,
+  });
+
   const generateWeighingId = () => format(new Date(), 'ddMMyyHHmm');
 
   const clearState = (isInitial = false) => {
     const newId = uuidv4();
-    const newWeighingSet: WeighingSet = { ...initialWeighingSet, id: newId, items: [] };
+    const newWeighingSet: WeighingSet = { ...initialWeighingSet, id: newId, items: [], isCollapsed: false };
     
     setWeighingSets([{...newWeighingSet, name: 'CAÇAMBA 1', items: []}]);
     setActiveSetId(newId);
     setHeaderData({ client: "", plate: "", driver: "" });
     setOperationType('loading');
+    setHasConfirmedOperationType(false);
     setWeighingId(generateWeighingId());
 
     if (!isInitial) {
       toast({ title: "Limpo!", description: "Todos os campos foram resetados." });
     }
   };
+   
+   useEffect(() => {
+  // Carrega sessões abertas do serviço (localStorage chave "weighingSessions")
+  const openSessions = getOpenSessions();
 
+  if (openSessions.length > 0) {
+    // Existe pelo menos uma pesagem em aberto → carrega a mais recente
+    const mostRecent = openSessions[openSessions.length - 1];
+    
+    setCurrentSessionId(mostRecent.id);
+    setCurrentSessionUpdatedAt(mostRecent.updatedAt);
+    setSessionStatus(mostRecent.status);
+    setHeaderData(mostRecent.headerData || { client: "", plate: "", driver: "" });
+    setWeighingSets(applySetVisibility(mostRecent.id, mostRecent.weighingSets || []));
+    setOperationType(mostRecent.operationType || 'loading');
+    setWeighingId(mostRecent.id); // mantém compatibilidade com PDF/impressão
+
+    if (mostRecent.weighingSets?.length > 0) {
+      setActiveSetId(mostRecent.weighingSets[0].id);
+    }
+
+    setHasConfirmedOperationType(true);
+
+    toast({
+      title: "Pesagem carregada",
+      description: `Continuando: ${mostRecent.clientName || "Sem cliente"}`
+    });
+  } else {
+    // Nenhuma sessão aberta → cria uma nova em branco
+    const newSession = createBlankSession();
+    setHasConfirmedOperationType(false);
+    setCurrentSessionUpdatedAt(newSession.updatedAt);
+    handleNewSession(newSession);
+  }
+
+  // Atualiza contador para forçar render do dropdown (se necessário)
+  refreshSessions();
+}, []); // executa apenas uma vez na montagem
 
   useEffect(() => {
-    const savedData = localStorage.getItem("scaleData");
-    if (savedData) {
-      try {
-        const { weighingId: savedId, weighingSets: savedSets, headerData: savedHeader, operationType: savedOpType } = JSON.parse(savedData);
-        
-        if (!savedSets || savedSets.length === 0 || !savedSets.every((s: any) => s.id && s.name && Array.isArray(s.items))) {
-            clearState(true);
-            return;
-        }
-
-        setWeighingId(savedId || generateWeighingId());
-        setWeighingSets(savedSets);
-        setHeaderData(savedHeader || { client: "", plate: "", driver: "" });
-        setOperationType(savedOpType || 'loading');
-        
-        if (savedSets.length > 0) {
-            setActiveSetId(savedSets[0]?.id);
-        } else {
-            clearState(true);
-        }
-
-      } catch (e) {
-        clearState(true);
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement
+      ) {
+        setIsAnyInputFocused(true);
       }
-    } else {
-      clearState(true);
-    }
+    };
+
+    const handleFocusOut = () => {
+      window.setTimeout(() => {
+        const activeElement = document.activeElement;
+        const hasInputFocus =
+          activeElement instanceof HTMLInputElement ||
+          activeElement instanceof HTMLTextAreaElement ||
+          activeElement instanceof HTMLSelectElement;
+        setIsAnyInputFocused(hasInputFocus);
+      }, 0);
+    };
+
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
+    };
   }, []);
 
   useEffect(() => {
@@ -179,7 +181,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
 
   const handleHeaderChange = (field: keyof typeof headerData, value: string) => {
     if (field === 'plate') {
-        let formattedValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+        const formattedValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
         setHeaderData(prev => ({ ...prev, [field]: formattedValue }));
     } else {
         setHeaderData(prev => ({ ...prev, [field]: value.toUpperCase() }));
@@ -195,6 +197,9 @@ const ScaleCalculator = forwardRef((props, ref) => {
           let needsReorder = false;
           const newItems = set.items.map((item, index) => {
             if (item.id === itemId) {
+              if (item.locked) {
+                return item;
+              }
               const updatedItem = { ...item, [field]: numValue };
               const bruto = updatedItem.bruto;
               const tara = updatedItem.tara;
@@ -210,7 +215,6 @@ const ScaleCalculator = forwardRef((props, ref) => {
           });
 
           if(needsReorder) {
-             const firstItem = newItems[0];
              for(let i=1; i<newItems.length; i++) {
                 if (operationType === 'loading') {
                   newItems[i].tara = newItems[i-1].bruto;
@@ -233,7 +237,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
       prevSets.map(set => {
         if (set.id === setId) {
           const newItems = set.items.map(item =>
-            item.id === itemId ? { ...item, material: newMaterial.toUpperCase() } : item
+            item.id === itemId && !item.locked ? { ...item, material: newMaterial.toUpperCase() } : item
           );
           return { ...set, items: newItems };
         }
@@ -260,6 +264,22 @@ const ScaleCalculator = forwardRef((props, ref) => {
       prevSets.map(set => {
         if (set.id === setId) {
           const lastItem = set.items[set.items.length - 1];
+
+          if (lastItem) {
+            const hasMaterial = lastItem.material.trim().length > 0;
+            const hasBruto = lastItem.bruto > 0;
+            const hasTara = lastItem.tara > 0;
+
+            if (!hasMaterial || !hasBruto || !hasTara) {
+              toast({
+                variant: "destructive",
+                title: "Material incompleto",
+                description: "Preencha Material, Bruto e Tara do item atual antes de adicionar outro.",
+              });
+              return set;
+            }
+          }
+
           const firstSetFirstItem = weighingSets[0]?.items[0];
           
           let initialWeight = 0;
@@ -277,6 +297,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
               tara: lastItem?.bruto ?? initialWeight,
               descontos: 0,
               liquido: 0,
+              locked: false,
             };
           } else { // Compra - Descarregamento
             newItem = {
@@ -286,10 +307,16 @@ const ScaleCalculator = forwardRef((props, ref) => {
               tara: 0,
               descontos: 0,
               liquido: 0,
+              locked: false,
             };
           }
-           
-          return { ...set, items: [...set.items, newItem] };
+
+          const lockedItems = set.items.map((item, index) => {
+            const isLast = index === set.items.length - 1;
+            return isLast ? { ...item, locked: true } : item;
+          });
+
+          return { ...set, items: [...lockedItems, newItem], showAll: false };
         }
         return set;
       })
@@ -302,10 +329,17 @@ const ScaleCalculator = forwardRef((props, ref) => {
         id: uuidv4(),
         name: `CAÇAMBA ${newSetNumber}`,
         items: [],
-        descontoCacamba: 0
+      descontoCacamba: 0,
+      showAll: false,
+      isCollapsed: false,
     };
 
-    setWeighingSets(prev => [...prev, newSet]);
+    setWeighingSets((prev) => {
+      const collapsedFirst = prev.map((set, index) =>
+        index === 0 ? { ...set, showAll: false } : set
+      );
+      return [...collapsedFirst, newSet];
+    });
     setActiveSetId(newSet.id);
   };
 
@@ -335,7 +369,12 @@ const ScaleCalculator = forwardRef((props, ref) => {
     setWeighingSets(prevSets =>
         prevSets.map(set => {
             if (set.id === setId) {
-                const newItems = set.items.filter(item => item.id !== itemId);
+                const filteredItems = set.items.filter(item => item.id !== itemId);
+                const lastIndex = filteredItems.length - 1;
+                const newItems = filteredItems.map((item, index) => ({
+                  ...item,
+                  locked: index === lastIndex ? false : item.locked,
+                }));
                 return { ...set, items: newItems };
             }
             return set;
@@ -347,67 +386,200 @@ const ScaleCalculator = forwardRef((props, ref) => {
     clearState(isInitialLoad);
   };
 
-  const handleSave = () => {
-      try {
-        localStorage.setItem("scaleData", JSON.stringify({weighingId, weighingSets, headerData, operationType}));
-        toast({ title: "Pesagem Salva!", description: "Os dados da pesagem foram salvos localmente." });
-      } catch (e) {
-        toast({ variant: "destructive", title: "Erro ao Salvar", description: "Não foi possível salvar os dados." });
-      }
+  const toggleSetVisibility = (setId: string) => {
+    setWeighingSets((prevSets) =>
+      prevSets.map((set) =>
+        set.id === setId ? { ...set, showAll: !set.showAll } : set
+      )
+    );
   };
 
-  const handleLoad = () => {
-      try {
-          const savedData = localStorage.getItem("scaleData");
-          if (savedData) {
-              const { weighingId, weighingSets, headerData, operationType } = JSON.parse(savedData);
-              setWeighingId(weighingId || generateWeighingId());
-              setWeighingSets(weighingSets);
-              setHeaderData(headerData || { client: "", plate: "", driver: "" });
-              setOperationType(operationType || 'loading');
-              setActiveSetId(weighingSets[0]?.id || null);
-              toast({ title: "Dados Carregados", description: "A última pesagem salva foi carregada." });
-          } else {
-              toast({ variant: "destructive", title: "Nenhum Dado Salvo", description: "Não há dados de pesagem salvos para carregar." });
-          }
-      } catch (e) {
-          toast({ variant: "destructive", title: "Erro ao Carregar", description: "Não foi possível carregar os dados." });
-      }
+  const toggleSetCollapse = (setId: string) => {
+    setWeighingSets((prevSets) =>
+      prevSets.map((set) =>
+        set.id === setId ? { ...set, isCollapsed: !set.isCollapsed } : set
+      )
+    );
   };
 
-  const handlePrint = () => {
-    try {
-        localStorage.setItem("scaleData", JSON.stringify({ weighingId, weighingSets, headerData, operationType }));
-        window.open('/balanca', '_blank');
-    } catch (e) {
-        toast({ variant: "destructive", title: "Erro ao Imprimir", description: "Não foi possível preparar os dados para impressão." });
+  const handleSetTitlePointerUp = (setId: string) => {
+    const now = Date.now();
+    const lastTap = lastTitleTapRef.current[setId] || 0;
+    if (now - lastTap < 350) {
+      toggleSetVisibility(setId);
+      lastTitleTapRef.current[setId] = 0;
+      return;
     }
+    lastTitleTapRef.current[setId] = now;
   };
 
-  const handleFetchLiveWeight = (callback: (weight: string) => void) => {
+  useEffect(() => {
+    persistSetVisibilityBySession(currentSessionId, weighingSets);
+  }, [currentSessionId, weighingSets]);
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== WEIGHING_SESSIONS_STORAGE_KEY) return;
+
+      const openSessions = getOpenSessions();
+      const hasCurrentSession = currentSessionId
+        ? openSessions.some((session) => session.id === currentSessionId)
+        : false;
+
+      if (hasCurrentSession) {
+        refreshSessions();
+        return;
+      }
+
+      if (openSessions.length > 0) {
+        const mostRecent = openSessions[openSessions.length - 1];
+        if (mostRecent) {
+          setHasConfirmedOperationType(Boolean(mostRecent.operationConfirmed ?? true));
+          handleSessionSelect(mostRecent);
+          toast({
+            title: 'Sessão sincronizada',
+            description: 'A sessão ativa mudou em outra aba e foi atualizada.',
+          });
+          return;
+        }
+      }
+
+      const newSession = createBlankSession();
+      setHasConfirmedOperationType(Boolean(newSession.operationConfirmed));
+      handleNewSession(newSession);
+      toast({
+        title: 'Sessão recriada',
+        description: 'A sessão ativa foi removida em outra aba.',
+      });
+    };
+
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [currentSessionId, handleNewSession, handleSessionSelect, refreshSessions, toast]);
+
+  const grandTotalLiquido = weighingSets.reduce((total, set) => {
+    const setItemsTotal = set.items.reduce((acc, item) => acc + item.liquido, 0);
+    return total + (setItemsTotal - set.descontoCacamba);
+  }, 0);
+
+const handlePrint = async () => {
+  if (weighingSets.length === 0) {
+    toast({ title: "Nenhuma pesagem para imprimir", variant: "destructive" });
+    return;
+  }
+
+  try {
+    const printLayoutConfig = loadPrintLayoutConfig();
+    const outputMode = await generateWeighingPdf({
+      headerData,
+      weighingSets,
+      grandTotalLiquido,
+      printLayoutConfig,
+    });
+
+    if (outputMode === 'native') {
+      toast({
+        title: "Comprovante gerado",
+        description: "PDF salvo em Documentos/PesagensFinalizadas e opção de compartilhamento exibida.",
+        variant: "default",
+      });
+    } else {
+      toast({
+        title: "Comprovante gerado",
+        description: "PDF baixado automaticamente no navegador.",
+        variant: "default",
+      });
+    }
+
+  } catch (err) {
+    console.error("ERRO COMPLETO NA GERAÇÃO DE PDF:", err);
+    toast({
+      title: "Erro ao gerar PDF",
+      description: err instanceof Error ? err.message : "Falha desconhecida",
+      variant: "destructive"
+    });
+  }
+};
+
+const handleFinalizeWithPdf = async () => {
+  if (!currentSessionId) {
+    toast({
+      variant: "destructive",
+      title: "Nenhuma sessão ativa",
+      description: "Não foi possível finalizar sem uma pesagem em aberto.",
+    });
+    return;
+  }
+
+  const finalized = handleFinalize(currentSessionId, currentSessionUpdatedAt);
+  if (!finalized) {
+    return;
+  }
+
+  if (weighingSets.length === 0) {
+    toast({
+      title: "Pesagem finalizada",
+      description: "Sessão fechada sem itens para gerar comprovante.",
+    });
+    return;
+  }
+
+  try {
+    const printLayoutConfig = loadPrintLayoutConfig();
+    const outputMode = await generateWeighingPdf({
+      headerData,
+      weighingSets,
+      grandTotalLiquido,
+      printLayoutConfig,
+    });
+
+    if (outputMode === 'native') {
+      toast({
+        title: "Comprovante gerado",
+        description: "PDF salvo em Documentos/PesagensFinalizadas e opção de compartilhamento exibida.",
+      });
+    } else {
+      toast({
+        title: "Comprovante gerado",
+        description: "PDF baixado automaticamente no navegador.",
+      });
+    }
+  } catch (err) {
+    console.error("ERRO AO GERAR PDF APOS FINALIZAR:", err);
+    toast({
+      variant: "destructive",
+      title: "Pesagem finalizada com pendência",
+      description: err instanceof Error
+        ? `A sessão foi finalizada, mas o PDF falhou: ${err.message}`
+        : "A sessão foi finalizada, mas houve falha ao gerar o PDF.",
+    });
+  }
+};
+
+  const handleFetchLiveWeight = (callback: (weight: string) => void): boolean => {
     if (status !== 'connected') {
       toast({
         variant: "destructive",
         title: "Balança não conectada",
         description: "Verifique a conexão com a balança.",
       });
-      return;
+      return false;
     }
     callback(liveWeight.toString());
     toast({ title: "Peso Capturado!", description: `Peso de ${liveWeight}kg capturado.` });
+    return true;
   };
 
   useImperativeHandle(ref, () => ({
     handleClear,
-    handleSave,
-    handleLoad,
+    handleSave: () => handleSave(currentSessionId, currentSessionUpdatedAt, headerData, operationType),
     handlePrint,
   }));
   
-  const grandTotalLiquido = weighingSets.reduce((total, set) => {
-    const setItemsTotal = set.items.reduce((acc, item) => acc + item.liquido, 0);
-    return total + (setItemsTotal - set.descontoCacamba);
-  }, 0);
+
 
   const firstSet = weighingSets.length > 0 ? weighingSets[0] : null;
   const initialWeightField = operationType === 'loading' ? 'tara' : 'bruto';
@@ -421,8 +593,18 @@ const ScaleCalculator = forwardRef((props, ref) => {
     return 0;
   }
   const initialWeightValue = getInitialWeightValue();
+  const isInitialWeightLocked = Boolean(firstSet?.items?.[0]?.locked) || !hasConfirmedOperationType;
 
   const handleInitialWeightChange = (value: string) => {
+    if (!hasConfirmedOperationType) {
+      toast({
+        variant: "destructive",
+        title: "Selecione o tipo de operação",
+        description: "Escolha Carregamento ou Descarregamento antes de informar o primeiro peso.",
+      });
+      return;
+    }
+
     const numValue = parseInt(value.replace(/\D/g, ''), 10) || 0;
     setWeighingSets(prev => {
         const newSets = [...prev];
@@ -439,6 +621,9 @@ const ScaleCalculator = forwardRef((props, ref) => {
                 newItem.liquido = newItem.bruto - newItem.tara - newItem.descontos;
             } else {
                 const firstItem = { ...newSets[0].items[0] };
+                if (firstItem.locked) {
+                  return newSets;
+                }
                 const otherField = initialWeightField === 'bruto' ? 'tara' : 'bruto';
                 if(firstItem[otherField] !== 0) {
                   firstItem[otherField] = 0;
@@ -453,403 +638,190 @@ const ScaleCalculator = forwardRef((props, ref) => {
     });
   };
 
-  const handleInitialWeightFetch = () => {
-     handleFetchLiveWeight((weight) => {
+    const handleInitialWeightFetch = (): boolean => {
+     if (!hasConfirmedOperationType) {
+      toast({
+        variant: "destructive",
+        title: "Selecione o tipo de operação",
+        description: "Escolha Carregamento ou Descarregamento antes de capturar o primeiro peso.",
+      });
+      return false;
+    }
+
+      return handleFetchLiveWeight((weight) => {
         handleInitialWeightChange(weight);
      });
   }
 
-  const activeSet = weighingSets.find(s => s.id === activeSetId) || firstSet;
-  const initialLabel = operationType === 'loading' ? 'Tara' : 'Bruto';
-  const finalLabel = operationType === 'loading' ? 'Bruto' : 'Tara';
-  
-    const getStatusColor = () => {
-        switch(status) {
-            case 'connected':
-                return 'bg-green-500';
-            case 'connecting':
-                return 'bg-yellow-500';
-            case 'error':
-            case 'disconnected':
-                return 'bg-red-500';
-            default:
-                return 'bg-muted-foreground';
-        }
+  const handleWeightInputFocus = (target: {
+    setId?: string;
+    itemId?: string;
+    field?: 'bruto' | 'tara';
+    type: 'initial' | 'item';
+  }) => {
+    setActiveInput(target);
+
+    if (!pendingCopiedWeight) return;
+
+    if (target.type === 'initial') {
+      if (!hasConfirmedOperationType) {
+        toast({
+          variant: "destructive",
+          title: "Selecione o tipo de operação",
+          description: "Escolha Carregamento ou Descarregamento antes de informar o primeiro peso.",
+        });
+        return;
+      }
+      handleInitialWeightChange(pendingCopiedWeight);
+    } else if (target.type === 'item' && target.setId && target.itemId && target.field) {
+      handleInputChange(target.setId, target.itemId, target.field, pendingCopiedWeight);
     }
 
+    setPendingCopiedWeight(null);
+    toast({ title: "Peso colado", description: "Peso colado automaticamente no campo." });
+  };
+
+  const initialLabel = operationType === 'loading' ? 'Tara' : 'Bruto';
+  const finalLabel = operationType === 'loading' ? 'Bruto' : 'Tara';
+
+  const normalizeBrowserUrl = (value?: string) => {
+    const raw = (value || '').trim();
+    if (!raw) return 'https://www.google.com';
+    return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  };
+
+  const handleOpenWeb = async () => {
+    const targetUrl = normalizeBrowserUrl(config.browserUrl);
+    if (Capacitor.isNativePlatform()) {
+      await Browser.open({ url: targetUrl });
+    } else {
+      router.push(`/navegador?url=${encodeURIComponent(targetUrl)}`);
+    }
+  };
+
+  const handleOpenFinalizedList = () => {
+    router.push('/lista-fin');
+  };
+
   return (
-    <div className="bg-background max-w-7xl mx-auto" id="scale-calculator-printable-area">
-      <SettingsDialog
-        isOpen={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
-        scaleConfig={config}
-        onScaleConfigChange={setConfig}
-        onSave={saveConfig}
+  <div 
+    className="flex flex-col h-[100dvh] bg-background max-w-7xl mx-auto overflow-hidden"
+    id="scale-calculator-printable-area"
+  >
+    {/* ==================== SETTINGS DIALOG ==================== */}
+    <SettingsDialog
+      isOpen={isSettingsOpen}
+      onOpenChange={setIsSettingsOpen}
+      scaleConfig={config}
+      onScaleConfigChange={setConfig}
+      onSave={saveConfig}
+    />
+
+    {/* ==================== TOPO FIXO ==================== */}
+    <ScaleCalculatorTopBar
+      appTitle={theme.appTitle}
+      titleFontSize={theme.titleFontSize}
+      titleFontFamily={theme.titleFontFamily}
+      settingsButtonBg={theme.colors.settingsButtonBg}
+      currentSessionId={currentSessionId}
+      onSessionSelect={(session) => {
+        setHasConfirmedOperationType(true);
+        handleSessionSelect(session);
+      }}
+      onNewSession={(session) => {
+        setHasConfirmedOperationType(Boolean(session.operationConfirmed));
+        handleNewSession(session);
+      }}
+      onSessionsChange={refreshSessions}
+      sessionsRevision={sessionsRevision}
+      liveWeight={liveWeight}
+      onWeightCopied={(weightText) => {
+        setPendingCopiedWeight(weightText);
+        toast({ title: "Peso copiado", description: "Agora toque em um campo de peso para colar automaticamente." });
+      }}
+      onOpenWeb={handleOpenWeb}
+      onOpenSettings={() => setIsSettingsOpen(true)}
+      status={status}
+      operationType={operationType}
+      onOperationTypeChange={(type) => {
+        setOperationType(type);
+        setHasConfirmedOperationType(true);
+      }}
+      compactMode={isAnyInputFocused}
+    />
+
+    {/* ==================== MEIO ROLÁVEL ==================== */}
+    <div className="js-scale-scroll-area flex-1 overflow-y-auto print:overflow-visible p-px">
+      
+      {/* Card Cliente / Motorista / Placa / Peso Inicial */}
+      <ScaleSessionHeaderCard
+        headerData={headerData}
+        onHeaderChange={handleHeaderChange}
+        initialLabel={initialLabel}
+        finalLabel={finalLabel}
+        initialWeightValue={initialWeightValue}
+        onInitialWeightChange={handleInitialWeightChange}
+        onInitialWeightFetch={handleInitialWeightFetch}
+        onInitialWeightFocus={() => handleWeightInputFocus({ type: 'initial' })}
+        isInitialWeightLocked={isInitialWeightLocked}
+        hasPendingCopiedWeight={Boolean(pendingCopiedWeight)}
       />
-      <div className="sticky top-0 z-10 bg-background py-1 print:hidden">
-        <div className="mb-4 print:hidden text-center">
-            <h2 
-                className="font-bold"
-                style={{
-                    fontSize: `${theme.titleFontSize}px`,
-                    fontFamily: `'${theme.titleFontFamily}', sans-serif`,
-                }}
-            >
-                {theme.appTitle}
-            </h2>
-        </div>
-        <div className="flex justify-between items-center mb-4 print:hidden gap-1">
-            <div className="flex-grow">
-            <LiveScaleInfo 
-                status={status}
-                weight={liveWeight}
-            />
-            </div>
-            <div className="flex items-center gap-1">
-                <TooltipProvider>
-                    <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Link href="/navegador">
-                            <Button 
-                                variant="outline"
-                                size="icon" 
-                                className="h-10 w-10"
-                                style={{ backgroundColor: theme.colors.settingsButtonBg }}
-                            >
-                                <Globe className="h-5 w-5"/>
-                            </Button>
-                        </Link>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Internet / Pesquisa</p>
-                    </TooltipContent>
-                    </Tooltip>
 
-                    <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button 
-                            variant="outline"
-                            size="icon" 
-                            className="h-10 w-10 relative" 
-                            onClick={() => setIsSettingsOpen(true)}
-                            style={{ backgroundColor: theme.colors.settingsButtonBg }}
-                        >
-                            <span className={cn("absolute top-0.5 right-0.5 block h-3 w-3 rounded-full border-2", getStatusColor())} style={{ borderColor: theme.colors.settingsButtonBg }}/>
-                            <Settings className="h-5 w-5"/>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Configurações</p>
-                    </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-                <div className="flex items-center gap-px rounded-full border bg-muted p-0.5 print:hidden">
-                <TooltipProvider>
-                    <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant={operationType === 'loading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('loading')}>
-                        <ArrowUpFromLine className="h-5 w-5" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Carregamento (Venda / Saída de Material)</p></TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant={operationType === 'unloading' ? 'default' : 'ghost'} size="default" className="h-10 w-16 rounded-full p-2" onClick={() => setOperationType('unloading')}>
-                        <ArrowDownToLine className="h-5 w-5" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Descarregamento (Compra / Entrada de Material)</p></TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-                </div>
-            </div>
-        </div>
-      </div>
-
-
-      <Card className="mb-px print:border-none print:shadow-none print:p-0">
-        <CardContent className="p-0">
-          <div className="w-full space-y-0.5">
-            <div className="flex justify-between items-end pb-0.5">
-                <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
-                <div className="flex items-center text-sm text-muted-foreground font-medium">
-                  <span className="w-28 text-center">{initialLabel}</span>
-                  <span className="w-28 text-center">{finalLabel}</span>
-                </div>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <Input id="cliente" value={headerData.client} onChange={e => handleHeaderChange('client', e.target.value)} className="h-8 print:hidden"/>
-              <span className="hidden print:block print:text-black">{headerData.client || 'N/A'}</span>
-              
-              <div className="flex w-full items-end gap-0.5 text-xs sm:text-sm flex-nowrap">
-                <div className="space-y-px flex-1 min-w-0">
-                  <Label htmlFor="motorista" className="text-xs sm:text-sm">Motorista</Label>
-                  <Input id="motorista" value={headerData.driver} onChange={e => handleHeaderChange('driver', e.target.value)} className="h-8 print:hidden text-sm"/>
-                  <span className="hidden print:block print:text-black">{headerData.driver || 'N/A'}</span>
-                </div>
-                <div className="space-y-px flex-none w-24">
-                  <Label htmlFor="placa" className="text-xs sm:text-sm">Placa</Label>
-                  <Input id="placa" value={headerData.plate} onChange={e => handleHeaderChange('plate', e.target.value)} className="h-8 print:hidden text-sm text-center"/>
-                  <span className="hidden print:block print:text-black">{headerData.plate || 'N/A'}</span>
-                </div>
-                 <div className="space-y-px flex-none w-28">
-                    <Label className="text-xs sm:text-sm text-center block w-full">Peso Inicial</Label>
-                    <WeightInput 
-                        value={initialWeightValue}
-                        onChange={handleInitialWeightChange}
-                        onFetch={handleInitialWeightFetch}
-                    />
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
+      {/* Caçambas */}
       {weighingSets.map((set, setIndex) => {
-         const subtotalLiquido = set.items.reduce((acc, item) => acc + item.liquido, 0);
-         const totalLiquidoSet = subtotalLiquido - set.descontoCacamba;
-
-         return (
-          <Card key={set.id} className="mb-px print:border-none print:shadow-none print:p-0 print:mb-0.5">
-            <CardHeader className="p-px flex flex-row items-center justify-between print:p-0 print:mb-0.5">
-                <div className="flex items-center gap-2">
-                    <Input 
-                        value={set.name}
-                        onChange={(e) => handleSetNameChange(set.id, e.target.value)}
-                        className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 h-auto w-48 text-cacamba-foreground"
-                    />
-                    {setIndex > 0 && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" onClick={() => removeSet(set.id)} className="h-7 w-7 text-muted-foreground hover:text-destructive print:hidden">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Remover Caçamba</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
-                </div>
-
-              <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={() => addNewMaterial(set.id)} className="h-8 w-8 print:hidden">
-                            <PlusCircle className="h-5 w-5" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Adicionar Material</p></TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
-              {/* Mobile Layout */}
-              <div className="sm:hidden">
-                  {set.items.map((item) => {
-                      return (
-                      <div key={item.id} className="border-b p-0.5 space-y-0.5">
-                          <div className="flex items-end gap-1">
-                            <div className="space-y-px flex-grow">
-                              <Label className="text-xs text-muted-foreground">Material</Label>
-                              <Input
-                                placeholder="SUCATA"
-                                value={item.material}
-                                onChange={(e) => handleMaterialChange(set.id, item.id, e.target.value)}
-                                className="w-full justify-between h-8"
-                              />
-                            </div>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" onClick={() => removeMaterial(set.id, item.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive print:hidden">
-                                      <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Remover Material</p></TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                          <div className="grid grid-cols-4 gap-0.5">
-                              <div className="space-y-px">
-                                  <Label className="text-xs text-muted-foreground">Bruto (kg)</Label>
-                                  <WeightInput 
-                                      value={item.bruto}
-                                      onChange={(value) => handleInputChange(set.id, item.id, 'bruto', value)}
-                                      onFetch={() => handleFetchLiveWeight((w) => handleInputChange(set.id, item.id, 'bruto', w))}
-                                  />
-                              </div>
-                               <div className="space-y-px">
-                                  <Label className="text-xs text-muted-foreground">Tara (kg)</Label>
-                                  <WeightInput 
-                                      value={item.tara}
-                                      onChange={(value) => handleInputChange(set.id, item.id, 'tara', value)}
-                                      onFetch={() => handleFetchLiveWeight((w) => handleInputChange(set.id, item.id, 'tara', w))}
-                                  />
-                              </div>
-                               <div className="space-y-px">
-                                  <Label className="text-xs text-muted-foreground">A/L (kg)</Label>
-                                  <Input type="text" inputMode="decimal" placeholder="0" value={formatNumber(item.descontos)} onChange={(e) => handleInputChange(set.id, item.id, 'descontos', e.target.value)} className="text-right h-8 print:hidden w-full" />
-                                   <span className="hidden print:block text-right print:text-black">{formatNumber(item.descontos)}</span>
-                              </div>
-                               <div className="space-y-px">
-                                  <Label className="text-xs text-muted-foreground">Líquido (kg)</Label>
-                                  <div className="h-8 flex items-center justify-end font-semibold">
-                                      <span className="print:text-black">{formatNumber(item.liquido)}</span>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  )})}
-              </div>
-              {/* Desktop Layout */}
-              <Table className="hidden sm:table table-fixed">
-                <TableHeader>
-                   <TableRow className="print:text-black">
-                    <TableHead className="w-auto">Material</TableHead>
-                    <TableHead className="text-right w-[16%]">Bruto (kg)</TableHead>
-                    <TableHead className="text-right w-[16%]">Tara (kg)</TableHead>
-                    <TableHead className="text-right w-[16%]">A/L (kg)</TableHead>
-                    <TableHead className="text-right font-semibold w-[16%]">Líquido (kg)</TableHead>
-                    <TableHead className="w-[5%] print:hidden"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {set.items.map((item, itemIndex) => {                      
-                      return (
-                    <TableRow key={item.id} className="print:text-black">
-                      <TableCell className="font-medium p-0 sm:p-px">
-                           <Input
-                              placeholder="SUCATA"
-                              value={item.material}
-                              onChange={(e) => handleMaterialChange(set.id, item.id, e.target.value)}
-                              className="w-full justify-between h-8"
-                            />
-                      </TableCell>
-                      <TableCell className="p-0 sm:p-px">
-                           <WeightInput 
-                                value={item.bruto}
-                                onChange={(value) => handleInputChange(set.id, item.id, 'bruto', value)}
-                                onFetch={() => handleFetchLiveWeight((w) => handleInputChange(set.id, item.id, 'bruto', w))}
-                            />
-                      </TableCell>
-                      <TableCell className="p-0 sm:p-px">
-                            <WeightInput 
-                                value={item.tara}
-                                onChange={(value) => handleInputChange(set.id, item.id, 'tara', value)}
-                                onFetch={() => handleFetchLiveWeight((w) => handleInputChange(set.id, item.id, 'tara', w))}
-                            />
-                      </TableCell>
-                      <TableCell className="p-0 sm:p-px">
-                            <div className="flex justify-end">
-                                <Input
-                                type="text"
-                                inputMode="decimal"
-                                placeholder="0"
-                                value={formatNumber(item.descontos)}
-                                onChange={(e) => handleInputChange(set.id, item.id, 'descontos', e.target.value)}
-                                className="text-right h-8 print:hidden w-full"
-                                />
-                            </div>
-                            <span className="hidden print:block text-right print:text-black">{formatNumber(item.descontos)}</span>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold p-0 sm:p-px">
-                            <div className="h-8 sm:h-full flex items-center justify-end">
-                                <span className="print:text-black">{formatNumber(item.liquido)}</span>
-                            </div>
-                      </TableCell>
-                      <TableCell className="p-0 sm:p-px text-center print:hidden">
-                          <TooltipProvider>
-                              <Tooltip>
-                                  <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="icon" onClick={() => removeMaterial(set.id, item.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                                          <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent><p>Remover Material</p></TooltipContent>
-                              </Tooltip>
-                          </TooltipProvider>
-                      </TableCell>
-                    </TableRow>
-                  )})}
-                </TableBody>
-              </Table>
-            </CardContent>
-            <CardContent className="p-px border-t print:border-t print:border-border print:p-0 print:pt-0.5">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-1">
-                     <div className="flex items-center gap-0.5">
-                         <Label htmlFor={`desconto-cacamba-${set.id}`} className="shrink-0 text-sm md:text-base">Desconto (kg)</Label>
-                         <Input
-                             id={`desconto-cacamba-${set.id}`}
-                             type="text"
-                             inputMode="decimal"
-                             placeholder="0"
-                             value={formatNumber(set.descontoCacamba)}
-                             onChange={(e) => handleCacambaDiscount(set.id, e.target.value)}
-                             className="h-8 text-right print:hidden flex-1 min-w-[90px] w-14"
-                          />
-                          <span className="hidden print:block font-semibold print:text-black">{formatNumber(set.descontoCacamba)}</span>
-                     </div>
-                     <div className="text-right flex-shrink-0">
-                         <p className="text-sm text-muted-foreground">Subtotal</p>
-                         <p className="text-lg font-bold print:text-black">{formatNumber(subtotalLiquido)} kg</p>
-                     </div>
-                      <div className="text-right flex-shrink-0">
-                         <p className="text-sm text-muted-foreground">{set.name}</p>
-                         <p className="text-xl font-bold text-primary print:text-black">{formatNumber(totalLiquidoSet)} kg</p>                     </div>
-                 </div>
-            </CardContent>
-          </Card>
+        return (
+          <WeighingSetCard
+            key={set.id}
+            set={set}
+            setIndex={setIndex}
+            operationType={operationType}
+            onSetNameChange={handleSetNameChange}
+            onToggleSetCollapse={toggleSetCollapse}
+            onToggleSetVisibility={toggleSetVisibility}
+            onSetTitlePointerUp={handleSetTitlePointerUp}
+            onRemoveSet={removeSet}
+            onAddMaterial={addNewMaterial}
+            onMaterialChange={handleMaterialChange}
+            onInputChange={handleInputChange}
+            onFetchLiveWeight={handleFetchLiveWeight}
+            onWeightInputFocus={handleWeightInputFocus}
+            hasPendingCopiedWeight={Boolean(pendingCopiedWeight)}
+            onRemoveMaterial={removeMaterial}
+            onCacambaDiscount={handleCacambaDiscount}
+          />
         );
       })}
 
-      
-        <div className="flex justify-center my-px print:hidden">
-          <Button variant="secondary" onClick={addNewSet} size="sm" className="h-8 px-2"><Tractor className="mr-2 h-4 w-4" /> + Adicionar Caçamba</Button>
-        </div>
-      
-
-      <Card className="mt-px bg-accent-price/10 border-accent-price/20 print:border print:border-accent-price print:shadow-none print:p-0.5 text-accent-price">
-         <CardContent className="p-px flex justify-end items-center">
-             <div className="text-right">
-                <p className="text-lg font-semibold print:text-2xl print:mb-0.5">Peso Líquido Total</p>
-                <p className="text-4xl font-bold print:text-black">{new Intl.NumberFormat('pt-BR').format(grandTotalLiquido)} kg</p>
-            </div>
-         </CardContent>
-      </Card>
-      <div className="flex items-center justify-center pt-1 print:hidden gap-16">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={() => handleClear(false)} variant="outline" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Limpar Tudo</p></TooltipContent>
-          </Tooltip>
-            <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={handleSave} variant="outline" size="icon" className="h-8 w-8"><Save className="h-4 w-4"/></Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Salvar Pesagem</p></TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={handleLoad} variant="outline" size="icon" className="h-8 w-8"><ArrowUpFromLine className="h-4 w-4"/></Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Carregar Última Pesagem</p></TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={handlePrint} variant="outline" size="icon" className="h-8 w-8"><Printer className="h-4 w-4" /></Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Imprimir / Salvar PDF</p></TooltipContent>          </Tooltip>
-        </TooltipProvider>
+      {/* Botão Adicionar Caçamba */}
+      <div className="flex justify-center my-px print:hidden">
+        <Button
+          variant="secondary"
+          onClick={addNewSet}
+          size="sm"
+          className="button-3d h-9 px-3 sm:px-4 text-xs sm:text-sm font-semibold border border-border/70"
+        >
+          <Tractor className="mr-2 h-4 w-4" /> + Adicionar Caçamba
+        </Button>
       </div>
     </div>
-  );
+
+    {/* ==================== RODAPÉ FIXO ==================== */}
+    <ScaleCalculatorFooter
+      grandTotalLiquido={grandTotalLiquido}
+      onClear={() => handleClear(false)}
+      onSave={() => handleSave(currentSessionId, currentSessionUpdatedAt, headerData, operationType)}
+      onFinalize={handleFinalizeWithPdf}
+      onOpenFinalizedList={handleOpenFinalizedList}
+      onPrint={handlePrint}
+      sessionStatus={sessionStatus}
+      currentSessionId={currentSessionId}
+      compactMode={isAnyInputFocused}
+    />
+  </div>
+);
+
 });
+
 ScaleCalculator.displayName = 'ScaleCalculator';
 
 export default ScaleCalculator;

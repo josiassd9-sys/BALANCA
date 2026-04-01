@@ -1,0 +1,9 @@
+{
+  "plugins": {
+    "TcpClient": {
+      "platforms": [
+        "android"
+      ]
+    }
+  }
+}

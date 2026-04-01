@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StorageWarningAlert } from '@/components/StorageWarningAlert';
 
 const ScaleCalculator = dynamic(
   () => import('@/components/scale-calculator'),
@@ -14,6 +15,7 @@ const ScaleCalculator = dynamic(
 export default function Home() {
   return (
     <main className="container mx-auto p-px md:p-6 lg:p-8">
+      <StorageWarningAlert />
       <ScaleCalculator />
     </main>
   );

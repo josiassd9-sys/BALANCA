@@ -111,6 +111,7 @@ export default {
           foreground: 'hsl(var(--card-foreground-hsl))',
         },
         'accent-price': 'hsl(var(--accent-price-hsl))',
+        'liquid-total': 'hsl(var(--liquid-total-hsl))',
         'cacamba-foreground': 'hsl(var(--cacamba-foreground-hsl))',
       },
       borderRadius: {

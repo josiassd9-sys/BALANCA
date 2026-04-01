@@ -1,45 +1,34 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Dependencies
+node_modules/
+.pnpm-store/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Next.js
+.next/
+out/
 
-# testing
-/coverage
+# Capacitor Build Artifacts (não versionar os assets gerados)
+android/app/src/main/assets/public/
+android/app/src/main/asset/public/
 
-# next.js
-/.next/
-/out/
+# Environment
+.env
+.env.local
+.env.*.local
 
-# production
-/build
-
-# misc
+# IDE / Misc
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# vercel
-.vercel
-
-# typescript
+Thumbs.db
+.eslintcache
+grok_logs.csv
+adb_devices.txt
 *.tsbuildinfo
-next-env.d.ts
 
-.genkit/*
-.env*
-
-# firebase
-firebase-debug.log
-firestore-debug.log
+# Outros temporários
+.github/appmod/
+android_assemble.log
+android_install.log
+cap_sync.log

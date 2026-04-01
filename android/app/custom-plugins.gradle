@@ -1,0 +1,9 @@
+// Custom plugins configuration
+// This file registers local plugins not available on npm
+
+// Register the TcpClient plugin
+apply plugin: 'com.android.library'
+
+dependencies {
+    implementation project(':capacitor-android')
+}

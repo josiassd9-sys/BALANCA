@@ -1,28 +1,17 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { type ScaleConfig } from "@/hooks/use-scale";
-import { ScrollArea } from "./ui/scroll-area";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/hooks/use-theme";
-import type { ThemeHex } from "@/hooks/use-theme";
-import { themes } from "@/lib/themes";
-import { Slider } from "./ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Separator } from "./ui/separator";
-
+import type { ScaleConfig } from "@/hooks/use-scale";
+import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
+import { NetworkSettings } from "@/components/settings/NetworkSettings";
+import { MaterialCatalogSettings } from "@/components/settings/MaterialCatalogSettings";
+import { BridgeBackupSettings } from "@/components/settings/BridgeBackupSettings";
+import { PrintingSettings } from "@/components/settings/PrintingSettings";
+import { UsageInstructionsSettings } from "@/components/settings/UsageInstructionsSettings";
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -32,427 +21,89 @@ interface SettingsDialogProps {
   onSave: () => void;
 }
 
-type TestStatus = 'idle' | 'testing' | 'success' | 'error';
+export function SettingsDialog({ isOpen, onOpenChange, scaleConfig, onScaleConfigChange, onSave }: SettingsDialogProps) {
+  const [activeCategory, setActiveCategory] = useState<
+    "appearance" | "network" | "catalog" | "backup" | "printing" | "instructions"
+  >("appearance");
 
-
-const NetworkSettings = ({ scaleConfig, onScaleConfigChange }: { scaleConfig: ScaleConfig, onScaleConfigChange: (newConfig: ScaleConfig) => void }) => {
-  const [testStatus, setTestStatus] = useState<TestStatus>('idle');
-  const [logs, setLogs] = useState<string[]>([]);
-  
-  const handleTestConnection = async () => {
-    const { host, httpPort } = scaleConfig;
-    const target = `http://${host}:${httpPort}/weight`;
-    
-    setTestStatus('testing');
-    setLogs(prev => [`[${new Date().toLocaleTimeString()}] Testando ${target}...`, ...prev]);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
-    try {
-      const response = await fetch(target, { cache: "no-store", signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setTestStatus('success');
-      setLogs(prev => [`[${new Date().toLocaleTimeString()}] SUCESSO: ${JSON.stringify(data)}`, ...prev]);
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      setTestStatus('error');
-      if (error.name === 'AbortError') {
-         setLogs(prev => [`[${new Date().toLocaleTimeString()}] ERRO: Timeout! A conexão demorou mais de 5 segundos.`, ...prev]);
-      } else {
-         setLogs(prev => [`[${new Date().toLocaleTimeString()}] ERRO: ${error.message}`, ...prev]);
-      }
+  useEffect(() => {
+    if (isOpen) {
+      setActiveCategory("appearance");
     }
-  };
+  }, [isOpen]);
 
-  const getStatusClasses = (): string => {
-    switch (testStatus) {
-      case 'testing': return "text-yellow-500";
-      case 'success': return "text-green-500";
-      case 'error': return "text-red-500";
-      default: return "text-muted-foreground";
-    }
-  };
-   const getStatusMessage = (): string => {
-    switch (testStatus) {
-      case 'idle': return "Aguardando teste...";
-      case 'testing': return "Testando conexão...";
-      case 'success': return "Conexão bem-sucedida!";
-      case 'error': return "Falha na conexão.";
-      default: return "";
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-        <DialogHeader className="pt-6">
-            <DialogTitle>Rede</DialogTitle>
-            <DialogDescription>
-                Defina o endereço de rede (IP) e as portas do computador onde o servidor da balança (ponte) está rodando.
-            </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="scale-ip" className="text-right">
-              Host (IP)
-            </Label>
-            <Input
-              id="scale-ip"
-              value={scaleConfig.host}
-              onChange={(e) =>
-                onScaleConfigChange({ ...scaleConfig, host: e.target.value })
-              }
-              className="col-span-3"
-              placeholder="Ex: 192.168.18.8"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="ws-port" className="text-right">
-              Porta WebSocket
-            </Label>
-            <Input
-              id="ws-port"
-              type="number"
-              value={scaleConfig.wsPort}
-              onChange={(e) =>
-                onScaleConfigChange({ ...scaleConfig, wsPort: parseInt(e.target.value, 10) || 0 })
-              }
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="http-port" className="text-right">
-              Porta HTTP
-            </Label>
-            <Input
-              id="http-port"
-              type="number"
-              value={scaleConfig.httpPort}
-              onChange={(e) =>
-                onScaleConfigChange({ ...scaleConfig, httpPort: parseInt(e.target.value, 10) || 0 })
-              }
-              className="col-span-3"
-            />
-          </div>
-        </div>
-        
-        {/* Painel de Teste */}
-        <div className="space-y-2 pt-4 border-t">
-            <div className="flex justify-between items-center">
-                 <h4 className="text-sm font-medium">Painel de Teste HTTP</h4>
-                 <Button variant="outline" size="sm" onClick={handleTestConnection} disabled={testStatus === 'testing'}>
-                    Testar Conexão
-                 </Button>
-            </div>
-            <div className={cn("text-sm font-semibold p-2 rounded-md bg-muted/50", getStatusClasses())}>
-                Status: {getStatusMessage()}
-            </div>
-            <ScrollArea className="h-24 w-full rounded-md border p-2 bg-muted/50">
-                <div className="text-xs font-mono">
-                    {logs.map((log, index) => (
-                        <p key={index} className="whitespace-pre-wrap">{log}</p>
-                    ))}
-                </div>
-            </ScrollArea>
-        </div>
-    </div>
+  const categories = useMemo(
+    () => [
+      { id: "appearance" as const, label: "Aparencia" },
+      { id: "network" as const, label: "Rede" },
+      { id: "catalog" as const, label: "Catalogo de Materiais" },
+      { id: "backup" as const, label: "Backup da Ponte" },
+      { id: "printing" as const, label: "Impressao" },
+      { id: "instructions" as const, label: "Instrucoes de Uso" },
+    ],
+    [],
   );
-};
-
-
-const AppearanceSettings = () => {
-    const { theme, setTheme, resetTheme } = useTheme();
-
-    const handleColorChange = (key: keyof ThemeHex, value: string) => {
-        setTheme({ colors: { ...theme.colors, [key]: value } });
-    };
-
-    const handleRadiusChange = (value: number[]) => {
-      setTheme({ radius: value[0] });
-    }
-    
-    const handleFontChange = (value: string) => {
-        setTheme({ fontFamily: value });
-    }
-    
-    const handleTitleFontChange = (value: string) => {
-        setTheme({ titleFontFamily: value });
-    }
-
-    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setTheme({ appTitle: e.target.value });
-    }
-
-    const handleFontSizeChange = (value: number[]) => {
-      setTheme({ fontSize: value[0] });
-    }
-
-    const handleTitleFontSizeChange = (value: number[]) => {
-        setTheme({ titleFontSize: value[0] });
-    }
-
-    const handleThemePresetChange = (themeName: string) => {
-        const selectedTheme = themes.find(t => t.name === themeName);
-        if (selectedTheme) {
-            setTheme({ colors: selectedTheme.colors });
-        }
-    };
-
-    const colorSettings: { key: keyof ThemeHex; label: string }[] = [
-        { key: 'background', label: 'Fundo Principal' },
-        { key: 'foreground', label: 'Texto Principal' },
-        { key: 'card', label: 'Fundo dos Cards' },
-        { key: 'cardForeground', label: 'Texto dos Cards' },
-        { key: 'popover', label: 'Fundo Popover' },
-        { key: 'popoverForeground', label: 'Texto Popover' },
-        { key: 'primary', label: 'Cor Primária (Destaques)' },
-        { key: 'primaryForeground', label: 'Texto Cor Primária' },
-        { key: 'secondary', label: 'Cor Secundária' },
-        { key: 'secondaryForeground', label: 'Texto Cor Secundária' },
-        { key: 'muted', label: 'Fundo Muted' },
-        { key: 'mutedForeground', label: 'Texto Muted' },
-        { key: 'accent', label: 'Cor de Ênfase (Hover)' },
-        { key: 'accentForeground', label: 'Texto Cor de Ênfase' },
-        { key: 'destructive', label: 'Cor Destrutiva (Erros)' },
-        { key: 'destructiveForeground', label: 'Texto Cor Destrutiva' },
-        { key: 'border', label: 'Cor das Bordas' },
-        { key: 'input', label: 'Fundo dos Inputs' },
-        { key: 'ring', label: 'Cor do Anel de Foco' },
-        { key: 'cacambaForeground', label: 'Texto Título Caçamba' },
-        { key: 'accentPrice', label: 'Cor de Destaque (Preço)' },
-        { key: 'settingsButtonBg', label: 'Fundo Botão Configurações' },
-    ];
-    
-    const fontOptions = [
-        // Sans-serif
-        { value: 'Inter', label: 'Inter' },
-        { value: 'Roboto', label: 'Roboto' },
-        { value: 'Lato', label: 'Lato' },
-        { value: 'Poppins', label: 'Poppins' },
-        { value: 'Open Sans', label: 'Open Sans' },
-        { value: 'Nunito', label: 'Nunito' },
-        { value: 'Montserrat', label: 'Montserrat' },
-        { value: 'Raleway', label: 'Raleway' },
-        { value: 'Oswald', label: 'Oswald' },
-        { value: 'Source Sans Pro', label: 'Source Sans Pro' },
-        { value: 'Exo 2', label: 'Exo 2' },
-        { value: 'Ubuntu', label: 'Ubuntu' },
-        { value: 'PT Sans', label: 'PT Sans' },
-        { value: 'Titillium Web', label: 'Titillium Web' },
-        { value: 'Fira Sans', label: 'Fira Sans' },
-        { value: 'Quicksand', label: 'Quicksand' },
-
-        // Serif
-        { value: 'Playfair Display', label: 'Playfair Display' },
-        { value: 'Merriweather', label: 'Merriweather' },
-        { value: 'PT Serif', label: 'PT Serif' },
-        { value: 'Lora', label: 'Lora' },
-        { value: 'EB Garamond', label: 'EB Garamond' },
-        { value: 'Cormorant Garamond', label: 'Cormorant Garamond' },
-        { value: 'Arvo', label: 'Arvo' },
-        { value: 'Crimson Text', label: 'Crimson Text' },
-        { value: 'Bitter', label: 'Bitter' },
-        { value: 'Roboto Slab', label: 'Roboto Slab' },
-
-        // Display
-        { value: 'Bebas Neue', label: 'Bebas Neue' },
-        { value: 'Anton', label: 'Anton' },
-        { value: 'Archivo Black', label: 'Archivo Black' },
-        { value: 'Righteous', label: 'Righteous' },
-        { value: 'Passion One', label: 'Passion One' },
-        { value: 'Russo One', label: 'Russo One' },
-        { value: 'Ultra', label: 'Ultra' },
-        { value: 'Staatliches', label: 'Staatliches' },
-        { value: 'Changa One', label: 'Changa One' },
-        { value: 'Teko', label: 'Teko' },
-        { value: 'Yanone Kaffeesatz', label: 'Yanone Kaffeesatz' },
-
-        // Handwriting / Script
-        { value: 'Lobster', label: 'Lobster' },
-        { value: 'Pacifico', label: 'Pacifico' },
-        { value: 'Dancing Script', label: 'Dancing Script' },
-        { value: 'Satisfy', label: 'Satisfy' },
-        { value: 'Caveat', label: 'Caveat' },
-        { value: 'Shadows Into Light', label: 'Shadows Into Light' },
-        { value: 'Kaushan Script', label: 'Kaushan Script' },
-        { value: 'Great Vibes', label: 'Great Vibes' },
-
-        // Monospace / Typewriter
-        { value: 'Source Code Pro', label: 'Source Code Pro' },
-        { value: 'Special Elite', label: 'Special Elite' },
-        { value: 'Press Start 2P', label: 'Press Start 2P' },
-        { value: 'Rock Salt', label: 'Rock Salt' },
-    ];
-
-
-    return (
-      <div className="space-y-4">
-          <DialogHeader>
-            <DialogTitle>Aparência</DialogTitle>
-            <DialogDescription>
-                Personalize a aparência do aplicativo. As alterações são salvas automaticamente no seu navegador.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-1 gap-x-6 gap-y-4 pt-4">
-              
-              {/* Theme Preset Selector */}
-              <div className="space-y-2">
-                  <Label>Temas Predefinidos</Label>
-                  <Select onValueChange={handleThemePresetChange}>
-                      <SelectTrigger>
-                          <SelectValue placeholder="Selecione um tema..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {themes.map(themePreset => (
-                              <SelectItem key={themePreset.name} value={themePreset.name}>{themePreset.name}</SelectItem>
-                          ))}
-                      </SelectContent>
-                  </Select>
-              </div>
-              
-              <div className="w-full h-px bg-border my-4" />
-              
-              <Label className="font-bold text-base">Título Principal</Label>
-
-              {/* Title Text */}
-               <div className="space-y-2">
-                  <Label>Texto do Título</Label>
-                  <Input
-                      value={theme.appTitle}
-                      onChange={handleTitleChange}
-                  />
-              </div>
-
-              {/* Title Font Family */}
-              <div className="space-y-2">
-                  <Label>Fonte do Título</Label>
-                  <Select value={theme.titleFontFamily} onValueChange={handleTitleFontChange}>
-                      <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma fonte" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {fontOptions.map(font => (
-                              <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
-                          ))}
-                      </SelectContent>
-                  </Select>
-              </div>
-              
-              {/* Title Font Size */}
-              <div className="space-y-2">
-                  <Label>Tamanho da Fonte do Título ({theme.titleFontSize}px)</Label>
-                  <Slider
-                      min={16}
-                      max={48}
-                      step={1}
-                      value={[theme.titleFontSize]}
-                      onValueChange={handleTitleFontSizeChange}
-                  />
-              </div>
-
-              <div className="w-full h-px bg-border my-4" />
-
-              <Label className="font-bold text-base">Interface Geral</Label>
-
-              {/* Font Family */}
-              <div className="space-y-2">
-                  <Label>Tipografia</Label>
-                  <Select value={theme.fontFamily} onValueChange={handleFontChange}>
-                      <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma fonte" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {fontOptions.map(font => (
-                              <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
-                          ))}
-                      </SelectContent>
-                  </Select>
-              </div>
-
-              {/* Font Size */}
-              <div className="space-y-2">
-                  <Label>Tamanho da Fonte Base ({theme.fontSize}px)</Label>
-                  <Slider
-                      min={12}
-                      max={20}
-                      step={0.5}
-                      value={[theme.fontSize]}
-                      onValueChange={handleFontSizeChange}
-                  />
-              </div>
-              
-              {/* Border Radius */}
-              <div className="space-y-2">
-                  <Label>Raio da Borda ({theme.radius}rem)</Label>
-                  <Slider
-                      min={0}
-                      max={2}
-                      step={0.1}
-                      value={[theme.radius]}
-                      onValueChange={handleRadiusChange}
-                  />
-              </div>
-              
-              <div className="w-full h-px bg-border my-4" />
-              
-              <Label className="font-bold text-base">Cores</Label>
-
-              {/* Color Settings */}
-              {colorSettings.map(({ key, label }) => (
-                   <div key={key} className="flex items-center justify-between">
-                       <Label htmlFor={`color-${key}`}>{label}</Label>
-                       <div className="flex items-center gap-2">
-                           <span className="text-sm font-mono text-muted-foreground">{theme.colors[key]?.toUpperCase() || ''}</span>
-                           <Input
-                               id={`color-${key}`}
-                               type="color"
-                               value={theme.colors[key] || '#000000'}
-                               onChange={(e) => handleColorChange(key, e.target.value)}
-                               className="w-10 h-10 p-1"
-                           />
-                       </div>
-                   </div>
-              ))}
-          </div>
-          <div className="pt-4 border-t">
-              <Button variant="ghost" onClick={resetTheme}>Restaurar Padrão Original</Button>
-          </div>
-      </div>
-    );
-};
-
-
-export function SettingsDialog({
-  isOpen,
-  onOpenChange,
-  scaleConfig,
-  onScaleConfigChange,
-  onSave,
-}: SettingsDialogProps) {
 
   const handleSaveAndClose = () => {
-    onSave(); // This will save network settings and trigger reconnect
+    onSave();
     onOpenChange(false);
+  };
+
+  const renderActiveCategory = () => {
+    switch (activeCategory) {
+      case "appearance":
+        return <AppearanceSettings />;
+      case "network":
+        return <NetworkSettings scaleConfig={scaleConfig} onScaleConfigChange={onScaleConfigChange} />;
+      case "catalog":
+        return <MaterialCatalogSettings />;
+      case "backup":
+        return <BridgeBackupSettings />;
+      case "printing":
+        return <PrintingSettings />;
+      case "instructions":
+        return <UsageInstructionsSettings />;
+      default:
+        return <AppearanceSettings />;
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
-        <ScrollArea className="max-h-[80vh] pr-6">
-            <AppearanceSettings />
-            <Separator className="my-8"/>
-            <NetworkSettings scaleConfig={scaleConfig} onScaleConfigChange={onScaleConfigChange} />
-        </ScrollArea>
-        <DialogFooter className="pr-6 pt-4">
-          <Button onClick={handleSaveAndClose}>Salvar e Fechar</Button>
-        </DialogFooter>
+      <DialogContent className="left-0 top-0 z-50 h-screen h-[100svh] w-screen max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none border-0 p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:left-[50%] sm:top-[50%] sm:h-[90vh] sm:w-[min(95vw,80rem)] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border sm:p-6">
+        <div className="grid h-full min-h-0 grid-cols-1 gap-3 md:grid-cols-[240px_minmax(0,1fr)] md:gap-4">
+          <aside className="rounded-lg border border-border p-2">
+            <nav className="flex gap-1 overflow-x-auto pb-1 md:grid md:grid-cols-1 md:gap-1 md:overflow-visible md:pb-0">
+              {categories.map((category) => (
+                <Button
+                  key={category.id}
+                  type="button"
+                  variant="ghost"
+                  className={cn(
+                    "shrink-0 justify-start whitespace-nowrap md:w-full",
+                    activeCategory === category.id && "bg-muted font-semibold text-foreground",
+                  )}
+                  onClick={() => setActiveCategory(category.id)}
+                >
+                  {category.label}
+                </Button>
+              ))}
+            </nav>
+          </aside>
+
+          <div className="min-h-0 overflow-y-auto pr-1 pb-4 touch-pan-y md:pr-2">
+            {renderActiveCategory()}
+          </div>
+        </div>
+
+        <div className="border-t border-border/60 bg-background/95 pt-2">
+          <Button
+            onClick={handleSaveAndClose}
+            className="w-full shadow-lg md:ml-auto md:w-auto"
+          >
+            Salvar e Fechar
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

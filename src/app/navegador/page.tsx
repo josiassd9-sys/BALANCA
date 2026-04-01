@@ -1,17 +1,43 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, RotateCw, Globe, Home, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 export default function NavegadorPage() {
-  const [url, setUrl] = useState("https://www.google.com/search?q=psinox");
+  const [url, setUrl] = useState("https://www.google.com");
   const [inputUrl, setInputUrl] = useState("https://www.google.com");
   const [iframeKey, setIframeKey] = useState(0);
+
+  const normalizeUrl = (value?: string) => {
+    const raw = (value || "").trim();
+    if (!raw) return "https://www.google.com";
+    return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const queryUrl = params.get("url");
+
+    let savedConfigUrl = "";
+    try {
+      const savedConfigRaw = localStorage.getItem("scaleConfig");
+      if (savedConfigRaw) {
+        const parsed = JSON.parse(savedConfigRaw);
+        savedConfigUrl = parsed?.browserUrl || "";
+      }
+    } catch {
+      // ignora leitura inválida do localStorage e segue com fallback
+    }
+
+    const initialUrl = normalizeUrl(queryUrl || savedConfigUrl);
+    setUrl(initialUrl);
+    setInputUrl(initialUrl);
+    setIframeKey((prev) => prev + 1);
+  }, []);
 
   const handleGo = (e: React.FormEvent) => {
     e.preventDefault();

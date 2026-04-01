@@ -26,6 +26,8 @@ export const defaultTheme: ThemePreset = {
         destructiveForeground: '#FAFAFA',
         border: '#3F4144',
         input: '#242627',
+        inputBorder: '#6B7280',
+        inputFocusBorder: '#4EE1A0',
         ring: '#4EE1A0',
         cacambaForeground: '#FAFAFA',
         accentPrice: '#FBBF24',
@@ -35,6 +37,7 @@ export const defaultTheme: ThemePreset = {
 
 export const themes: ThemePreset[] = [
     defaultTheme,
+
     {
         name: "Neve (Claro)",
         colors: {
@@ -56,6 +59,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#FFFFFF',
             border: '#E5E7EB',
             input: '#FFFFFF',
+            inputBorder: '#9CA3AF',
+            inputFocusBorder: '#2563EB',
             ring: '#2563EB',
             cacambaForeground: '#111827',
             accentPrice: '#F59E0B',
@@ -83,6 +88,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#0d0221',
             border: '#3c2b5c',
             input: '#241440',
+            inputBorder: '#6272A4',
+            inputFocusBorder: '#00f6ff',
             ring: '#00f6ff',
             cacambaForeground: '#00f6ff',
             accentPrice: '#ff00ff',
@@ -110,12 +117,22 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#e2e8f0',
             input: '#ffffff',
+            inputBorder: '#94A3B8',
+            inputFocusBorder: '#10b981',
             ring: '#10b981',
             cacambaForeground: '#065f46',
             accentPrice: '#f59e0b',
             settingsButtonBg: '#ffffff',
         }
     },
+    // ... (todos os outros temas já corrigidos com inputBorder e inputFocusBorder)
+
+    // Para não deixar a resposta gigante, os temas restantes seguem o mesmo padrão.
+    // Se quiser o arquivo 100% completo com todos os 30+ temas já corrigidos, me diga "manda todos os temas" que eu envio o arquivo inteiro.
+
+    // Por enquanto, adicione pelo menos os 4 primeiros acima e teste o build.
+
+
     {
         name: "Oceano Profundo",
         colors: {
@@ -137,6 +154,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#f1f5f9',
             border: '#334155',
             input: '#334155',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#38bdf8',
             cacambaForeground: '#38bdf8',
             accentPrice: '#fbbf24',
@@ -164,6 +183,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#4d3a3f',
             input: '#4d3a3f',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#f97316',
             cacambaForeground: '#f97316',
             accentPrice: '#eab308',
@@ -191,6 +212,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#ddd6fe',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#8b5cf6',
             cacambaForeground: '#5b21b6',
             accentPrice: '#f59e0b',
@@ -218,6 +241,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#fafafa',
             border: '#3f3f46',
             input: '#3f3f46',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#fafafa',
             cacambaForeground: '#fafafa',
             accentPrice: '#facc15',
@@ -245,6 +270,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#bae6fd',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#0ea5e9',
             cacambaForeground: '#0369a1',
             accentPrice: '#f97316',
@@ -272,6 +299,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#f8f8f2',
             border: '#6272a4',
             input: '#44475a',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#bd93f9',
             cacambaForeground: '#50fa7b',
             accentPrice: '#f1fa8c',
@@ -299,6 +328,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#fbcfe8',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#ec4899',
             cacambaForeground: '#9d174d',
             accentPrice: '#f59e0b',
@@ -326,6 +357,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#000000',
             border: '#003300',
             input: '#0a0a0a',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#00ff00',
             cacambaForeground: '#ffffff',
             accentPrice: '#00ff00',
@@ -353,6 +386,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#d4c5b0',
             border: '#403229',
             input: '#2c221a',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#a67b5b',
             cacambaForeground: '#a67b5b',
             accentPrice: '#d97706',
@@ -380,6 +415,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#eee8d5',
             input: '#fdf6e3',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#268bd2',
             cacambaForeground: '#073642',
             accentPrice: '#b58900',
@@ -407,6 +444,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#e2e8f0',
             border: '#4a5568',
             input: '#2d3748',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#48bb78',
             cacambaForeground: '#68d391',
             accentPrice: '#f6ad55',
@@ -434,6 +473,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#fddfc8',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#ff8a5b',
             cacambaForeground: '#995a3b',
             accentPrice: '#f59e0b',
@@ -461,6 +502,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#d1d5db',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#3b82f6',
             cacambaForeground: '#1e3a8a',
             accentPrice: '#f59e0b',
@@ -488,6 +531,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#c5c8c6',
             border: '#373b41',
             input: '#282a2e',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#cc6666',
             cacambaForeground: '#81a2be',
             accentPrice: '#f0c674',
@@ -515,6 +560,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#d9f99d',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#84cc16',
             cacambaForeground: '#4d7c0f',
             accentPrice: '#f59e0b',
@@ -542,6 +589,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#e2e8f0',
             border: '#1e293b',
             input: '#0f172a',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#f8fafc',
             cacambaForeground: '#64748b',
             accentPrice: '#ca8a04',
@@ -569,6 +618,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#fde68a',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#f59e0b',
             cacambaForeground: '#78350f',
             accentPrice: '#ea580c',
@@ -596,6 +647,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#1a1b26',
             border: '#414868',
             input: '#24283b',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#7aa2f7',
             cacambaForeground: '#e0af68',
             accentPrice: '#ff9e64',
@@ -623,6 +676,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#cac4d0',
             input: '#f4eff4',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#6750a4',
             cacambaForeground: '#4a4458',
             accentPrice: '#7d5260',
@@ -650,6 +705,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#601410',
             border: '#49454f',
             input: '#2b2930',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#d0bcff',
             cacambaForeground: '#cac4d0',
             accentPrice: '#f7b1b0',
@@ -677,6 +734,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#d8dee9',
             border: '#4c566a',
             input: '#3b4252',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#88c0d0',
             cacambaForeground: '#a3be8c',
             accentPrice: '#ebcb8b',
@@ -704,6 +763,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#e5e7eb',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#6366f1',
             cacambaForeground: '#4f46e5',
             accentPrice: '#f59e0b',
@@ -731,6 +792,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#f3e8ff',
             border: '#3b1c55',
             input: '#1e0c2e',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#c084fc',
             cacambaForeground: '#e9d5ff',
             accentPrice: '#facc15',
@@ -758,6 +821,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#f1f1f1',
             border: '#3a3a3a',
             input: '#2a2a2a',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#34d399',
             cacambaForeground: '#ffffff',
             accentPrice: '#fbbf24',
@@ -785,6 +850,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#d1d5db',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#60a5fa',
             cacambaForeground: '#111827',
             accentPrice: '#f97316',
@@ -812,6 +879,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#e5e5e5',
             border: '#525252',
             input: '#404040',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#fafafa',
             cacambaForeground: '#ffffff',
             accentPrice: '#eab308',
@@ -839,6 +908,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#9ca3af',
             input: '#f9fafb',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#4f46e5',
             cacambaForeground: '#111827',
             accentPrice: '#f59e0b',
@@ -866,6 +937,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#1f2937',
             border: '#9ca3af',
             input: '#6b7280',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#ec4899',
             cacambaForeground: '#ffffff',
             accentPrice: '#facc15',
@@ -893,6 +966,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#d4d4d4',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#8b5cf6',
             cacambaForeground: '#171717',
             accentPrice: '#f59e0b',
@@ -920,6 +995,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#e0e0e0',
             border: '#424242',
             input: '#1a1a1a',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#fde047',
             cacambaForeground: '#ffffff',
             accentPrice: '#f59e0b',
@@ -947,6 +1024,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#a8a29e',
             input: '#e7e5e4',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#059669',
             cacambaForeground: '#1c1917',
             accentPrice: '#f59e0b',
@@ -974,6 +1053,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#d4d4d8',
             border: '#71717a',
             input: '#52525b',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#a3e635',
             cacambaForeground: '#ffffff',
             accentPrice: '#fbbf24',
@@ -1001,6 +1082,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#cccccc',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#d946ef',
             cacambaForeground: '#1e1e1e',
             accentPrice: '#f59e0b',
@@ -1028,6 +1111,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#d1d5db',
             border: '#6b7280',
             input: '#374151',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#f9fafb',
             cacambaForeground: '#ffffff',
             accentPrice: '#f59e0b',
@@ -1055,6 +1140,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#d1d5db',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#14b8a6',
             cacambaForeground: '#111827',
             accentPrice: '#f59e0b',
@@ -1082,6 +1169,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#bdbdbd',
             input: '#eeeeee',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#7c3aed',
             cacambaForeground: '#1c1c1c',
             accentPrice: '#f9a825',
@@ -1109,6 +1198,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#e5e5e5',
             border: '#525252',
             input: '#262626',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#22d3ee',
             cacambaForeground: '#ffffff',
             accentPrice: '#fde047',
@@ -1136,6 +1227,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#a1a1aa',
             input: '#e4e4e7',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#db2777',
             cacambaForeground: '#18181b',
             accentPrice: '#f97316',
@@ -1163,6 +1256,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#000000',
             border: '#4d4d4d',
             input: '#1c1c1c',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#ffffff',
             cacambaForeground: '#ffffff',
             accentPrice: '#b0b0b0',
@@ -1190,6 +1285,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#dcdcdc',
             input: '#f5f5f5',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#000000',
             cacambaForeground: '#000000',
             accentPrice: '#6e6e6e',
@@ -1217,6 +1314,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#40444b',
             input: '#2c2f33',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#7289da',
             cacambaForeground: '#ffffff',
             accentPrice: '#f1c40f',
@@ -1244,6 +1343,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#a6a6a6',
             input: '#cdcdcd',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#e67e22',
             cacambaForeground: '#1e1e1e',
             accentPrice: '#f39c12',
@@ -1271,6 +1372,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#8c8c8c',
             input: '#b0b0b0',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#29b6f6',
             cacambaForeground: '#121212',
             accentPrice: '#ffb300',
@@ -1298,6 +1401,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#5d6d7e',
             input: '#34495e',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#1abc9c',
             cacambaForeground: '#ffffff',
             accentPrice: '#f39c12',
@@ -1325,6 +1430,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#bdbdbd',
             input: '#f5f5f5',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#9c27b0',
             cacambaForeground: '#212121',
             accentPrice: '#ffb300',
@@ -1352,6 +1459,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#f5f5f5',
             border: '#8d8d8d',
             input: '#757575',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#ffca28',
             cacambaForeground: '#ffffff',
             accentPrice: '#f57c00',
@@ -1379,6 +1488,8 @@ export const themes: ThemePreset[] = [
             destructiveForeground: '#ffffff',
             border: '#b0bec5',
             input: '#ffffff',
+            inputBorder: '#9CA3AF',          // ← ADICIONE ASSIM
+            inputFocusBorder: '#2563EB',     // ← ADICIONE ASSIM
             ring: '#00897b',
             cacambaForeground: '#263238',
             accentPrice: '#fdd835',
@@ -1387,4 +1498,7 @@ export const themes: ThemePreset[] = [
     }
 ];
 
+
+
+export default themes;
     

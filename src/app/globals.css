@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -26,32 +25,210 @@
     --ring-hsl: 158 44% 55%;
     --cacamba-foreground-hsl: 0 0% 98%;
     --accent-price-hsl: 38 95% 55%;
-    --radius: 0.5rem;
+    --liquid-total-hsl: 38 95% 55%;
+    --radius: 0.8rem;
+    --shadow-strength-scale: 1;
+    --motion-strength-scale: 1;
+    --input-depth-scale: 1;
+    --shadow-surface: inset 0 1px 0 hsl(0 0% 100% / 0.08), inset 0 -1px 0 hsl(0 0% 0% / 0.35), 0 4px 10px hsl(240 30% 4% / 0.35);
+    --shadow-button: inset 0 1px 0 hsl(0 0% 100% / 0.2), inset 0 -1px 0 hsl(0 0% 0% / 0.35), 0 4px 8px hsl(240 30% 4% / 0.35);
+    --shadow-button-active: inset 0 1px 0 hsl(0 0% 100% / 0.14), inset 0 -1px 0 hsl(0 0% 0% / 0.42), 0 2px 4px hsl(240 30% 4% / 0.3);
+    --shadow-chip: inset 0 1px 0 hsl(0 0% 100% / 0.08), inset 0 -1px 0 hsl(0 0% 0% / 0.3), 0 3px 8px hsl(240 30% 4% / 0.35);
+    --shadow-display: inset 0 1px 0 hsl(0 0% 100% / 0.08), inset 0 0 16px hsl(158 88% 56% / 0.13), 0 6px 14px hsl(240 35% 4% / 0.4);
+    --display-glow: 0 0 8px hsl(158 96% 56% / 0.45), 0 0 2px hsl(158 96% 56% / 0.5);
+    --motion-duration-base: 200ms;
+    --motion-duration: calc(var(--motion-duration-base) * var(--motion-strength-scale));
+    --motion-ease: ease-out;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="tel"],
+  input[inputmode="decimal"],
+  input {
+    border: 1px solid hsl(var(--input-border-hsl, 240 5% 50%)) !important;
+    background-color: hsl(var(--input-hsl)) !important;
+    box-shadow:
+      inset 0 calc(0.5px + (1px * var(--input-depth-scale, 1))) calc(2px + (4px * var(--input-depth-scale, 1))) hsl(0 0% 100% / 0.06),
+      inset 0 calc((-0.5px) - (1px * var(--input-depth-scale, 1))) calc(2px + (4px * var(--input-depth-scale, 1))) hsl(0 0% 0% / 0.24) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+  }
+
+  input:hover {
+    border-color: hsl(var(--input-border-hsl, 240 5% 60%)) !important;
+  }
+
+  input:focus {
+    border-color: hsl(var(--input-focus-border-hsl, 158 44% 55%)) !important;
+    box-shadow:
+      0 0 0 calc(2px + (2px * var(--input-depth-scale, 1))) hsl(var(--input-focus-border-hsl, 158 44% 55%) / 0.3),
+      inset 0 calc(0.5px + (1px * var(--input-depth-scale, 1))) calc(2px + (4px * var(--input-depth-scale, 1))) hsl(0 0% 100% / 0.08),
+      inset 0 calc((-0.5px) - (1px * var(--input-depth-scale, 1))) calc(2px + (4px * var(--input-depth-scale, 1))) hsl(0 0% 0% / 0.28) !important;
+    outline: none !important;
+  }
+
+  .WeightInput input {
+    border: 1px solid hsl(var(--input-border-hsl, 240 5% 50%)) !important;
+  }
 }
 
+html[data-motion-variant='none'] {
+  --motion-duration-base: 0ms;
+  --motion-ease: linear;
+}
+
+html[data-motion-variant='snappy'] {
+  --motion-duration-base: 150ms;
+  --motion-ease: ease-out;
+}
+
+html[data-motion-variant='smooth'] {
+  --motion-duration-base: 200ms;
+  --motion-ease: ease-out;
+}
+
+html[data-motion-variant='gentle'] {
+  --motion-duration-base: 300ms;
+  --motion-ease: ease-in-out;
+}
+
+html[data-shadow-intensity='none'] {
+  --shadow-surface: none;
+  --shadow-button: none;
+  --shadow-button-active: none;
+  --shadow-chip: none;
+  --shadow-display: none;
+  --display-glow: none;
+}
+
+html[data-shadow-intensity='soft'] {
+  --shadow-surface: inset 0 1px 0 hsl(0 0% 100% / 0.06), inset 0 -1px 0 hsl(0 0% 0% / 0.24), 0 2px 6px hsl(240 30% 4% / 0.22);
+  --shadow-button: inset 0 1px 0 hsl(0 0% 100% / 0.14), inset 0 -1px 0 hsl(0 0% 0% / 0.26), 0 2px 5px hsl(240 30% 4% / 0.24);
+  --shadow-button-active: inset 0 1px 0 hsl(0 0% 100% / 0.12), inset 0 -1px 0 hsl(0 0% 0% / 0.3), 0 1px 2px hsl(240 30% 4% / 0.2);
+  --shadow-chip: inset 0 1px 0 hsl(0 0% 100% / 0.06), inset 0 -1px 0 hsl(0 0% 0% / 0.22), 0 2px 6px hsl(240 30% 4% / 0.24);
+  --shadow-display: inset 0 1px 0 hsl(0 0% 100% / 0.06), inset 0 0 10px hsl(158 88% 56% / 0.08), 0 3px 8px hsl(240 35% 4% / 0.28);
+  --display-glow: 0 0 5px hsl(158 96% 56% / 0.25), 0 0 1px hsl(158 96% 56% / 0.3);
+}
+
+html[data-shadow-intensity='strong'] {
+  --shadow-surface: inset 0 1px 0 hsl(0 0% 100% / 0.1), inset 0 -1px 0 hsl(0 0% 0% / 0.4), 0 8px 16px hsl(240 30% 4% / 0.45);
+  --shadow-button: inset 0 1px 0 hsl(0 0% 100% / 0.24), inset 0 -1px 0 hsl(0 0% 0% / 0.42), 0 8px 14px hsl(240 30% 4% / 0.44);
+  --shadow-button-active: inset 0 1px 0 hsl(0 0% 100% / 0.16), inset 0 -1px 0 hsl(0 0% 0% / 0.5), 0 3px 6px hsl(240 30% 4% / 0.35);
+  --shadow-chip: inset 0 1px 0 hsl(0 0% 100% / 0.1), inset 0 -1px 0 hsl(0 0% 0% / 0.36), 0 6px 14px hsl(240 30% 4% / 0.42);
+  --shadow-display: inset 0 1px 0 hsl(0 0% 100% / 0.1), inset 0 0 22px hsl(158 88% 56% / 0.2), 0 10px 20px hsl(240 35% 4% / 0.5);
+  --display-glow: 0 0 12px hsl(158 96% 56% / 0.52), 0 0 3px hsl(158 96% 56% / 0.6);
+}
+
+html[data-shadow-intensity='extreme'] {
+  --shadow-surface: inset 0 1px 0 hsl(0 0% 100% / 0.12), inset 0 -1px 0 hsl(0 0% 0% / 0.48), 0 12px 24px hsl(240 30% 4% / 0.58);
+  --shadow-button: inset 0 1px 0 hsl(0 0% 100% / 0.28), inset 0 -1px 0 hsl(0 0% 0% / 0.5), 0 12px 22px hsl(240 30% 4% / 0.56);
+  --shadow-button-active: inset 0 1px 0 hsl(0 0% 100% / 0.2), inset 0 -1px 0 hsl(0 0% 0% / 0.58), 0 4px 10px hsl(240 30% 4% / 0.46);
+  --shadow-chip: inset 0 1px 0 hsl(0 0% 100% / 0.12), inset 0 -1px 0 hsl(0 0% 0% / 0.44), 0 10px 20px hsl(240 30% 4% / 0.54);
+  --shadow-display: inset 0 1px 0 hsl(0 0% 100% / 0.12), inset 0 0 26px hsl(158 88% 56% / 0.24), 0 14px 28px hsl(240 35% 4% / 0.62);
+  --display-glow: 0 0 16px hsl(158 96% 56% / 0.62), 0 0 5px hsl(158 96% 56% / 0.72);
+}
 
 @media print {
   body {
     background: white !important;
     color: black !important;
   }
-  #printable-ticket-body, #scale-calculator-printable-area {
+
+  #printable-ticket-body,
+  #scale-calculator-printable-area {
     h1, h2, h3, h4, div, label, input, span, p, th, td {
       color: black !important;
     }
     input {
-      border: 1px solid #ccc !important;
+      border: 1px solid #666 !important;
       background: #f9f9f9 !important;
     }
+  }
+}
+
+@layer components {
+  .surface-3d {
+    background-image: linear-gradient(
+      180deg,
+      hsl(var(--card-hsl) / 0.94) 0%,
+      hsl(var(--card-hsl) / 0.84) 100%
+    );
+    box-shadow:
+      var(--shadow-surface),
+      0 calc(2px * var(--shadow-strength-scale, 1)) calc(10px * var(--shadow-strength-scale, 1)) hsl(240 30% 4% / 0.22);
+    border-color: hsl(var(--border-hsl) / 0.85);
+  }
+
+  .button-3d {
+    box-shadow:
+      var(--shadow-button),
+      0 calc(2px * var(--shadow-strength-scale, 1)) calc(8px * var(--shadow-strength-scale, 1)) hsl(240 30% 4% / 0.2);
+    transition-property: transform, filter, box-shadow;
+    transition-duration: var(--motion-duration);
+    transition-timing-function: var(--motion-ease);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .button-3d {
+      transition: none;
+    }
+  }
+
+  .button-3d:active {
+    box-shadow:
+      var(--shadow-button-active),
+      0 calc(1px * var(--shadow-strength-scale, 1)) calc(4px * var(--shadow-strength-scale, 1)) hsl(240 30% 4% / 0.22);
+    transform: translateY(1px);
+  }
+
+  .icon-chip {
+    background-image: linear-gradient(
+      180deg,
+      hsl(var(--card-hsl) / 0.95) 0%,
+      hsl(var(--card-hsl) / 0.78) 100%
+    );
+    box-shadow:
+      var(--shadow-chip),
+      0 calc(2px * var(--shadow-strength-scale, 1)) calc(8px * var(--shadow-strength-scale, 1)) hsl(240 30% 4% / 0.2);
+    transition-property: transform, filter, box-shadow, background-color;
+    transition-duration: var(--motion-duration);
+    transition-timing-function: var(--motion-ease);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .icon-chip {
+      transition: none;
+    }
+  }
+
+  .real-display {
+    position: relative;
+    border: 1px solid hsl(158 20% 26% / 0.95);
+    background:
+      radial-gradient(120% 120% at 10% 5%, hsl(160 35% 18% / 0.45), transparent 40%),
+      linear-gradient(180deg, hsl(160 28% 10%) 0%, hsl(160 34% 6%) 100%);
+    box-shadow: var(--shadow-display);
+  }
+
+  .real-display::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    pointer-events: none;
+    border-radius: 0.45rem;
+    background: linear-gradient(180deg, hsl(0 0% 100% / 0.1), transparent 26%);
+  }
+
+  .display-number {
+    font-variant-numeric: tabular-nums;
+    text-shadow: var(--display-glow);
   }
 }
