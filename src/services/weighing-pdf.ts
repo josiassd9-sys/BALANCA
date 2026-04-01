@@ -510,18 +510,26 @@ async function ensurePdfTekoFont(doc: jsPDF): Promise<void> {
 
   try {
     const response = await fetch(TEKO_PUBLIC_PATH);
-    if (!response.ok) return;
+    if (!response.ok) {
+      console.warn('Failed to fetch Teko font, will use fallback');
+      return;
+    }
 
     const fontBuffer = await response.arrayBuffer();
     const fontBase64 = arrayBufferToBase64(fontBuffer);
 
-    if (!fontBase64) return;
+    if (!fontBase64) {
+      console.warn('Failed to encode Teko font to base64');
+      return;
+    }
 
     doc.addFileToVFS(TEKO_VFS_FILE, fontBase64);
     doc.addFont(TEKO_VFS_FILE, 'teko', 'normal');
     doc.addFont(TEKO_VFS_FILE, 'teko', 'bold');
     tekoFontRegistered = true;
-  } catch {
+    console.log('Teko font registered successfully');
+  } catch (error) {
+    console.error('Error registering Teko font:', error);
     // Mantem fallback padrao quando a fonte nao estiver disponivel.
   }
 }

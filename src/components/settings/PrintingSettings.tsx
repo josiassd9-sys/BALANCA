@@ -466,12 +466,12 @@ export function PrintingSettings() {
         setSummary: {
           ...base.setSummary,
           discountTopSpacing: 3,
-          totalTopSpacing: 3,
+          totalTopSpacing: 6,
           sectionBottomSpacing: 5,
         },
         grandTotal: {
           ...base.grandTotal,
-          topSpacing: 0,
+          topSpacing: 5,
           textTopSpacing: 3,
         },
       };
