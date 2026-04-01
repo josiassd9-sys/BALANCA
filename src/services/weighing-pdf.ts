@@ -366,6 +366,7 @@ export async function generateWeighingPdf({
     doc.text(`${discountLabel}: -${formatNumber(set.descontoCacamba, true)} kg`, 190, discountY, { align: 'right' });
 
     const totalY = discountY + printConfig.setSummary.totalTopSpacing;
+    setPdfFont(doc, printConfig.setSummary.fontFamily, 'bold');
     doc.text(
       `${totalLabel}: ${formatNumber(
         set.items.reduce((acc, i) => acc + i.liquido, 0) - set.descontoCacamba,

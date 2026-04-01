@@ -300,6 +300,18 @@ export function normalizePrintLayoutConfig(input?: Partial<PrintLayoutConfig>): 
   const setSummaryInput: Partial<PrintSetSummaryConfig> = input?.setSummary || {};
   const grandTotalInput: Partial<PrintGrandTotalConfig> = input?.grandTotal || {};
 
+  const normalizedGrandTotalShowSeparator = sanitizeBoolean(
+    grandTotalInput.showSeparator,
+    defaultPrintLayoutConfig.grandTotal.showSeparator
+  );
+  const normalizedGrandTotalTextTopSpacing = sanitizeSpacing(
+    grandTotalInput.textTopSpacing,
+    defaultPrintLayoutConfig.grandTotal.textTopSpacing
+  );
+  const safeGrandTotalTextTopSpacing = normalizedGrandTotalShowSeparator
+    ? Math.max(6, normalizedGrandTotalTextTopSpacing)
+    : normalizedGrandTotalTextTopSpacing;
+
   return {
     logo: {
       text: sanitizeText(logoInput.text, defaultPrintLayoutConfig.logo.text),
@@ -409,10 +421,10 @@ export function normalizePrintLayoutConfig(input?: Partial<PrintLayoutConfig>): 
       valueFontFamily: sanitizeFontFamily(grandTotalInput.valueFontFamily),
       valueFontSize: sanitizeFontSize(grandTotalInput.valueFontSize, defaultPrintLayoutConfig.grandTotal.valueFontSize),
       valueFontStyle: sanitizeFontStyle(grandTotalInput.valueFontStyle),
-      showSeparator: sanitizeBoolean(grandTotalInput.showSeparator, defaultPrintLayoutConfig.grandTotal.showSeparator),
+      showSeparator: normalizedGrandTotalShowSeparator,
       separatorLineWidth: sanitizeLineWidth(grandTotalInput.separatorLineWidth, defaultPrintLayoutConfig.grandTotal.separatorLineWidth),
       topSpacing: sanitizeSpacing(grandTotalInput.topSpacing, defaultPrintLayoutConfig.grandTotal.topSpacing),
-      textTopSpacing: sanitizeSpacing(grandTotalInput.textTopSpacing, defaultPrintLayoutConfig.grandTotal.textTopSpacing),
+      textTopSpacing: safeGrandTotalTextTopSpacing,
     },
   };
 }

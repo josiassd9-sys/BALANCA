@@ -117,6 +117,11 @@ type PrintPresetId = "classic-professional" | "technical-dotted" | "minimal-clea
 
 const printPresetOptions: Array<{ value: PrintPresetId; label: string; description: string }> = [
   {
+    value: "layout-josias",
+    label: "Layout Josias",
+    description: "Logo Teko ampliado, sem fundo no cabecalho, sem linhas verticais e espacamento compacto.",
+  },
+  {
     value: "classic-professional",
     label: "Profissional Classico",
     description: "Grade continua equilibrada e cabecalho destacado.",
@@ -135,11 +140,6 @@ const printPresetOptions: Array<{ value: PrintPresetId; label: string; descripti
     value: "industrial-square",
     label: "Industrial Square",
     description: "Logo com estilo quadrado e tabela industrial.",
-  },
-  {
-    value: "layout-josias",
-    label: "Layout Josias",
-    description: "Logo Teko ampliado, sem fundo no cabecalho, sem linhas verticais e espacamento compacto.",
   },
 ];
 
@@ -472,7 +472,7 @@ export function PrintingSettings() {
         grandTotal: {
           ...base.grandTotal,
           topSpacing: 5,
-          textTopSpacing: 3,
+          textTopSpacing: 7,
         },
       };
     }
