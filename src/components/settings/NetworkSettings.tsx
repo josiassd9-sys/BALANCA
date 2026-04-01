@@ -162,7 +162,11 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
   };
 
   const handleTestTcpConnection = async (): Promise<boolean> => {
-    const host = (scaleConfig.tcpHost || scaleConfig.host).trim();
+    let host = (scaleConfig.tcpHost || scaleConfig.host).trim();
+    // Se tcpHost for localhost ou 127.0.0.1, usar o mesmo IP do HTTP
+    if (host === "127.0.0.1" || host === "localhost" || !host) {
+      host = (scaleConfig.host || "192.168.18.13").trim();
+    }
     const tcpPort = Number(scaleConfig.tcpPort);
 
     if (!host || !Number.isFinite(tcpPort) || tcpPort <= 0) {

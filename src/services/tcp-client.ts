@@ -25,13 +25,20 @@ export class TcpClientService {
   /**
    * Attempt to open a TCP connection. If host/port are provided we use them,
    * otherwise we fall back to the static configuration object.
+   * If tcpHost is localhost or 127.0.0.1, we use the main host instead.
    */
   async connect(overrides?: { host?: string; port?: number }): Promise<void> {
     if (!Capacitor.isNativePlatform()) {
       throw new Error('TCP client not available on this platform');
     }
-    const host = overrides?.host ?? SCALE_CONFIG.tcpHost;
+    let host = overrides?.host ?? SCALE_CONFIG.tcpHost;
     const port = overrides?.port ?? SCALE_CONFIG.tcpPort;
+    
+    // Se tcpHost for localhost ou 127.0.0.1, usar o host principal
+    if (host === '127.0.0.1' || host === 'localhost' || !host) {
+      host = SCALE_CONFIG.tcpHost || '192.168.18.13';
+    }
+    
     if (!host || !port) {
       throw new Error('Host and port must be provided for TCP connection');
     }
