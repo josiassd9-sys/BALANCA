@@ -26,17 +26,23 @@ export function ScaleCalculatorFooter({
   currentSessionId,
   compactMode = false,
 }: ScaleCalculatorFooterProps) {
+  const totalIsNegative = grandTotalLiquido < 0;
+
   return (
     <div className="flex-shrink-0 bg-background border-t border-border/60 print:hidden">
-      <Card className="surface-3d bg-liquid-total/10 border-liquid-total/15 print:border print:border-liquid-total print:shadow-none print:p-0.5 text-liquid-total">
+      <Card className="surface-3d bg-card/90 border-border/60 print:border print:border-border print:shadow-none print:p-0.5 text-foreground">
         <CardContent className={compactMode ? "p-2.5 flex items-center justify-between" : "p-3.5 flex items-center justify-between"}>
-          <div className={compactMode ? "flex flex-col text-xs font-semibold leading-tight" : "flex flex-col text-sm font-semibold leading-tight"}>
+          <div className={compactMode ? "flex flex-col text-xs font-semibold leading-tight text-muted-foreground" : "flex flex-col text-sm font-semibold leading-tight text-muted-foreground"}>
             <span>PESO</span>
             <span>LÍQUIDO</span>
             <span>TOTAL</span>
           </div>
 
-          <p className={compactMode ? "text-2xl font-bold print:text-black text-right" : "text-4xl font-bold print:text-black text-right"}>
+          <p
+            className={compactMode
+              ? `text-2xl font-extrabold print:text-black text-right ${totalIsNegative ? 'text-destructive' : 'text-foreground'}`
+              : `text-4xl font-extrabold print:text-black text-right ${totalIsNegative ? 'text-destructive' : 'text-foreground'}`}
+          >
             {new Intl.NumberFormat('pt-BR').format(grandTotalLiquido)} kg
           </p>
         </CardContent>

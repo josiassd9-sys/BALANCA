@@ -68,11 +68,11 @@ export function ScaleCalculatorTopBar({
         </div>
       )}
 
-      <div className={cn("pt-1 pb-1.5 text-center", compactMode && "max-sm:hidden")}>
+      <div className={cn("pt-0.5 pb-1 text-center", compactMode && "max-sm:hidden")}>
         <h2
-          className="font-bold"
+          className="font-semibold tracking-tight text-foreground/95"
           style={{
-            fontSize: `${titleFontSize}px`,
+            fontSize: `${Math.max(18, Math.round(titleFontSize * 0.9))}px`,
             fontFamily: `'${titleFontFamily}', sans-serif`,
           }}
         >
