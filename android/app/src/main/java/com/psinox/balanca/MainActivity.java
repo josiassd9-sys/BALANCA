@@ -10,10 +10,11 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        // registra o plugin TCP
+        // Os plugins devem ser registrados ANTES de super.onCreate()
+        // para que o Capacitor bridge os inclua na inicialização.
         registerPlugin(TcpClientPlugin.class);
         registerPlugin(FolderOpenerPlugin.class);
+
+        super.onCreate(savedInstanceState);
     }
 }
