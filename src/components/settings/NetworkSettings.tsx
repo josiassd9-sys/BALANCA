@@ -450,23 +450,25 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
           />
         </div>
 
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="scale-ip" className="text-right">
+        <div className="grid grid-cols-4 items-start gap-4">
+          <Label htmlFor="scale-ip" className="text-right pt-2">
             Host (IP)
           </Label>
-          <Input
-            id="scale-ip"
-            value={scaleConfig.host}
-            onChange={(e) =>
-              onScaleConfigChange({
-                ...scaleConfig,
-                host: e.target.value,
-                tcpHost: e.target.value,
-              })
-            }
-            className="col-span-3"
-            placeholder="Ex: 192.168.18.8"
-          />
+          <div className="col-span-3 space-y-1">
+            <Input
+              id="scale-ip"
+              value={scaleConfig.host}
+              onChange={(e) =>
+                onScaleConfigChange({
+                  ...scaleConfig,
+                  host: e.target.value,
+                  tcpHost: e.target.value,
+                })
+              }
+              placeholder="Ex: 192.168.18.8"
+            />
+            <p className="text-xs text-muted-foreground">Aplicado automaticamente no HTTP, WebSocket e TCP.</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-4 items-center gap-4">
