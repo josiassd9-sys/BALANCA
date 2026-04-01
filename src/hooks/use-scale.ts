@@ -347,21 +347,24 @@ export function useScale() {
       const saved = localStorage.getItem('scaleConfig');
       if (saved) {
         const parsed = JSON.parse(saved);
-        const resolvedHost = parsed.host || prev.host;
-        const rawTcpHost = parsed.tcpHost || parsed.host || prev.tcpHost;
-        const resolvedTcpHost =
-          rawTcpHost === '127.0.0.1' || rawTcpHost === 'localhost'
-            ? resolvedHost
-            : rawTcpHost;
-        setConfig((prev) => ({
-          ...prev,
-          host: resolvedHost,
-          wsPort: parsed.wsPort || prev.wsPort,
-          httpPort: parsed.httpPort || prev.httpPort,
-          tcpHost: resolvedTcpHost,
-          tcpPort: parsed.tcpPort || prev.tcpPort,
-          browserUrl: parsed.browserUrl || prev.browserUrl,
-        }));
+        setConfig((prev) => {
+          const resolvedHost = parsed.host || prev.host;
+          const rawTcpHost = parsed.tcpHost || parsed.host || prev.tcpHost;
+          const resolvedTcpHost =
+            rawTcpHost === '127.0.0.1' || rawTcpHost === 'localhost'
+              ? resolvedHost
+              : rawTcpHost;
+
+          return {
+            ...prev,
+            host: resolvedHost,
+            wsPort: parsed.wsPort || prev.wsPort,
+            httpPort: parsed.httpPort || prev.httpPort,
+            tcpHost: resolvedTcpHost,
+            tcpPort: parsed.tcpPort || prev.tcpPort,
+            browserUrl: parsed.browserUrl || prev.browserUrl,
+          };
+        });
       }
     } catch (e) {
       console.error("Erro ao ler scaleConfig do localStorage", e);
