@@ -30,11 +30,11 @@
     --shadow-strength-scale: 1;
     --motion-strength-scale: 1;
     --input-depth-scale: 1;
-    --shadow-surface: inset 0 1px 0 hsl(0 0% 100% / 0.08), inset 0 -1px 0 hsl(0 0% 0% / 0.35), 0 4px 10px hsl(240 30% 4% / 0.35);
-    --shadow-button: inset 0 1px 0 hsl(0 0% 100% / 0.2), inset 0 -1px 0 hsl(0 0% 0% / 0.35), 0 4px 8px hsl(240 30% 4% / 0.35);
-    --shadow-button-active: inset 0 1px 0 hsl(0 0% 100% / 0.14), inset 0 -1px 0 hsl(0 0% 0% / 0.42), 0 2px 4px hsl(240 30% 4% / 0.3);
-    --shadow-chip: inset 0 1px 0 hsl(0 0% 100% / 0.08), inset 0 -1px 0 hsl(0 0% 0% / 0.3), 0 3px 8px hsl(240 30% 4% / 0.35);
-    --shadow-display: inset 0 1px 0 hsl(0 0% 100% / 0.08), inset 0 0 16px hsl(158 88% 56% / 0.13), 0 6px 14px hsl(240 35% 4% / 0.4);
+    --shadow-surface: inset 0 1px 0 hsl(0 0% 100% / 0.06), inset 0 -1px 0 hsl(0 0% 0% / 0.24), 0 2px 6px hsl(240 30% 4% / 0.22);
+    --shadow-button: inset 0 1px 0 hsl(0 0% 100% / 0.14), inset 0 -1px 0 hsl(0 0% 0% / 0.26), 0 2px 5px hsl(240 30% 4% / 0.24);
+    --shadow-button-active: inset 0 1px 0 hsl(0 0% 100% / 0.12), inset 0 -1px 0 hsl(0 0% 0% / 0.3), 0 1px 2px hsl(240 30% 4% / 0.2);
+    --shadow-chip: inset 0 1px 0 hsl(0 0% 100% / 0.06), inset 0 -1px 0 hsl(0 0% 0% / 0.22), 0 2px 6px hsl(240 30% 4% / 0.24);
+    --shadow-display: inset 0 1px 0 hsl(0 0% 100% / 0.06), inset 0 0 10px hsl(158 88% 56% / 0.08), 0 3px 8px hsl(240 35% 4% / 0.28);
     --display-glow: 0 0 8px hsl(158 96% 56% / 0.45), 0 0 2px hsl(158 96% 56% / 0.5);
     --motion-duration-base: 200ms;
     --motion-duration: calc(var(--motion-duration-base) * var(--motion-strength-scale));
@@ -163,14 +163,14 @@ html[data-shadow-intensity='extreme'] {
     );
     box-shadow:
       var(--shadow-surface),
-      0 calc(2px * var(--shadow-strength-scale, 1)) calc(10px * var(--shadow-strength-scale, 1)) hsl(240 30% 4% / 0.22);
-    border-color: hsl(var(--border-hsl) / 0.85);
+      0 calc(1px * var(--shadow-strength-scale, 1)) calc(6px * var(--shadow-strength-scale, 1)) hsl(240 30% 4% / 0.16);
+    border-color: hsl(var(--border-hsl) / 0.7);
   }
 
   .button-3d {
     box-shadow:
       var(--shadow-button),
-      0 calc(2px * var(--shadow-strength-scale, 1)) calc(8px * var(--shadow-strength-scale, 1)) hsl(240 30% 4% / 0.2);
+      0 calc(1px * var(--shadow-strength-scale, 1)) calc(6px * var(--shadow-strength-scale, 1)) hsl(240 30% 4% / 0.16);
     transition-property: transform, filter, box-shadow;
     transition-duration: var(--motion-duration);
     transition-timing-function: var(--motion-ease);
@@ -185,7 +185,7 @@ html[data-shadow-intensity='extreme'] {
   .button-3d:active {
     box-shadow:
       var(--shadow-button-active),
-      0 calc(1px * var(--shadow-strength-scale, 1)) calc(4px * var(--shadow-strength-scale, 1)) hsl(240 30% 4% / 0.22);
+      0 calc(1px * var(--shadow-strength-scale, 1)) calc(3px * var(--shadow-strength-scale, 1)) hsl(240 30% 4% / 0.18);
     transform: translateY(1px);
   }
 

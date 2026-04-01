@@ -751,7 +751,7 @@ const handleFinalizeWithPdf = async () => {
     />
 
     {/* ==================== MEIO ROLÁVEL ==================== */}
-    <div className="js-scale-scroll-area flex-1 overflow-y-auto print:overflow-visible p-px">
+    <div className="js-scale-scroll-area flex-1 overflow-y-auto print:overflow-visible px-2 py-2 sm:px-2.5 sm:py-2.5">
       
       {/* Card Cliente / Motorista / Placa / Peso Inicial */}
       <ScaleSessionHeaderCard
@@ -793,12 +793,12 @@ const handleFinalizeWithPdf = async () => {
       })}
 
       {/* Botão Adicionar Caçamba */}
-      <div className="flex justify-center my-px print:hidden">
+      <div className="flex justify-center my-2 print:hidden">
         <Button
           variant="secondary"
           onClick={addNewSet}
           size="sm"
-          className="button-3d h-9 px-3 sm:px-4 text-xs sm:text-sm font-semibold border border-border/70"
+          className="button-3d h-10 rounded-xl px-4 sm:px-5 text-sm font-semibold border border-border/60"
         >
           <Tractor className="mr-2 h-4 w-4" /> + Adicionar Caçamba
         </Button>

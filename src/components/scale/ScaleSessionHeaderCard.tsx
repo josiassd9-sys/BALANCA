@@ -61,17 +61,17 @@ export function ScaleSessionHeaderCard({
   };
 
   return (
-    <Card className="surface-3d mb-px print:border-none print:shadow-none print:p-0">
-      <CardContent className="p-0">
-        <div className="w-full space-y-0.5">
-          <div className="flex justify-between items-end pb-0.5">
+    <Card className="surface-3d mb-2 print:border-none print:shadow-none print:p-0">
+      <CardContent className="p-2 sm:p-2.5">
+        <div className="w-full space-y-1">
+          <div className="flex justify-between items-end pb-1">
             <Label htmlFor="cliente" className="font-semibold text-sm md:text-base">Cliente</Label>
             <div className="flex items-center text-sm text-muted-foreground font-medium">
               <span className="w-28 text-center">{initialLabel}</span>
               <span className="w-28 text-center">{finalLabel}</span>
             </div>
           </div>
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1">
             <div className="relative">
               <Input
                 id="cliente"
@@ -85,7 +85,7 @@ export function ScaleSessionHeaderCard({
             </div>
             <span className="hidden print:block print:text-black">{headerData.client || 'N/A'}</span>
 
-            <div className="flex w-full items-end gap-0.5 text-xs sm:text-sm flex-nowrap">
+            <div className="flex w-full items-end gap-1 text-xs sm:text-sm flex-nowrap">
               <div className="space-y-px flex-1 min-w-0">
                 <Label htmlFor="motorista" className="text-xs sm:text-sm">Motorista</Label>
                 <div className="relative">

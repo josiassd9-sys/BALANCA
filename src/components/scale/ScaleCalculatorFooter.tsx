@@ -27,9 +27,9 @@ export function ScaleCalculatorFooter({
   compactMode = false,
 }: ScaleCalculatorFooterProps) {
   return (
-    <div className="flex-shrink-0 bg-background border-t print:hidden">
-      <Card className="surface-3d bg-liquid-total/10 border-liquid-total/20 print:border print:border-liquid-total print:shadow-none print:p-0.5 text-liquid-total">
-        <CardContent className={compactMode ? "p-2 flex items-center justify-between" : "p-3 flex items-center justify-between"}>
+    <div className="flex-shrink-0 bg-background border-t border-border/60 print:hidden">
+      <Card className="surface-3d bg-liquid-total/10 border-liquid-total/15 print:border print:border-liquid-total print:shadow-none print:p-0.5 text-liquid-total">
+        <CardContent className={compactMode ? "p-2.5 flex items-center justify-between" : "p-3.5 flex items-center justify-between"}>
           <div className={compactMode ? "flex flex-col text-xs font-semibold leading-tight" : "flex flex-col text-sm font-semibold leading-tight"}>
             <span>PESO</span>
             <span>LÍQUIDO</span>
@@ -42,7 +42,7 @@ export function ScaleCalculatorFooter({
         </CardContent>
       </Card>
 
-      <div className={compactMode ? "print:hidden px-3 pt-1 pb-1 border-t bg-background" : "print:hidden px-4 pt-2 pb-2 border-t bg-background"}>
+      <div className={compactMode ? "print:hidden px-3 pt-1.5 pb-1.5 border-t border-border/50 bg-background" : "print:hidden px-4 pt-2.5 pb-2.5 border-t border-border/50 bg-background"}>
         <div className="flex items-center justify-between max-w-md mx-auto gap-2">
           <TooltipProvider>
             <Tooltip>
@@ -51,7 +51,7 @@ export function ScaleCalculatorFooter({
                   onClick={onClear}
                   variant="outline"
                   size="icon"
-                  className={compactMode ? "button-3d h-10 w-10 flex-1 flex flex-col items-center justify-center gap-0.5 text-xs active:scale-95 transition-transform" : "button-3d h-12 w-12 flex-1 flex flex-col items-center justify-center gap-0.5 text-xs active:scale-95 transition-transform"}
+                  className={compactMode ? "button-3d h-10 w-10 flex-1 rounded-xl border border-border/60 flex flex-col items-center justify-center gap-0.5 text-xs active:scale-95 transition-transform" : "button-3d h-12 w-12 flex-1 rounded-xl border border-border/60 flex flex-col items-center justify-center gap-0.5 text-xs active:scale-95 transition-transform"}
                 >
                   <Trash2 className="h-5 w-5" />
                   <span className={compactMode ? "hidden" : "text-[10px] opacity-75"}>Limpar</span>
@@ -66,7 +66,7 @@ export function ScaleCalculatorFooter({
                   onClick={onSave}
                   variant="outline"
                   size="icon"
-                  className={compactMode ? "button-3d h-10 w-10 flex-1 flex flex-col items-center justify-center gap-0.5 text-xs active:scale-95 transition-transform" : "button-3d h-12 w-12 flex-1 flex flex-col items-center justify-center gap-0.5 text-xs active:scale-95 transition-transform"}
+                  className={compactMode ? "button-3d h-10 w-10 flex-1 rounded-xl border border-border/60 flex flex-col items-center justify-center gap-0.5 text-xs active:scale-95 transition-transform" : "button-3d h-12 w-12 flex-1 rounded-xl border border-border/60 flex flex-col items-center justify-center gap-0.5 text-xs active:scale-95 transition-transform"}
                 >
                   <Save className="h-5 w-5" />
                   <span className={compactMode ? "hidden" : "text-[10px] opacity-75"}>Salvar</span>
@@ -82,7 +82,7 @@ export function ScaleCalculatorFooter({
                     onClick={onFinalize}
                     variant="default"
                     size="icon"
-                    className={compactMode ? "button-3d h-10 w-10 flex-1 flex flex-col items-center justify-center gap-0.5 text-xs bg-green-600 hover:bg-green-700 active:scale-95 transition-transform" : "button-3d h-12 w-12 flex-1 flex flex-col items-center justify-center gap-0.5 text-xs bg-green-600 hover:bg-green-700 active:scale-95 transition-transform"}
+                    className={compactMode ? "button-3d h-10 w-10 flex-1 rounded-xl border border-green-500/70 flex flex-col items-center justify-center gap-0.5 text-xs bg-green-600 hover:bg-green-700 active:scale-95 transition-transform" : "button-3d h-12 w-12 flex-1 rounded-xl border border-green-500/70 flex flex-col items-center justify-center gap-0.5 text-xs bg-green-600 hover:bg-green-700 active:scale-95 transition-transform"}
                   >
                     <CheckCircle className="h-5 w-5" />
                     <span className={compactMode ? "hidden" : "text-[10px] opacity-75"}>Finalizar</span>
@@ -99,7 +99,7 @@ export function ScaleCalculatorFooter({
                     onClick={onOpenFinalizedList}
                     variant="default"
                     size="icon"
-                    className={compactMode ? "button-3d h-10 w-10 flex-1 flex flex-col items-center justify-center gap-0.5 text-xs bg-blue-600 hover:bg-blue-700 active:scale-95 transition-transform" : "button-3d h-12 w-12 flex-1 flex flex-col items-center justify-center gap-0.5 text-xs bg-blue-600 hover:bg-blue-700 active:scale-95 transition-transform"}
+                    className={compactMode ? "button-3d h-10 w-10 flex-1 rounded-xl border border-blue-500/70 flex flex-col items-center justify-center gap-0.5 text-xs bg-blue-600 hover:bg-blue-700 active:scale-95 transition-transform" : "button-3d h-12 w-12 flex-1 rounded-xl border border-blue-500/70 flex flex-col items-center justify-center gap-0.5 text-xs bg-blue-600 hover:bg-blue-700 active:scale-95 transition-transform"}
                   >
                     <FolderOpen className="h-5 w-5" />
                     <span className={compactMode ? "hidden" : "text-[10px] opacity-75"}>Lista FIN</span>
@@ -115,7 +115,7 @@ export function ScaleCalculatorFooter({
                   onClick={onPrint}
                   variant="outline"
                   size="icon"
-                  className={compactMode ? "button-3d h-10 w-10 flex-1 flex flex-col items-center justify-center gap-0.5 text-xs active:scale-95 transition-transform" : "button-3d h-12 w-12 flex-1 flex flex-col items-center justify-center gap-0.5 text-xs active:scale-95 transition-transform"}
+                  className={compactMode ? "button-3d h-10 w-10 flex-1 rounded-xl border border-border/60 flex flex-col items-center justify-center gap-0.5 text-xs active:scale-95 transition-transform" : "button-3d h-12 w-12 flex-1 rounded-xl border border-border/60 flex flex-col items-center justify-center gap-0.5 text-xs active:scale-95 transition-transform"}
                 >
                   <Printer className="h-5 w-5" />
                   <span className={compactMode ? "hidden" : "text-[10px] opacity-75"}>Imprimir</span>

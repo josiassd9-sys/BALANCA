@@ -148,7 +148,7 @@ export function WeighingSessionsDropdown({
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          className="surface-3d flex items-center gap-2 min-w-[200px] justify-between border-border/70"
+          className="surface-3d flex items-center gap-2 min-w-[200px] justify-between rounded-xl border-border/60"
           title={`Atual: ${getCurrentSessionName()} • Clique para iniciar/selecionar uma pesagem`}
         >
           <span className="truncate max-w-[150px] font-medium">Abrir lista</span>
@@ -167,7 +167,7 @@ export function WeighingSessionsDropdown({
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" className="surface-3d w-[320px] border-border/70">
+      <DropdownMenuContent align="start" className="surface-3d w-[320px] rounded-xl border-border/60 p-1">
         <DropdownMenuItem onClick={handleNewSessionRequest} className="flex items-center gap-2 cursor-pointer rounded-md focus:bg-accent/70">
           <Plus className="h-4 w-4 text-green-500" />
           <span className="font-medium">Nova Pesagem</span>

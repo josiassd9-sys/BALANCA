@@ -92,8 +92,8 @@ export function WeighingSetCard({
   };
 
   return (
-    <Card className="surface-3d mb-px print:border-none print:shadow-none print:p-0 print:mb-0.5">
-      <CardHeader className="p-px flex flex-row items-center justify-between print:p-0 print:mb-0.5">
+    <Card className="surface-3d mb-2 print:border-none print:shadow-none print:p-0 print:mb-0.5">
+      <CardHeader className="px-2 py-1.5 flex flex-row items-center justify-between print:p-0 print:mb-0.5">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div className="relative w-full min-w-0 max-w-48">
             <Input
@@ -102,7 +102,7 @@ export function WeighingSetCard({
               onDoubleClick={() => onToggleSetVisibility(set.id)}
               onPointerUp={() => onSetTitlePointerUp(set.id)}
               autoCapitalize="characters"
-              className="text-xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 pr-8 h-auto w-full min-w-0 text-cacamba-foreground"
+              className="text-lg sm:text-xl font-semibold tracking-tight border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 pr-8 h-auto w-full min-w-0 text-cacamba-foreground"
               title={set.showAll ? "Duplo toque para focar no material atual" : "Duplo toque para expandir historico da cacamba"}
             />
             <TooltipProvider>
@@ -164,7 +164,7 @@ export function WeighingSetCard({
                 <Button
                   variant="default"
                   onClick={() => onAddMaterial(set.id)}
-                  className="button-3d h-9 shrink-0 px-3 sm:px-4 text-xs sm:text-sm font-semibold print:hidden bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] transition-all duration-200"
+                  className="button-3d h-9 shrink-0 rounded-xl border border-primary/70 px-3 sm:px-4 text-xs sm:text-sm font-semibold print:hidden bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] transition-all duration-200"
                 >
                   <span className="tracking-wide">Adicionar material</span>
                 </Button>
@@ -180,7 +180,7 @@ export function WeighingSetCard({
           set.isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2500px] opacity-100'
         }`}
       >
-      <CardContent className="p-0 overflow-x-auto">
+      <CardContent className="px-1 pb-1 overflow-x-auto">
         <div className="sm:hidden">
           {visibleItems.map((item) => (
             <div key={item.id} className="border-b p-0.5 space-y-0.5">
@@ -355,7 +355,7 @@ export function WeighingSetCard({
         </Table>
       </CardContent>
 
-      <CardContent className="p-px border-t print:border-t print:border-border print:p-0 print:pt-0.5">
+      <CardContent className="px-2 py-1.5 border-t border-border/55 print:border-t print:border-border print:p-0 print:pt-0.5">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-1">
           <div className="flex items-center justify-end gap-0.5">
             <Label htmlFor={`desconto-cacamba-${set.id}`} className="shrink-0 text-right text-sm md:text-base">Desconto (kg)</Label>
