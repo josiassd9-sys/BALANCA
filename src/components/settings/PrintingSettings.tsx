@@ -431,7 +431,7 @@ export function PrintingSettings() {
           text: "PS INOX",
           fontFamily: "teko",
           fontStyle: "bold",
-          fontSize: base.logo.fontSize * 2,
+          fontSize: base.logo.fontSize * 1.3,
         },
         address: {
           ...base.address,
@@ -450,7 +450,7 @@ export function PrintingSettings() {
           headerSeparatorEnabled: true,
           headerSeparatorStyle: "solid",
           headerSeparatorWidth: 0.5,
-          rowCellPadding: 0.6,
+          rowCellPadding: 1.4,
           rowHorizontalLineMode: "solid",
           rowHorizontalLineWidth: 0.3,
           showVerticalLines: false,
@@ -459,15 +459,15 @@ export function PrintingSettings() {
         },
         setTitle: {
           ...base.setTitle,
-          topSpacingFirstSet: 0,
-          topSpacingNextSets: 0,
+          topSpacingFirstSet: 2,
+          topSpacingNextSets: 8,
           bottomSpacing: 3,
         },
         setSummary: {
           ...base.setSummary,
           discountTopSpacing: 3,
           totalTopSpacing: 3,
-          sectionBottomSpacing: 1,
+          sectionBottomSpacing: 5,
         },
         grandTotal: {
           ...base.grandTotal,
