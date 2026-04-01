@@ -43,6 +43,7 @@ export type PrintTableLinesConfig = {
   headerSeparatorEnabled: boolean;
   headerSeparatorStyle: PrintTableLineStyle;
   headerSeparatorWidth: number;
+  rowCellPadding: number;
   rowHorizontalLineMode: PrintTableLineMode;
   rowHorizontalLineWidth: number;
   showVerticalLines: boolean;
@@ -143,7 +144,12 @@ const sanitizeColor = (value: unknown, fallback: string): string => {
 
 const sanitizeFontSize = (value: unknown, fallback: number): number => {
   if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
-  return clamp(Math.round(value), 8, 48);
+  return clamp(Math.round(value), 8, 72);
+};
+
+const sanitizeCellPadding = (value: unknown, fallback: number): number => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
+  return clamp(Number(value), 0.4, 4);
 };
 
 const sanitizeGap = (value: unknown, fallback: number): number => {
@@ -232,6 +238,7 @@ export const defaultPrintLayoutConfig: PrintLayoutConfig = {
     headerSeparatorEnabled: true,
     headerSeparatorStyle: 'solid',
     headerSeparatorWidth: 0.5,
+    rowCellPadding: 2,
     rowHorizontalLineMode: 'solid',
     rowHorizontalLineWidth: 0.3,
     showVerticalLines: true,
@@ -343,6 +350,10 @@ export function normalizePrintLayoutConfig(input?: Partial<PrintLayoutConfig>): 
       headerSeparatorWidth: sanitizeTableLineWidth(
         tableLinesInput.headerSeparatorWidth,
         defaultPrintLayoutConfig.tableLines.headerSeparatorWidth
+      ),
+      rowCellPadding: sanitizeCellPadding(
+        tableLinesInput.rowCellPadding,
+        defaultPrintLayoutConfig.tableLines.rowCellPadding
       ),
       rowHorizontalLineMode: sanitizeTableLineMode(
         tableLinesInput.rowHorizontalLineMode,

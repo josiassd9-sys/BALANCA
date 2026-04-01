@@ -113,7 +113,7 @@ const lineStyleToBorderStyle = (
   return "solid";
 };
 
-type PrintPresetId = "classic-professional" | "technical-dotted" | "minimal-clean" | "industrial-square";
+type PrintPresetId = "classic-professional" | "technical-dotted" | "minimal-clean" | "industrial-square" | "layout-josias";
 
 const printPresetOptions: Array<{ value: PrintPresetId; label: string; description: string }> = [
   {
@@ -135,6 +135,11 @@ const printPresetOptions: Array<{ value: PrintPresetId; label: string; descripti
     value: "industrial-square",
     label: "Industrial Square",
     description: "Logo com estilo quadrado e tabela industrial.",
+  },
+  {
+    value: "layout-josias",
+    label: "Layout Josias",
+    description: "Logo Teko ampliado, sem fundo no cabecalho, sem linhas verticais e espacamento compacto.",
   },
 ];
 
@@ -414,6 +419,60 @@ export function PrintingSettings() {
           showVerticalLines: true,
           verticalLineStyle: "solid",
           verticalLineWidth: 0.35,
+        },
+      };
+    }
+
+    if (presetId === "layout-josias") {
+      next = {
+        ...base,
+        logo: {
+          ...base.logo,
+          text: "PS INOX",
+          fontFamily: "teko",
+          fontStyle: "bold",
+          fontSize: base.logo.fontSize * 2,
+        },
+        address: {
+          ...base.address,
+          street: "Rua Otorino Ravagnani, 600",
+          district: "Aeroporto",
+          city: "Batatais/SP",
+        },
+        tableHeader: {
+          ...base.tableHeader,
+          showBackground: false,
+          textColor: "#000000",
+        },
+        tableLines: {
+          ...base.tableLines,
+          lineColor: "#000000",
+          headerSeparatorEnabled: true,
+          headerSeparatorStyle: "solid",
+          headerSeparatorWidth: 0.5,
+          rowCellPadding: 0.6,
+          rowHorizontalLineMode: "solid",
+          rowHorizontalLineWidth: 0.3,
+          showVerticalLines: false,
+          verticalLineStyle: "solid",
+          verticalLineWidth: 0.3,
+        },
+        setTitle: {
+          ...base.setTitle,
+          topSpacingFirstSet: 0,
+          topSpacingNextSets: 0,
+          bottomSpacing: 3,
+        },
+        setSummary: {
+          ...base.setSummary,
+          discountTopSpacing: 3,
+          totalTopSpacing: 3,
+          sectionBottomSpacing: 1,
+        },
+        grandTotal: {
+          ...base.grandTotal,
+          topSpacing: 0,
+          textTopSpacing: 3,
         },
       };
     }

@@ -279,7 +279,7 @@ export async function generateWeighingPdf({
       head: [tableHeaderLabels],
       body: tableData,
       theme: 'plain',
-      styles: { fontSize: 9, cellPadding: 2, halign: 'right', lineWidth: 0 },
+      styles: { fontSize: 9, cellPadding: printConfig.tableLines.rowCellPadding, halign: 'right', lineWidth: 0 },
       headStyles: { fillColor: tableHeaderFillColor, textColor: tableHeaderTextColor, fontStyle: 'bold' },
       columnStyles: { 0: { halign: 'left', cellWidth: 80 } },
       margin: { left: 20, right: 20 },
