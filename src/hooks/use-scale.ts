@@ -48,6 +48,7 @@ export function useScale() {
   const suppressWsCloseRef = useRef(false);
   const httpIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const tcpListenerRef = useRef<any>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ======= Novos estados para compatibilidade com bloco menor =======
   const [isConnected, setIsConnected] = useState<boolean>(false);
@@ -67,7 +68,15 @@ export function useScale() {
   // Desconectar todos os tipos
   const disconnect = () => {
     if (tcpListenerRef.current) {
-      tcpListenerRef.current.remove();
+      try {
+        if (typeof tcpListenerRef.current === 'function') {
+          tcpListenerRef.current();
+        } else if (typeof tcpListenerRef.current.remove === 'function') {
+          tcpListenerRef.current.remove();
+        }
+      } catch (err) {
+        console.warn('[useScale] Falha ao remover listener TCP:', err);
+      }
       tcpListenerRef.current = null;
     }
 
@@ -228,10 +237,10 @@ export function useScale() {
     // ===== TCP direto (somente native) =====
     if (Capacitor.isNativePlatform()) {
       if (!tcpHost || !isValidPort(tcpPort)) {
-        setStatus('error');
+        setStatus('disconnected');
         setConnectionType('none');
         setIsConnected(false);
-        setError('Configuração TCP inválida. Verifique host e porta TCP.');
+        setError(null);
         return;
       }
 
@@ -283,10 +292,10 @@ export function useScale() {
     }
 
     if (!host || !isValidPort(wsPort) || !isValidPort(httpPort)) {
-      setStatus('error');
+      setStatus('disconnected');
       setConnectionType('none');
       setIsConnected(false);
-      setError('Configuração de rede inválida. Verifique host e portas WS/HTTP.');
+      setError(null);
       return;
     }
 
@@ -373,8 +382,22 @@ export function useScale() {
 
   // Reconectar se config mudar
   useEffect(() => {
-    disconnect();
-    connect();
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      disconnect();
+      connect();
+    }, 280);
+
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+    };
   }, [config.host, config.wsPort, config.httpPort, config.tcpHost, config.tcpPort]);
 
   // ===== Retorno unificado =====

@@ -21,6 +21,24 @@ function getTcpClient(): TcpClientPlugin | undefined {
   return undefined;
 }
 
+function readLiveScaleConfig(): { tcpHost?: string; tcpPort?: number; host?: string } {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
+  try {
+    const saved = window.localStorage.getItem('scaleConfig');
+    if (!saved) {
+      return {};
+    }
+
+    const parsed = JSON.parse(saved) as { tcpHost?: string; tcpPort?: number; host?: string };
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 export class TcpClientService {
   /**
    * Attempt to open a TCP connection. If host/port are provided we use them,
@@ -31,12 +49,13 @@ export class TcpClientService {
     if (!Capacitor.isNativePlatform()) {
       throw new Error('TCP client not available on this platform');
     }
-    let host = overrides?.host ?? SCALE_CONFIG.tcpHost;
-    const port = overrides?.port ?? SCALE_CONFIG.tcpPort;
+    const liveConfig = readLiveScaleConfig();
+    let host = overrides?.host ?? liveConfig.tcpHost ?? SCALE_CONFIG.tcpHost;
+    const port = overrides?.port ?? liveConfig.tcpPort ?? SCALE_CONFIG.tcpPort;
     
     // Se tcpHost for localhost ou 127.0.0.1, usar o host principal
     if (host === '127.0.0.1' || host === 'localhost' || !host) {
-      host = SCALE_CONFIG.tcpHost || '192.168.18.13';
+      host = liveConfig.host || liveConfig.tcpHost || SCALE_CONFIG.tcpHost || '192.168.18.13';
     }
     
     if (!host || !port) {

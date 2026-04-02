@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Capacitor } from "@capacitor/core";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -17,12 +18,206 @@ interface NetworkSettingsProps {
   onScaleConfigChange: (newConfig: ScaleConfig) => void;
 }
 
+const NETWORK_PREF_KEYS = {
+  ipv4MaskEnabled: "networkSettings.ipv4MaskEnabled",
+  persistTestLogs: "networkSettings.persistTestLogs",
+  testLogs: "networkSettings.testLogs",
+  preferencesExpanded: "networkSettings.preferencesExpanded",
+} as const;
+
+const readBooleanPreference = (key: string, fallback: boolean): boolean => {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (raw === "true") return true;
+    if (raw === "false") return false;
+  } catch {
+    // Ignora falhas de localStorage para não afetar o fluxo principal.
+  }
+  return fallback;
+};
+
+const writePreference = (key: string, value: string): void => {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Ignora falhas de localStorage para não afetar o fluxo principal.
+  }
+};
+
 export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSettingsProps) {
+  const preferencesHydratedRef = useRef(false);
   const [testStatus, setTestStatus] = useState<TestStatus>("idle");
   const [lastProtocol, setLastProtocol] = useState<"HTTP" | "TCP" | "WS" | "ALL" | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const [hostDraft, setHostDraft] = useState<string>(scaleConfig.host || "");
+  const [ipv4MaskEnabled, setIpv4MaskEnabled] = useState<boolean>(true);
+  const [persistTestLogs, setPersistTestLogs] = useState<boolean>(false);
+  const [preferencesExpanded, setPreferencesExpanded] = useState<boolean>(true);
+  const [isHostFocused, setIsHostFocused] = useState<boolean>(false);
+  const [hostBlurFeedback, setHostBlurFeedback] = useState<{ tone: "success" | "warning"; text: string } | null>(null);
+  const [wsPortDraft, setWsPortDraft] = useState<string>(scaleConfig.wsPort != null ? String(scaleConfig.wsPort) : "");
+  const [httpPortDraft, setHttpPortDraft] = useState<string>(scaleConfig.httpPort != null ? String(scaleConfig.httpPort) : "");
+  const [tcpPortDraft, setTcpPortDraft] = useState<string>(scaleConfig.tcpPort != null ? String(scaleConfig.tcpPort) : "");
+  const [focusedPortField, setFocusedPortField] = useState<"ws" | "http" | "tcp" | null>(null);
 
   const isTesting = testStatus === "testing-http" || testStatus === "testing-tcp" || testStatus === "testing-ws";
+
+  useEffect(() => {
+    setHostDraft(scaleConfig.host || "");
+  }, [scaleConfig.host]);
+
+  useEffect(() => {
+    setIpv4MaskEnabled(readBooleanPreference(NETWORK_PREF_KEYS.ipv4MaskEnabled, true));
+    const shouldPersistLogs = readBooleanPreference(NETWORK_PREF_KEYS.persistTestLogs, false);
+    setPersistTestLogs(shouldPersistLogs);
+    setPreferencesExpanded(readBooleanPreference(NETWORK_PREF_KEYS.preferencesExpanded, true));
+
+    if (!shouldPersistLogs) {
+      preferencesHydratedRef.current = true;
+      return;
+    }
+
+    try {
+      const rawLogs = window.localStorage.getItem(NETWORK_PREF_KEYS.testLogs);
+      if (!rawLogs) {
+        return;
+      }
+
+      const parsed = JSON.parse(rawLogs);
+      if (Array.isArray(parsed)) {
+        setLogs(parsed.filter((line) => typeof line === "string"));
+      }
+    } catch {
+      // Ignora falhas de localStorage para não afetar o fluxo principal.
+    }
+
+    preferencesHydratedRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    writePreference(NETWORK_PREF_KEYS.ipv4MaskEnabled, String(ipv4MaskEnabled));
+  }, [ipv4MaskEnabled]);
+
+  useEffect(() => {
+    writePreference(NETWORK_PREF_KEYS.persistTestLogs, String(persistTestLogs));
+  }, [persistTestLogs]);
+
+  useEffect(() => {
+    writePreference(NETWORK_PREF_KEYS.preferencesExpanded, String(preferencesExpanded));
+  }, [preferencesExpanded]);
+
+  useEffect(() => {
+    if (!preferencesHydratedRef.current) {
+      return;
+    }
+
+    if (!persistTestLogs) {
+      try {
+        window.localStorage.removeItem(NETWORK_PREF_KEYS.testLogs);
+      } catch {
+        // Ignora falhas de localStorage para não afetar o fluxo principal.
+      }
+      return;
+    }
+
+    const limitedLogs = logs.slice(0, 120);
+    writePreference(NETWORK_PREF_KEYS.testLogs, JSON.stringify(limitedLogs));
+  }, [persistTestLogs, logs]);
+
+  useEffect(() => {
+    setWsPortDraft(scaleConfig.wsPort != null ? String(scaleConfig.wsPort) : "");
+  }, [scaleConfig.wsPort]);
+
+  useEffect(() => {
+    setHttpPortDraft(scaleConfig.httpPort != null ? String(scaleConfig.httpPort) : "");
+  }, [scaleConfig.httpPort]);
+
+  useEffect(() => {
+    setTcpPortDraft(scaleConfig.tcpPort != null ? String(scaleConfig.tcpPort) : "");
+  }, [scaleConfig.tcpPort]);
+
+  const parsePortDraft = (raw: string): number | undefined => {
+    const digitsOnly = raw.replace(/\D+/g, "");
+    if (!digitsOnly) return undefined;
+
+    const parsed = Number.parseInt(digitsOnly, 10);
+    if (!Number.isFinite(parsed)) return undefined;
+
+    if (parsed < 1 || parsed > 65535) return undefined;
+
+    return parsed;
+  };
+
+  const isPortDraftOutOfRange = (raw: string): boolean => {
+    const digitsOnly = raw.replace(/\D+/g, "");
+    if (!digitsOnly) return false;
+
+    const parsed = Number.parseInt(digitsOnly, 10);
+    if (!Number.isFinite(parsed)) return false;
+
+    return parsed < 1 || parsed > 65535;
+  };
+
+  const normalizeIpv4Draft = (raw: string): string => {
+    if (/[^\d.]/.test(raw)) {
+      // Mantem hostnames e dominios quando houver letras/simbolos validos de host.
+      return raw;
+    }
+
+    const sanitized = raw.replace(/[^\d.]/g, "");
+    let result = "";
+    let currentOctet = "";
+    let dotCount = 0;
+
+    for (const char of sanitized) {
+      if (/\d/.test(char)) {
+        if (currentOctet.length >= 3) {
+          continue;
+        }
+        currentOctet += char;
+        result += char;
+        continue;
+      }
+
+      if (char === ".") {
+        if (!currentOctet || dotCount >= 3) {
+          continue;
+        }
+        result += ".";
+        dotCount += 1;
+        currentOctet = "";
+      }
+    }
+
+    return result;
+  };
+
+  const isCompleteIpv4 = (value: string): boolean => {
+    const v = value.trim();
+    if (!v) return false;
+    const ipv4Regex = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+    return ipv4Regex.test(v);
+  };
+
+  const isLikelyHostnameOrDomain = (value: string): boolean => {
+    const v = value.trim();
+    if (!v) return false;
+    const hostRegex = /^(?=.{1,253}$)(localhost|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)$/;
+    return hostRegex.test(v);
+  };
+
+  const hostHint = (() => {
+    if (!hostDraft.trim()) {
+      return "Aplicado automaticamente no HTTP, WebSocket e TCP.";
+    }
+    if (ipv4MaskEnabled && !isCompleteIpv4(hostDraft)) {
+      return "Mascara IPv4 ativa para entradas numericas; hostnames e dominios seguem liberados.";
+    }
+    if (ipv4MaskEnabled && isCompleteIpv4(hostDraft)) {
+      return "IPv4 valido detectado e propagado em tempo real para os protocolos.";
+    }
+    return "Modo livre: voce pode usar IPv4, hostname ou dominio.";
+  })();
 
   const appendLog = (message: string) => {
     setLogs((prev) => [`[${new Date().toLocaleTimeString()}] ${message}`, ...prev]);
@@ -457,17 +652,80 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
           <div className="col-span-3 space-y-1">
             <Input
               id="scale-ip"
-              value={scaleConfig.host}
-              onChange={(e) =>
+              value={hostDraft}
+              onFocus={() => {
+                setIsHostFocused(true);
+                setHostBlurFeedback(null);
+              }}
+              onBlur={() => {
+                setIsHostFocused(false);
+                const trimmed = hostDraft.trim();
+                if (!trimmed) {
+                  setHostBlurFeedback(null);
+                  return;
+                }
+
+                if (isCompleteIpv4(trimmed) || isLikelyHostnameOrDomain(trimmed)) {
+                  setHostBlurFeedback({ tone: "success", text: "Host válido." });
+                } else {
+                  setHostBlurFeedback({ tone: "warning", text: "Host parece inválido. Verifique IP ou hostname." });
+                }
+              }}
+              onChange={(e) => {
+                const raw = e.target.value;
+                const nextHost = ipv4MaskEnabled ? normalizeIpv4Draft(raw) : raw;
+
+                setHostDraft(nextHost);
                 onScaleConfigChange({
                   ...scaleConfig,
-                  host: e.target.value,
-                  tcpHost: e.target.value,
-                })
-              }
+                  host: nextHost,
+                  tcpHost: nextHost,
+                });
+              }}
               placeholder="Ex: 192.168.18.8"
             />
-            <p className="text-xs text-muted-foreground">Aplicado automaticamente no HTTP, WebSocket e TCP.</p>
+            {isHostFocused ? (
+              <p className={cn("text-xs", ipv4MaskEnabled && hostDraft.trim() && !isCompleteIpv4(hostDraft) ? "text-amber-600" : "text-muted-foreground")}>{hostHint}</p>
+            ) : null}
+            {!isHostFocused && hostBlurFeedback ? (
+              <p className={cn("text-xs", hostBlurFeedback.tone === "success" ? "text-emerald-600" : "text-amber-600")}>{hostBlurFeedback.text}</p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 items-start gap-4">
+          <Label className="text-right pt-2">Preferencias</Label>
+          <div className="col-span-3 rounded-md border border-dashed p-3 space-y-2">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between text-xs font-medium text-foreground"
+              onClick={() => setPreferencesExpanded((prev) => !prev)}
+              aria-expanded={preferencesExpanded}
+              aria-label={preferencesExpanded ? "Ocultar preferencias da tela de rede" : "Mostrar preferencias da tela de rede"}
+            >
+              <span>Preferencias da Tela de Rede</span>
+              {preferencesExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+            {preferencesExpanded ? (
+              <>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={ipv4MaskEnabled}
+                    onChange={(e) => setIpv4MaskEnabled(e.target.checked)}
+                  />
+                  Usar mascara IPv4 suave (opcional)
+                </label>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={persistTestLogs}
+                    onChange={(e) => setPersistTestLogs(e.target.checked)}
+                  />
+                  Persistir logs de teste
+                </label>
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -477,11 +735,24 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
           </Label>
           <Input
             id="ws-port"
-            type="number"
-            value={scaleConfig.wsPort}
-            onChange={(e) => onScaleConfigChange({ ...scaleConfig, wsPort: parseInt(e.target.value, 10) || 0 })}
+            type="text"
+            inputMode="numeric"
+            value={wsPortDraft}
+            onFocus={() => setFocusedPortField("ws")}
+            onBlur={() => setFocusedPortField((prev) => (prev === "ws" ? null : prev))}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setWsPortDraft(raw);
+              onScaleConfigChange({ ...scaleConfig, wsPort: parsePortDraft(raw) });
+            }}
             className="col-span-3"
+            placeholder="Ex: 3001"
           />
+          <div className="col-start-2 col-span-3">
+            {focusedPortField === "ws" && isPortDraftOutOfRange(wsPortDraft) ? (
+              <p className="text-xs text-amber-600">Porta WebSocket deve estar entre 1 e 65535.</p>
+            ) : null}
+          </div>
         </div>
 
         <div className="grid grid-cols-4 items-center gap-4">
@@ -490,11 +761,24 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
           </Label>
           <Input
             id="http-port"
-            type="number"
-            value={scaleConfig.httpPort}
-            onChange={(e) => onScaleConfigChange({ ...scaleConfig, httpPort: parseInt(e.target.value, 10) || 0 })}
+            type="text"
+            inputMode="numeric"
+            value={httpPortDraft}
+            onFocus={() => setFocusedPortField("http")}
+            onBlur={() => setFocusedPortField((prev) => (prev === "http" ? null : prev))}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setHttpPortDraft(raw);
+              onScaleConfigChange({ ...scaleConfig, httpPort: parsePortDraft(raw) });
+            }}
             className="col-span-3"
+            placeholder="Ex: 3000"
           />
+          <div className="col-start-2 col-span-3">
+            {focusedPortField === "http" && isPortDraftOutOfRange(httpPortDraft) ? (
+              <p className="text-xs text-amber-600">Porta HTTP deve estar entre 1 e 65535.</p>
+            ) : null}
+          </div>
         </div>
 
         <div className="grid grid-cols-4 items-center gap-4">
@@ -503,12 +787,24 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
           </Label>
           <Input
             id="tcp-port"
-            type="number"
-            value={scaleConfig.tcpPort ?? 8080}
-            onChange={(e) => onScaleConfigChange({ ...scaleConfig, tcpPort: parseInt(e.target.value, 10) || 0 })}
+            type="text"
+            inputMode="numeric"
+            value={tcpPortDraft}
+            onFocus={() => setFocusedPortField("tcp")}
+            onBlur={() => setFocusedPortField((prev) => (prev === "tcp" ? null : prev))}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setTcpPortDraft(raw);
+              onScaleConfigChange({ ...scaleConfig, tcpPort: parsePortDraft(raw) });
+            }}
             className="col-span-3"
             placeholder="Ex: 8080"
           />
+          <div className="col-start-2 col-span-3">
+            {focusedPortField === "tcp" && isPortDraftOutOfRange(tcpPortDraft) ? (
+              <p className="text-xs text-amber-600">Porta TCP deve estar entre 1 e 65535.</p>
+            ) : null}
+          </div>
         </div>
       </div>
 
