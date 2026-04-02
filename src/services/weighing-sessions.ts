@@ -307,7 +307,7 @@ export function createBlankSession(
   const emptyHeader = { client: '', plate: '', driver: '' };
   const emptySet: WeighingSet = {
     id: generateSessionId(),
-    name: 'CAÇAMBA 1',
+    name: 'CAIXA 1',
     items: [],
     descontoCacamba: 0
   };

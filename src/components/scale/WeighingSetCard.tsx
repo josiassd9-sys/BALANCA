@@ -103,7 +103,7 @@ export function WeighingSetCard({
               onPointerUp={() => onSetTitlePointerUp(set.id)}
               autoCapitalize="characters"
               className="text-lg sm:text-xl font-semibold tracking-tight border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 pr-8 h-auto w-full min-w-0 text-cacamba-foreground"
-              title={set.showAll ? "Duplo toque para focar no material atual" : "Duplo toque para expandir historico da cacamba"}
+              title={set.showAll ? "Duplo toque para focar no material atual" : "Duplo toque para expandir historico da caixa"}
             />
             <TooltipProvider>
               <Tooltip>
@@ -114,13 +114,13 @@ export function WeighingSetCard({
                     type="button"
                     onClick={() => onToggleSetCollapse(set.id)}
                     className="absolute right-0 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground print:hidden"
-                    title={set.isCollapsed ? "Expandir caçamba" : "Recolher caçamba"}
+                    title={set.isCollapsed ? "Expandir caixa" : "Recolher caixa"}
                   >
                     {set.isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{set.isCollapsed ? "Expandir caçamba" : "Recolher caçamba"}</p>
+                  <p>{set.isCollapsed ? "Expandir caixa" : "Recolher caixa"}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -133,7 +133,7 @@ export function WeighingSetCard({
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent><p>Remover Caçamba</p></TooltipContent>
+                <TooltipContent><p>Remover Caixa</p></TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
