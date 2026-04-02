@@ -356,7 +356,7 @@ export function WeighingSetCard({
       </CardContent>
 
       <CardContent className="px-2 py-1.5 border-t border-border/55 print:border-t print:border-border print:p-0 print:pt-0.5">
-        <div className="grid grid-cols-[minmax(9rem,13rem)_minmax(0,1fr)] items-start gap-x-2 gap-y-1 sm:flex sm:items-center sm:justify-end sm:gap-3">
+        <div className="grid grid-cols-[10rem_minmax(0,1fr)] items-start gap-x-2 gap-y-1 sm:flex sm:items-center sm:justify-end sm:gap-3">
           <div className="space-y-0.5 sm:space-y-0 sm:flex sm:items-center sm:gap-1">
             <Label htmlFor={`desconto-cacamba-${set.id}`} className="block text-left text-sm md:text-base sm:text-right">Desconto (kg)</Label>
             <Input
@@ -366,19 +366,17 @@ export function WeighingSetCard({
               placeholder="0"
               value={set.descontoCacamba === 0 ? '' : formatNumber(set.descontoCacamba)}
               onChange={(e) => onCacambaDiscount(set.id, e.target.value)}
-              className="h-8 w-full sm:w-28 text-right print:hidden"
+              className="h-8 w-40 sm:w-28 text-right print:hidden"
             />
             <span className="hidden print:block font-semibold print:text-black">{formatNumber(set.descontoCacamba)}</span>
           </div>
 
-          <div className="min-w-0 text-right space-y-0.5">
-            <div className="flex items-baseline justify-end gap-2 whitespace-nowrap">
-              <p className="text-sm text-muted-foreground">Subtotal</p>
-              <p className="text-lg font-bold tabular-nums print:text-black min-w-[12ch]">{formatNumber(subtotalLiquido)} kg</p>
-            </div>
-            <div className="flex items-baseline justify-end gap-2 whitespace-nowrap">
-              <p className="text-sm text-muted-foreground">{set.name}</p>
-              <p className="text-xl font-bold text-primary tabular-nums print:text-black min-w-[12ch]">{formatNumber(totalLiquidoSet)} kg</p>
+          <div className="min-w-0">
+            <div className="grid grid-cols-[5.5rem_minmax(12ch,1fr)] items-baseline justify-end gap-x-2 gap-y-0.5 whitespace-nowrap text-right">
+              <p className="text-sm text-muted-foreground text-left">Subtotal</p>
+              <p className="text-lg font-bold tabular-nums print:text-black">{formatNumber(subtotalLiquido)} kg</p>
+              <p className="text-sm text-muted-foreground text-left">{set.name}</p>
+              <p className="text-xl font-bold text-primary tabular-nums print:text-black">{formatNumber(totalLiquidoSet)} kg</p>
             </div>
           </div>
         </div>
