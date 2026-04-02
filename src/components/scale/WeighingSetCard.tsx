@@ -356,7 +356,7 @@ export function WeighingSetCard({
       </CardContent>
 
       <CardContent className="px-2 py-1.5 border-t border-border/55 print:border-t print:border-border print:p-0 print:pt-0.5">
-        <div className="grid grid-cols-[calc((100%-0.375rem)/4)_minmax(0,1fr)] items-start gap-x-2 gap-y-1 sm:flex sm:items-center sm:justify-end sm:gap-3">
+        <div className="grid grid-cols-[5rem_minmax(0,1fr)] items-start gap-x-2 gap-y-1 sm:flex sm:items-center sm:justify-end sm:gap-3">
           <div className="space-y-0.5 sm:space-y-0 sm:flex sm:items-center sm:gap-1">
             <Label htmlFor={`desconto-cacamba-${set.id}`} className="block text-left text-sm md:text-base sm:text-right">Desconto (kg)</Label>
             <Input
@@ -366,7 +366,7 @@ export function WeighingSetCard({
               placeholder="0"
               value={set.descontoCacamba === 0 ? '' : formatNumber(set.descontoCacamba)}
               onChange={(e) => onCacambaDiscount(set.id, e.target.value)}
-              className="h-8 w-[calc((100%-0.375rem)/4)] sm:w-28 text-right print:hidden"
+              className="h-8 w-[5rem] sm:w-28 text-right print:hidden"
             />
             <span className="hidden print:block font-semibold print:text-black">{formatNumber(set.descontoCacamba)}</span>
           </div>
