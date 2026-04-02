@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,130 @@ import { formatNumber } from "@/components/scale/format-number";
 import type { OperationType, WeighingItem, WeighingSet } from "@/components/scale/types";
 import { useTheme } from "@/hooks/use-theme";
 import { ChevronDown, ChevronUp, CornerDownLeft, Trash2 } from "lucide-react";
+
+type HslColor = {
+  h: number;
+  s: number;
+  l: number;
+};
+
+const SET_COLOR_VARIANTS = [
+  { hueShift: 0, saturationShift: 0, lightnessShift: 0 },
+  { hueShift: 14, saturationShift: 4, lightnessShift: -4 },
+  { hueShift: -12, saturationShift: 2, lightnessShift: 5 },
+  { hueShift: 22, saturationShift: 6, lightnessShift: -6 },
+  { hueShift: -20, saturationShift: 4, lightnessShift: 4 },
+  { hueShift: 30, saturationShift: 8, lightnessShift: -8 },
+] as const;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeHue(value: number): number {
+  return ((value % 360) + 360) % 360;
+}
+
+function hexToHsl(hex: string): HslColor | null {
+  if (!hex.startsWith('#')) return null;
+
+  let r: number;
+  let g: number;
+  let b: number;
+
+  if (hex.length === 4) {
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  } else if (hex.length === 7) {
+    r = parseInt(hex.slice(1, 3), 16);
+    g = parseInt(hex.slice(3, 5), 16);
+    b = parseInt(hex.slice(5, 7), 16);
+  } else {
+    return null;
+  }
+
+  const red = r / 255;
+  const green = g / 255;
+  const blue = b / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+  let hue = 0;
+  const lightness = (max + min) / 2;
+  const saturation = delta === 0
+    ? 0
+    : delta / (1 - Math.abs(2 * lightness - 1));
+
+  if (delta !== 0) {
+    switch (max) {
+      case red:
+        hue = ((green - blue) / delta) % 6;
+        break;
+      case green:
+        hue = (blue - red) / delta + 2;
+        break;
+      default:
+        hue = (red - green) / delta + 4;
+        break;
+    }
+  }
+
+  return {
+    h: Math.round(normalizeHue(hue * 60)),
+    s: Math.round(saturation * 100),
+    l: Math.round(lightness * 100),
+  };
+}
+
+function toHslString(color: HslColor, alpha?: number): string {
+  if (typeof alpha === 'number') {
+    return `hsl(${color.h} ${color.s}% ${color.l}% / ${alpha})`;
+  }
+
+  return `hsl(${color.h} ${color.s}% ${color.l}%)`;
+}
+
+function getSetAccentColor(primaryHex: string, setIndex: number): HslColor {
+  const base = hexToHsl(primaryHex) ?? { h: 158, s: 44, l: 55 };
+  const variant = SET_COLOR_VARIANTS[setIndex % SET_COLOR_VARIANTS.length];
+
+  return {
+    h: normalizeHue(base.h + variant.hueShift),
+    s: clamp(base.s + variant.saturationShift, 24, 88),
+    l: clamp(base.l + variant.lightnessShift, 36, 68),
+  };
+}
+
+function getAccentForeground(color: HslColor): string {
+  return color.l >= 60 ? 'hsl(var(--card-hsl))' : 'hsl(var(--primary-foreground-hsl))';
+}
+
+function hashString(value: string): number {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash;
+}
+
+function getMaterialAccentColor(materialName: string, baseColor: HslColor): HslColor | null {
+  const normalizedMaterial = materialName.trim().toUpperCase();
+  if (!normalizedMaterial) return null;
+
+  const hash = hashString(normalizedMaterial);
+  const hueOffset = (hash % 15) - 7;
+  const saturationOffset = (hash % 7) - 3;
+  const lightnessOffset = ((hash >> 3) % 9) - 4;
+
+  return {
+    h: normalizeHue(baseColor.h + hueOffset),
+    s: clamp(baseColor.s + saturationOffset, 24, 86),
+    l: clamp(baseColor.l + lightnessOffset, 34, 72),
+  };
+}
 
 type WeighingSetCardProps = {
   set: WeighingSet;
@@ -54,6 +179,8 @@ export function WeighingSetCard({
   onCacambaDiscount,
 }: WeighingSetCardProps) {
   const { theme } = useTheme();
+  const accentColor = getSetAccentColor(theme.colors.primary, setIndex);
+  const accentForeground = getAccentForeground(accentColor);
   const subtotalLiquido = set.items.reduce((acc, item) => acc + item.liquido, 0);
   const totalLiquidoSet = subtotalLiquido - set.descontoCacamba;
   const visibleItems = set.showAll ? set.items : set.items.slice(-1);
@@ -64,6 +191,16 @@ export function WeighingSetCard({
     gentle: 'transition-all duration-300 ease-in-out',
   } as const;
   const collapseAnimationClass = animationClassesByVariant[theme.collapseAnimationVariant] || animationClassesByVariant.smooth;
+  const setAccentStyle = {
+    '--set-accent-color': toHslString(accentColor),
+    '--set-accent-glow': toHslString(accentColor, 0.14),
+    '--set-accent-surface': toHslString(accentColor, 0.18),
+    '--set-accent-border': toHslString(accentColor, 0.34),
+    '--set-accent-outline': toHslString(accentColor, 0.12),
+    '--set-accent-button-border': toHslString(accentColor, 0.72),
+    '--set-accent-button-outline': toHslString(accentColor, 0.18),
+    '--set-accent-foreground': accentForeground,
+  } as CSSProperties;
 
   const focusLatestMaterialInput = (): boolean => {
     const selector = `input[id^="material-${set.id}-"]`;
@@ -92,7 +229,7 @@ export function WeighingSetCard({
   };
 
   return (
-    <Card className="surface-3d mb-2 print:border-none print:shadow-none print:p-0 print:mb-0.5">
+    <Card className="surface-3d set-accent-card mb-2 print:border-none print:shadow-none print:p-0 print:mb-0.5" style={setAccentStyle}>
       <CardHeader className="px-2 py-1.5 flex flex-row items-center justify-between print:p-0 print:mb-0.5">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div className="relative w-full min-w-0 max-w-48">
@@ -102,7 +239,7 @@ export function WeighingSetCard({
               onDoubleClick={() => onToggleSetVisibility(set.id)}
               onPointerUp={() => onSetTitlePointerUp(set.id)}
               autoCapitalize="characters"
-              className="text-lg sm:text-xl font-semibold tracking-tight border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 pr-8 h-auto w-full min-w-0 text-cacamba-foreground"
+              className="set-accent-title text-lg sm:text-xl font-semibold tracking-tight border-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent p-0 pr-8 h-auto w-full min-w-0 text-cacamba-foreground print:!text-black"
               title={set.showAll ? "Duplo toque para focar no material atual" : "Duplo toque para expandir historico da caixa"}
             />
             <TooltipProvider>
@@ -164,7 +301,7 @@ export function WeighingSetCard({
                 <Button
                   variant="default"
                   onClick={() => onAddMaterial(set.id)}
-                  className="button-3d h-9 shrink-0 rounded-xl border border-primary/70 px-3 sm:px-4 text-xs sm:text-sm font-semibold print:hidden bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] transition-all duration-200"
+                  className="button-3d set-accent-button h-9 shrink-0 rounded-xl border px-3 sm:px-4 text-xs sm:text-sm font-semibold print:hidden hover:brightness-110 active:scale-[0.98] transition-all duration-200"
                 >
                   <span className="tracking-wide">Adicionar material</span>
                 </Button>
@@ -182,8 +319,18 @@ export function WeighingSetCard({
       >
       <CardContent className="px-1 pb-1 overflow-x-auto">
         <div className="sm:hidden">
-          {visibleItems.map((item) => (
-            <div key={item.id} className="border-b p-0.5 space-y-0.5">
+          {visibleItems.map((item) => {
+            const materialAccentColor = getMaterialAccentColor(item.material, accentColor);
+            const materialRowStyle = materialAccentColor
+              ? {
+                  '--material-accent-border': toHslString(materialAccentColor, 0.54),
+                  '--material-accent-surface-strong': toHslString(materialAccentColor, 0.08),
+                  '--material-accent-surface-soft': toHslString(materialAccentColor, 0.03),
+                }
+              : undefined;
+
+            return (
+            <div key={item.id} className="material-accent-row border-b p-0.5 space-y-0.5" style={materialRowStyle as CSSProperties | undefined}>
               {(() => {
                 const brutoId = `bruto-${set.id}-${item.id}`;
                 const taraId = `tara-${set.id}-${item.id}`;
@@ -261,7 +408,8 @@ export function WeighingSetCard({
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <Table className="hidden sm:table table-fixed">
@@ -276,8 +424,18 @@ export function WeighingSetCard({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visibleItems.map((item) => (
-              <TableRow key={item.id} className="print:text-black">
+            {visibleItems.map((item) => {
+              const materialAccentColor = getMaterialAccentColor(item.material, accentColor);
+              const materialRowStyle = materialAccentColor
+                ? {
+                    '--material-accent-border': toHslString(materialAccentColor, 0.52),
+                    '--material-accent-surface-strong': toHslString(materialAccentColor, 0.08),
+                    '--material-accent-surface-soft': toHslString(materialAccentColor, 0.025),
+                  }
+                : undefined;
+
+              return (
+              <TableRow key={item.id} className="material-accent-row print:text-black" style={materialRowStyle as CSSProperties | undefined}>
                 <TableCell className="font-medium p-0 sm:p-px">
                   {(() => {
                     const brutoId = `bruto-${set.id}-${item.id}`;
@@ -350,7 +508,8 @@ export function WeighingSetCard({
                   </TooltipProvider>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>
@@ -376,7 +535,7 @@ export function WeighingSetCard({
               <p className="text-sm text-muted-foreground text-left">Subtotal</p>
               <p className="text-lg font-bold tabular-nums print:text-black">{formatNumber(subtotalLiquido)} kg</p>
               <p className="text-sm text-muted-foreground text-left">{set.name}</p>
-              <p className="text-xl font-bold text-primary tabular-nums print:text-black">{formatNumber(totalLiquidoSet)} kg</p>
+              <p className="set-accent-title text-xl font-bold tabular-nums print:!text-black">{formatNumber(totalLiquidoSet)} kg</p>
             </div>
           </div>
         </div>
