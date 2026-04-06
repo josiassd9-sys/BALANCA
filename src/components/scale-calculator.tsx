@@ -30,7 +30,7 @@ import {
 } from "@/services/weighing-sessions";
 
 const initialItem: WeighingItem = { id: '', material: '', bruto: 0, tara: 0, descontos: 0, liquido: 0, locked: false };
-const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CAIXA 1", items: [], descontoCacamba: 0, showAll: false, isCollapsed: false };
+const initialWeighingSet: WeighingSet = { id: uuidv4(), name: "CX 1", items: [], descontoCacamba: 0, showAll: false, isCollapsed: false };
 
 const ScaleCalculator = forwardRef((props, ref) => {
   const router = useRouter();
@@ -90,7 +90,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
     const newId = uuidv4();
     const newWeighingSet: WeighingSet = { ...initialWeighingSet, id: newId, items: [], isCollapsed: false };
     
-    setWeighingSets([{...newWeighingSet, name: 'CAIXA 1', items: []}]);
+    setWeighingSets([{...newWeighingSet, name: 'CX 1', items: []}]);
     setActiveSetId(newId);
     setHeaderData({ client: "", plate: "", driver: "" });
     setOperationType('loading');
@@ -327,7 +327,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
     const newSetNumber = weighingSets.length + 1;
     const newSet: WeighingSet = {
         id: uuidv4(),
-        name: `CAIXA ${newSetNumber}`,
+        name: `CX ${newSetNumber}`,
         items: [],
       descontoCacamba: 0,
       showAll: false,
@@ -348,14 +348,14 @@ const ScaleCalculator = forwardRef((props, ref) => {
         const newSets = prev.filter(s => s.id !== setId);
         if (newSets.length === 0) {
             const newId = uuidv4();
-            const renumberedSets = [{ ...initialWeighingSet, id: newId, name: 'CAIXA 1', items: [] }];
+            const renumberedSets = [{ ...initialWeighingSet, id: newId, name: 'CX 1', items: [] }];
             setActiveSetId(newId);
             return renumberedSets;
         }
         
         const renumberedSets = newSets.map((s, index) => ({
             ...s,
-            name: `CAIXA ${index + 1}`
+            name: `CX ${index + 1}`
         }));
         
         if (activeSetId === setId) {
