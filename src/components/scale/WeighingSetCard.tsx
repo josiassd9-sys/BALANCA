@@ -10,7 +10,7 @@ import { WeightInput } from "@/components/scale/WeightInput";
 import { formatNumber } from "@/components/scale/format-number";
 import type { OperationType, WeighingItem, WeighingSet } from "@/components/scale/types";
 import { useTheme } from "@/hooks/use-theme";
-import { ChevronDown, ChevronUp, CornerDownLeft, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, CornerDownLeft, Scale as ScaleIcon, Trash2 } from "lucide-react";
 
 type HslColor = {
   h: number;
@@ -515,7 +515,7 @@ export function WeighingSetCard({
       </CardContent>
 
       <CardContent className="px-2 py-1.5 border-t border-border/55 print:border-t print:border-border print:p-0 print:pt-0.5">
-        <div className="grid grid-cols-[5.2rem_minmax(0,1fr)] items-start gap-x-2 gap-y-1 sm:flex sm:items-center sm:justify-end sm:gap-3">
+        <div className="grid grid-cols-[5.2rem_3.8rem_minmax(0,1fr)] items-stretch gap-x-2 gap-y-1 sm:flex sm:items-center sm:justify-end sm:gap-3">
           <div className="space-y-0.5 sm:space-y-0 sm:flex sm:items-center sm:gap-1">
             <Label htmlFor={`desconto-cacamba-${set.id}`} className="block text-left text-sm md:text-base sm:text-right">Desc (kg)</Label>
             <Input
@@ -530,12 +530,16 @@ export function WeighingSetCard({
             <span className="hidden print:block font-semibold print:text-black">{formatNumber(set.descontoCacamba)}</span>
           </div>
 
+          <div className="flex w-[3.8rem] self-stretch items-center justify-center rounded-lg border border-border/60 bg-muted/25 text-muted-foreground/90 shadow-sm print:hidden sm:h-8 sm:w-[2.2rem] sm:self-auto sm:rounded-md">
+            <ScaleIcon className="h-7 w-7 sm:h-4 sm:w-4" aria-hidden="true" />
+          </div>
+
           <div className="min-w-0">
-            <div className="grid grid-cols-[5.5rem_minmax(12ch,1fr)] items-baseline justify-end gap-x-2 gap-y-0.5 whitespace-nowrap text-right">
+            <div className="grid w-full grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2 gap-y-0.5 whitespace-nowrap sm:grid-cols-[5.5rem_minmax(12ch,1fr)] sm:justify-end sm:gap-x-2 sm:text-right">
               <p className="text-sm text-muted-foreground text-left">Subtotal</p>
-              <p className="text-lg font-bold tabular-nums print:text-black">{formatNumber(subtotalLiquido)} kg</p>
+              <p className="justify-self-end text-right text-lg font-bold tabular-nums print:text-black">{formatNumber(subtotalLiquido)} kg</p>
               <p className="text-sm text-muted-foreground text-left">{set.name}</p>
-              <p className="set-accent-title text-xl font-bold tabular-nums print:!text-black">{formatNumber(totalLiquidoSet)} kg</p>
+              <p className="justify-self-end text-right set-accent-title text-xl font-bold tabular-nums print:!text-black">{formatNumber(totalLiquidoSet)} kg</p>
             </div>
           </div>
         </div>
