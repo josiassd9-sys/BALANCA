@@ -98,11 +98,11 @@ export interface AppTheme {
 }
 
 const defaultThemeConfig: AppTheme = {
-  // New installations start with "Menta Fresca" and can be changed by the user later.
+  // New installations start with "Cinza: Minimalista Claro" and can be changed by the user later.
   colors: {
-    ...(themes.find((themePreset) => themePreset.name === 'Menta Fresca')?.colors || defaultTheme.colors),
+    ...(themes.find((themePreset) => themePreset.name === 'Cinza: Minimalista Claro')?.colors || defaultTheme.colors),
     // Keep display digits readable while allowing further customization in settings.
-    displayDigits: '#10B981',
+    displayDigits: '#FF0000',
     // Requested default for first install.
     liquidTotal: '#DC2626',
   },
