@@ -215,7 +215,7 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
 
   const hostHint = (() => {
     if (!hostDraft.trim()) {
-      return "Preencha manualmente para habilitar HTTP, WebSocket e TCP.";
+      return "Preencha manualmente o host e ao menos uma porta para habilitar o espelhamento.";
     }
     if (ipv4MaskEnabled && !isCompleteIpv4(hostDraft)) {
       return "Mascara IPv4 ativa para entradas numericas; hostnames e dominios seguem liberados.";
@@ -889,11 +889,14 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
               type="button"
               variant="outline"
               size="sm"
-              className="w-full justify-center"
+              className="h-auto w-full justify-center whitespace-normal px-3 py-2 text-center leading-tight"
               onClick={handleResetNetworkFields}
             >
-              Limpar Host e Portas (obrigar nova digitacao)
+              Limpar Host e Portas
             </Button>
+            <p className="mt-1 text-center text-xs text-muted-foreground">
+              Obriga nova digitacao dos dados de rede.
+            </p>
           </div>
         </div>
       </div>

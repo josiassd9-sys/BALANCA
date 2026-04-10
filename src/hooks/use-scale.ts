@@ -131,16 +131,14 @@ export function useScale() {
 
   const isValidPort = (value: number): boolean => Number.isInteger(value) && value > 0 && value <= 65535;
 
-  const hasRequiredNetworkConfig = (): boolean => {
+  const hasAnyUsableNetworkConfig = (): boolean => {
     const host = config.host?.trim();
     const wsPort = Number(config.wsPort);
     const httpPort = Number(config.httpPort);
     const tcpPort = Number(config.tcpPort);
 
     return Boolean(host)
-      && isValidPort(wsPort)
-      && isValidPort(httpPort)
-      && isValidPort(tcpPort);
+      && (isValidPort(wsPort) || isValidPort(httpPort) || isValidPort(tcpPort));
   };
 
   const parseNumericValue = (raw: string): number | null => {
@@ -433,7 +431,7 @@ export function useScale() {
   const connect = () => {
     disconnect();
 
-    if (!hasRequiredNetworkConfig()) {
+    if (!hasAnyUsableNetworkConfig()) {
       setStatus('disconnected');
       setConnectionType('none');
       setIsConnected(false);
