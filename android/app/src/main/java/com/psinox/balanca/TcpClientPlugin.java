@@ -20,7 +20,7 @@ public class TcpClientPlugin extends Plugin {
 
     private Socket socket;
     private Thread connectionThread;
-    private boolean isConnected = false;
+    private volatile boolean isConnected = false;
 
     @PluginMethod
     public void connect(PluginCall call) {
@@ -38,6 +38,9 @@ public class TcpClientPlugin extends Plugin {
         connectionThread = new Thread(() -> {
             try {
                 socket = new Socket(host, port);
+                socket.setKeepAlive(true);
+                socket.setTcpNoDelay(true);
+                socket.setSoTimeout(0);
                 isConnected = true;
 
                 JSObject ret = new JSObject();
@@ -132,6 +135,13 @@ public class TcpClientPlugin extends Plugin {
                 }
             } finally {
                 isConnected = false;
+                if (socket != null && !socket.isClosed()) {
+                    try {
+                        socket.close();
+                    } catch (IOException ignored) {
+                        // ignore
+                    }
+                }
                 Log.d(TAG, "listenForData thread ending, isConnected set to false");
             }
         }).start();

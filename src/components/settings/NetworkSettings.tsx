@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import type { ScaleConfig } from "@/hooks/use-scale";
+import type { ConnectionPriority, ScaleConfig } from "@/hooks/use-scale";
 
 type TestStatus = "idle" | "testing-http" | "testing-tcp" | "testing-ws" | "success" | "error";
 
@@ -17,6 +17,13 @@ interface NetworkSettingsProps {
   scaleConfig: ScaleConfig;
   onScaleConfigChange: (newConfig: ScaleConfig) => void;
 }
+
+const PRIORITY_OPTIONS: Array<{ value: ConnectionPriority; label: string }> = [
+  { value: "http-ws-tcp", label: "HTTP > WebSocket > TCP" },
+  { value: "ws-http-tcp", label: "WebSocket > HTTP > TCP" },
+  { value: "tcp-http-ws", label: "TCP > HTTP > WebSocket" },
+  { value: "tcp-ws-http", label: "TCP > WebSocket > HTTP" },
+];
 
 const NETWORK_PREF_KEYS = {
   ipv4MaskEnabled: "networkSettings.ipv4MaskEnabled",
@@ -208,7 +215,7 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
 
   const hostHint = (() => {
     if (!hostDraft.trim()) {
-      return "Aplicado automaticamente no HTTP, WebSocket e TCP.";
+      return "Preencha manualmente para habilitar HTTP, WebSocket e TCP.";
     }
     if (ipv4MaskEnabled && !isCompleteIpv4(hostDraft)) {
       return "Mascara IPv4 ativa para entradas numericas; hostnames e dominios seguem liberados.";
@@ -229,6 +236,7 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
     const wsPort = Number(scaleConfig.wsPort) || 0;
     const httpPort = Number(scaleConfig.httpPort) || 0;
     const tcpPort = Number(scaleConfig.tcpPort) || 0;
+    const priority = scaleConfig.connectionPriority || "http-ws-tcp";
 
     const reportLines = [
       "=== Diagnostico de Rede (BALANCA) ===",
@@ -242,6 +250,7 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
       `- Porta WebSocket: ${wsPort}`,
       `- TCP Host: ${tcpHost}`,
       `- Porta TCP: ${tcpPort}`,
+      `- Prioridade: ${priority}`,
       "",
       "Logs:",
       ...(logs.length > 0 ? logs : ["(sem logs ainda)"]),
@@ -295,6 +304,40 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
 
   const handleClearLogs = () => {
     setLogs([]);
+  };
+
+  const handleResetNetworkFields = () => {
+    const confirmed = window.confirm("Limpar Host e portas para forcar nova digitacao?");
+    if (!confirmed) {
+      return;
+    }
+
+    const nextConfig: ScaleConfig = {
+      ...scaleConfig,
+      host: "",
+      tcpHost: "",
+      wsPort: undefined,
+      httpPort: undefined,
+      tcpPort: undefined,
+    };
+
+    setHostDraft("");
+    setWsPortDraft("");
+    setHttpPortDraft("");
+    setTcpPortDraft("");
+    setFocusedPortField(null);
+    setHostBlurFeedback(null);
+    setTestStatus("idle");
+    setLastProtocol(null);
+
+    try {
+      window.localStorage.setItem("scaleConfig", JSON.stringify(nextConfig));
+    } catch {
+      // Ignora falhas de localStorage para não afetar o fluxo principal.
+    }
+
+    onScaleConfigChange(nextConfig);
+    appendLog("Rede e portas resetadas. Digite novamente os dados da sua rede.");
   };
 
   const handleTestHttpConnection = async (): Promise<boolean> => {
@@ -627,9 +670,13 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
       <DialogHeader className="pt-6">
         <DialogTitle>Rede</DialogTitle>
         <DialogDescription>
-          Defina o endereco de rede (IP) e as portas do computador onde o servidor da balanca (ponte) esta rodando.
+          Defina manualmente o endereco de rede (IP) e as portas do computador onde o servidor da balanca (ponte) esta rodando.
         </DialogDescription>
       </DialogHeader>
+
+      <div className="rounded-md border border-dashed p-2 text-xs text-muted-foreground">
+        Os valores exibidos como exemplo (192.168.18.13 / 3000 / 3001 / 8080) sao apenas lembretes. O usuario deve preencher os dados reais da propria rede.
+      </div>
 
       <div className="grid gap-4 py-4">
         <div className="grid grid-cols-4 items-center gap-4">
@@ -682,7 +729,7 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
                   tcpHost: nextHost,
                 });
               }}
-              placeholder="Ex: 192.168.18.8"
+              placeholder="Ex: 192.168.18.13"
             />
             {isHostFocused ? (
               <p className={cn("text-xs", ipv4MaskEnabled && hostDraft.trim() && !isCompleteIpv4(hostDraft) ? "text-amber-600" : "text-muted-foreground")}>{hostHint}</p>
@@ -726,6 +773,34 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
                 </label>
               </>
             ) : null}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 items-start gap-4">
+          <Label htmlFor="connection-priority" className="text-right pt-2">
+            Prioridade
+          </Label>
+          <div className="col-span-3 space-y-1">
+            <select
+              id="connection-priority"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={scaleConfig.connectionPriority || "http-ws-tcp"}
+              onChange={(e) =>
+                onScaleConfigChange({
+                  ...scaleConfig,
+                  connectionPriority: e.target.value as ConnectionPriority,
+                })
+              }
+            >
+              {PRIORITY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Ordem usada no modo automatico do visor. O app tenta na sequencia ate conectar em um protocolo valido.
+            </p>
           </div>
         </div>
 
@@ -806,6 +881,21 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
             ) : null}
           </div>
         </div>
+
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label className="text-right">Reset</Label>
+          <div className="col-span-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full justify-center"
+              onClick={handleResetNetworkFields}
+            >
+              Limpar Host e Portas (obrigar nova digitacao)
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-2 pt-4 border-t">
@@ -870,7 +960,7 @@ export function NetworkSettings({ scaleConfig, onScaleConfigChange }: NetworkSet
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Dica: mantenha HTTP 3000, WS 3001 e TCP 8080. Cada botao testa seu protocolo correto.
+          Dica: use os exemplos 3000/3001/8080 apenas como referencia e informe os valores reais da sua rede.
         </p>
 
         <div className={cn("text-sm font-semibold p-2 rounded-md bg-muted/50", getStatusClasses())}>

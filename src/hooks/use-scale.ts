@@ -10,25 +10,24 @@ export interface ScaleConfig {
   tcpHost?: string;
   tcpPort?: number;
   browserUrl?: string;
+  connectionPriority?: ConnectionPriority;
 }
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 export type ConnectionType = 'ws' | 'http' | 'tcp' | 'none';
+export type ConnectionPriority = 'http-ws-tcp' | 'ws-http-tcp' | 'tcp-http-ws' | 'tcp-ws-http';
 
-const DEFAULT_HOST = typeof process.env.NEXT_PUBLIC_SCALE_HOST === 'string'
-  ? process.env.NEXT_PUBLIC_SCALE_HOST
-  : '192.168.18.13';
-const DEFAULT_WS_PORT = 3001;
-const DEFAULT_HTTP_PORT = 3000;
-const DEFAULT_TCP_HOST = typeof process.env.NEXT_PUBLIC_SCALE_TCP_HOST === 'string'
-  ? process.env.NEXT_PUBLIC_SCALE_TCP_HOST
-  : DEFAULT_HOST;
-const DEFAULT_TCP_PORT = process.env.NEXT_PUBLIC_SCALE_TCP_PORT
-  ? parseInt(process.env.NEXT_PUBLIC_SCALE_TCP_PORT, 10)
-  : 8080;
 const DEFAULT_BROWSER_URL = typeof process.env.NEXT_PUBLIC_BROWSER_URL === 'string'
   ? process.env.NEXT_PUBLIC_BROWSER_URL
   : 'https://www.google.com';
+const DEFAULT_CONNECTION_PRIORITY: ConnectionPriority = 'http-ws-tcp';
+
+const isConnectionPriority = (value: unknown): value is ConnectionPriority => (
+  value === 'http-ws-tcp'
+  || value === 'ws-http-tcp'
+  || value === 'tcp-http-ws'
+  || value === 'tcp-ws-http'
+);
 
 export function useScale() {
   // Estado original
@@ -36,23 +35,38 @@ export function useScale() {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const [connectionType, setConnectionType] = useState<ConnectionType>('none');
   const [config, setConfig] = useState<ScaleConfig>({
-    host: DEFAULT_HOST,
-    wsPort: DEFAULT_WS_PORT,
-    httpPort: DEFAULT_HTTP_PORT,
-    tcpHost: DEFAULT_TCP_HOST,
-    tcpPort: DEFAULT_TCP_PORT,
+    host: '',
+    wsPort: undefined,
+    httpPort: undefined,
+    tcpHost: '',
+    tcpPort: undefined,
     browserUrl: DEFAULT_BROWSER_URL,
+    connectionPriority: DEFAULT_CONNECTION_PRIORITY,
   });
 
   const socketRef = useRef<WebSocket | null>(null);
   const suppressWsCloseRef = useRef(false);
   const httpIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const tcpListenerRef = useRef<any>(null);
+  const tcpErrorListenerRef = useRef<(() => void) | null>(null);
+  const tcpClientRef = useRef<{ disconnect?: () => Promise<void> } | null>(null);
+  const httpFailureCountRef = useRef(0);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ======= Novos estados para compatibilidade com bloco menor =======
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const scheduleReconnect = (delayMs = 700) => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      connect();
+    }, delayMs);
+  };
 
   // Salvar configuração
   const saveConfig = () => {
@@ -80,6 +94,15 @@ export function useScale() {
       tcpListenerRef.current = null;
     }
 
+    if (tcpErrorListenerRef.current) {
+      try {
+        tcpErrorListenerRef.current();
+      } catch (err) {
+        console.warn('[useScale] Falha ao remover listener de erro TCP:', err);
+      }
+      tcpErrorListenerRef.current = null;
+    }
+
     if (socketRef.current) {
       suppressWsCloseRef.current = true;
       socketRef.current.close();
@@ -91,6 +114,15 @@ export function useScale() {
       httpIntervalRef.current = null;
     }
 
+    httpFailureCountRef.current = 0;
+
+    if (tcpClientRef.current?.disconnect) {
+      void tcpClientRef.current.disconnect().catch((err) => {
+        console.warn('[useScale] Falha ao desconectar cliente TCP:', err);
+      });
+      tcpClientRef.current = null;
+    }
+
     setStatus('disconnected');
     setConnectionType('none');
     // Atualiza compatibilidade
@@ -98,6 +130,18 @@ export function useScale() {
   };
 
   const isValidPort = (value: number): boolean => Number.isInteger(value) && value > 0 && value <= 65535;
+
+  const hasRequiredNetworkConfig = (): boolean => {
+    const host = config.host?.trim();
+    const wsPort = Number(config.wsPort);
+    const httpPort = Number(config.httpPort);
+    const tcpPort = Number(config.tcpPort);
+
+    return Boolean(host)
+      && isValidPort(wsPort)
+      && isValidPort(httpPort)
+      && isValidPort(tcpPort);
+  };
 
   const parseNumericValue = (raw: string): number | null => {
     const compact = raw.trim().replace(/\s+/g, '');
@@ -172,35 +216,38 @@ export function useScale() {
     return parseNumericValue(numberMatch[0]);
   };
 
-  const startHttpPolling = () => {
+  const fetchHttpWeight = async (): Promise<number> => {
+    const endpoints = ['/peso', '/weight'];
+
+    for (const endpoint of endpoints) {
+      const httpUrl = `http://${config.host}:${config.httpPort}${endpoint}`;
+      const response = await fetch(httpUrl, { cache: 'no-store' });
+      if (!response.ok) {
+        continue;
+      }
+
+      const text = await response.text();
+      const parsedWeight = parseWeightPayload(text);
+      if (parsedWeight !== null) {
+        return parsedWeight;
+      }
+    }
+
+    throw new Error('Resposta HTTP sem peso válido');
+  };
+
+  const startHttpPolling = (onTransportUnstable?: () => void) => {
     if (httpIntervalRef.current) {
       clearInterval(httpIntervalRef.current);
       httpIntervalRef.current = null;
     }
 
-    const endpoints = ['/peso', '/weight'];
+    httpFailureCountRef.current = 0;
 
     const poll = async () => {
       try {
-        let parsedWeight: number | null = null;
-
-        for (const endpoint of endpoints) {
-          const httpUrl = `http://${config.host}:${config.httpPort}${endpoint}`;
-          const response = await fetch(httpUrl, { cache: 'no-store' });
-          if (!response.ok) {
-            continue;
-          }
-
-          const text = await response.text();
-          parsedWeight = parseWeightPayload(text);
-          if (parsedWeight !== null) {
-            break;
-          }
-        }
-
-        if (parsedWeight === null) {
-          throw new Error('Resposta HTTP sem peso válido');
-        }
+        const parsedWeight = await fetchHttpWeight();
+        httpFailureCountRef.current = 0;
 
         setWeight(parsedWeight);
         setStatus('connected');
@@ -208,10 +255,22 @@ export function useScale() {
         setIsConnected(true);
         setError(null);
       } catch (err: unknown) {
+        httpFailureCountRef.current += 1;
         console.error('[useScale] Erro no polling HTTP:', err);
-        setStatus('error');
-        setConnectionType('none');
-        setIsConnected(false);
+
+        if (httpFailureCountRef.current >= 3) {
+          if (httpIntervalRef.current) {
+            clearInterval(httpIntervalRef.current);
+            httpIntervalRef.current = null;
+          }
+          setStatus('connecting');
+          setConnectionType('none');
+          setIsConnected(false);
+          setError('HTTP instável. Tentando próximo protocolo...');
+          onTransportUnstable?.();
+          return;
+        }
+
         setError(err instanceof Error ? err.message : 'HTTP polling failed');
       }
     };
@@ -222,101 +281,73 @@ export function useScale() {
     }, 800);
   };
 
-  // Conectar a balança
-  const connect = () => {
-    disconnect();
-    setStatus('connecting');
-    setError(null);
-
+  const tryConnectHttp = async (): Promise<boolean> => {
     const host = config.host.trim();
-    const wsPort = Number(config.wsPort);
     const httpPort = Number(config.httpPort);
-    const tcpHost = (config.tcpHost || host).trim();
-    const tcpPort = Number(config.tcpPort);
-
-    // ===== TCP direto (somente native) =====
-    if (Capacitor.isNativePlatform()) {
-      if (!tcpHost || !isValidPort(tcpPort)) {
-        setStatus('disconnected');
-        setConnectionType('none');
-        setIsConnected(false);
-        setError(null);
-        return;
-      }
-
-      console.log('[useScale] Tentando TCP:', tcpHost, tcpPort);
-      (async () => {
-        try {
-          const { TcpClientService } = await import('@/services/tcp-client');
-          const client = new TcpClientService();
-          await client.connect({ host: tcpHost, port: tcpPort });
-          console.log('[useScale] TCP conectado com sucesso');
-
-          setStatus('connected');
-          setConnectionType('tcp');
-          setIsConnected(true);
-          setError(null);
-
-          const unsubscribe = await client.addDataListener((data: string) => {
-            const parsed = parseWeightPayload(data);
-            if (parsed !== null) {
-              setWeight(parsed);
-            }
-          });
-
-          await client.addErrorListener((err: string) => {
-            console.error('[useScale] Erro TCP:', err);
-            setStatus('error');
-            setConnectionType('none');
-            setIsConnected(false);
-            setError(err);
-          });
-
-          tcpListenerRef.current = unsubscribe;
-          return; // TCP OK → não tenta WS/HTTP
-        } catch (err: unknown) {
-          console.error('[useScale] Falha na conexão TCP, tentando HTTP como fallback:', err);
-          if (isValidPort(httpPort)) {
-            console.log('[useScale] Iniciando fallback HTTP no native');
-            startHttpPolling();
-          } else {
-            setStatus('error');
-            setConnectionType('none');
-            setIsConnected(false);
-            setError(err instanceof Error ? err.message : 'TCP connection failed');
-          }
-        }
-      })();
-      // TCP é o único transporte no native — HTTP só como fallback se TCP falhar
-      return;
+    if (!host || !isValidPort(httpPort)) {
+      return false;
     }
 
-    if (!host || !isValidPort(wsPort) || !isValidPort(httpPort)) {
-      setStatus('disconnected');
-      setConnectionType('none');
-      setIsConnected(false);
-      setError(null);
-      return;
-    }
-
-    // ===== WebSocket (protocolo WS puro) =====
-    const wsUrl = `ws://${host}:${wsPort}`;
-    console.log('[useScale] Tentando WebSocket:', wsUrl);
-    const ws = new WebSocket(wsUrl);
-    let hasConnected = false;
-
-    ws.onopen = () => {
-      hasConnected = true;
-      console.log('[useScale] WebSocket conectado');
+    try {
+      const parsedWeight = await fetchHttpWeight();
+      setWeight(parsedWeight);
       setStatus('connected');
-      setConnectionType('ws');
+      setConnectionType('http');
       setIsConnected(true);
       setError(null);
-      if (httpIntervalRef.current) {
-        clearInterval(httpIntervalRef.current);
-        httpIntervalRef.current = null;
-      }
-    };
+      startHttpPolling(() => scheduleReconnect(450));
+      return true;
+    } catch (err) {
+      console.warn('[useScale] HTTP indisponível na tentativa inicial:', err);
+      return false;
+    }
+  };
+
+  const tryConnectWs = async (): Promise<boolean> => {
+    const host = config.host.trim();
+    const wsPort = Number(config.wsPort);
+    if (!host || !isValidPort(wsPort)) {
+      return false;
+    }
+
+    const wsUrl = `ws://${host}:${wsPort}`;
+    console.log('[useScale] Tentando WebSocket:', wsUrl);
+
+    const ws = await new Promise<WebSocket | null>((resolve) => {
+      const candidate = new WebSocket(wsUrl);
+      const timeoutId = setTimeout(() => {
+        try {
+          candidate.close();
+        } catch {
+          // ignore
+        }
+        resolve(null);
+      }, 2500);
+
+      candidate.onopen = () => {
+        clearTimeout(timeoutId);
+        resolve(candidate);
+      };
+
+      candidate.onerror = () => {
+        clearTimeout(timeoutId);
+        try {
+          candidate.close();
+        } catch {
+          // ignore
+        }
+        resolve(null);
+      };
+    });
+
+    if (!ws) {
+      return false;
+    }
+
+    setStatus('connected');
+    setConnectionType('ws');
+    setIsConnected(true);
+    setError(null);
 
     ws.onmessage = (event) => {
       const message = typeof event.data === 'string' ? event.data : String(event.data);
@@ -336,18 +367,100 @@ export function useScale() {
         return;
       }
 
-      if (!hasConnected) {
-        console.warn('[useScale] WS indisponível, iniciando fallback HTTP');
-      } else {
-        console.warn('[useScale] WS desconectado, alternando para HTTP');
-      }
+      console.warn('[useScale] WS desconectado. Reaplicando prioridade de protocolos.');
       setStatus('connecting');
       setConnectionType('none');
       setIsConnected(false);
-      startHttpPolling();
+      scheduleReconnect(450);
     };
 
     socketRef.current = ws;
+    return true;
+  };
+
+  const tryConnectTcp = async (): Promise<boolean> => {
+    if (!Capacitor.isNativePlatform()) {
+      return false;
+    }
+
+    const host = config.host.trim();
+    const tcpHost = (config.tcpHost || host).trim();
+    const tcpPort = Number(config.tcpPort);
+
+    if (!tcpHost || !isValidPort(tcpPort)) {
+      return false;
+    }
+
+    console.log('[useScale] Tentando TCP:', tcpHost, tcpPort);
+
+    try {
+      const { TcpClientService } = await import('@/services/tcp-client');
+      const client = new TcpClientService();
+      await client.connect({ host: tcpHost, port: tcpPort });
+      tcpClientRef.current = client;
+
+      setStatus('connected');
+      setConnectionType('tcp');
+      setIsConnected(true);
+      setError(null);
+
+      const unsubscribe = await client.addDataListener((data: string) => {
+        const parsed = parseWeightPayload(data);
+        if (parsed !== null) {
+          setWeight(parsed);
+        }
+      });
+
+      const unsubscribeError = await client.addErrorListener((err: string) => {
+        console.error('[useScale] Erro TCP:', err);
+        setStatus('connecting');
+        setConnectionType('none');
+        setIsConnected(false);
+        setError(err || 'Erro TCP');
+        scheduleReconnect(450);
+      });
+
+      tcpListenerRef.current = unsubscribe;
+      tcpErrorListenerRef.current = unsubscribeError;
+      return true;
+    } catch (err) {
+      console.warn('[useScale] TCP indisponível na tentativa atual:', err);
+      return false;
+    }
+  };
+
+  // Conectar a balança
+  const connect = () => {
+    disconnect();
+
+    if (!hasRequiredNetworkConfig()) {
+      setStatus('disconnected');
+      setConnectionType('none');
+      setIsConnected(false);
+      setError(null);
+      return;
+    }
+
+    setStatus('connecting');
+    setError(null);
+
+    const priority = isConnectionPriority(config.connectionPriority)
+      ? config.connectionPriority
+      : DEFAULT_CONNECTION_PRIORITY;
+    const protocolOrder = priority.split('-') as Array<'http' | 'ws' | 'tcp'>;
+
+    void (async () => {
+      for (const protocol of protocolOrder) {
+        if (protocol === 'http' && await tryConnectHttp()) return;
+        if (protocol === 'ws' && await tryConnectWs()) return;
+        if (protocol === 'tcp' && await tryConnectTcp()) return;
+      }
+
+      setStatus('error');
+      setConnectionType('none');
+      setIsConnected(false);
+      setError('Nenhum protocolo disponível com a prioridade configurada.');
+    })();
   };
 
   // ===== Carregar config salva =====
@@ -372,6 +485,9 @@ export function useScale() {
             tcpHost: resolvedTcpHost,
             tcpPort: parsed.tcpPort || prev.tcpPort,
             browserUrl: parsed.browserUrl || prev.browserUrl,
+            connectionPriority: isConnectionPriority(parsed.connectionPriority)
+              ? parsed.connectionPriority
+              : prev.connectionPriority,
           };
         });
       }
@@ -388,7 +504,6 @@ export function useScale() {
     }
 
     reconnectTimeoutRef.current = setTimeout(() => {
-      disconnect();
       connect();
     }, 280);
 
@@ -398,7 +513,7 @@ export function useScale() {
         reconnectTimeoutRef.current = null;
       }
     };
-  }, [config.host, config.wsPort, config.httpPort, config.tcpHost, config.tcpPort]);
+  }, [config.host, config.wsPort, config.httpPort, config.tcpHost, config.tcpPort, config.connectionPriority]);
 
   // ===== Retorno unificado =====
   return { 
