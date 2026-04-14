@@ -6,6 +6,8 @@ export type WeighingItem = {
   descontos: number;
   liquido: number;
   locked?: boolean;
+  reclassFromItemId?: string;
+  reclassWeight?: number;
 };
 
 export type WeighingSet = {

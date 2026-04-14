@@ -158,6 +158,8 @@ type WeighingSetCardProps = {
   hasPendingCopiedWeight: boolean;
   onRemoveMaterial: (setId: string, itemId: string) => void;
   onCacambaDiscount: (setId: string, value: string) => void;
+  onReclassifyMaterial: (setId: string, itemId: string) => void;
+  onReclassWeightChange: (setId: string, itemId: string, value: string) => void;
 };
 
 export function WeighingSetCard({
@@ -177,6 +179,8 @@ export function WeighingSetCard({
   hasPendingCopiedWeight,
   onRemoveMaterial,
   onCacambaDiscount,
+  onReclassifyMaterial,
+  onReclassWeightChange,
 }: WeighingSetCardProps) {
   const { theme } = useTheme();
   const accentColor = getSetAccentColor(theme.colors.primary, setIndex);
@@ -362,6 +366,14 @@ export function WeighingSetCard({
               </div>
                 );
               })()}
+              <div className="space-y-2">
+                {item.reclassFromItemId && (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block px-2 py-1 text-[10px] font-semibold text-white bg-blue-600 rounded">
+                      RECLASS
+                    </span>
+                  </div>
+                )}
               <div className="grid grid-cols-4 gap-0.5">
                 <div className="space-y-px">
                   <Label className="text-xs text-muted-foreground">Bruto (kg)</Label>
@@ -372,7 +384,7 @@ export function WeighingSetCard({
                     onFetch={() => onFetchLiveWeight((w) => onInputChange(set.id, item.id, 'bruto', w))}
                     onFocusInput={() => onWeightInputFocus({ type: 'item', setId: set.id, itemId: item.id, field: 'bruto' })}
                     hasPendingCopiedWeight={hasPendingCopiedWeight}
-                    disabled={Boolean(item.locked)}
+                    disabled={Boolean(item.locked) || Boolean(item.reclassFromItemId)}
                   />
                 </div>
                 <div className="space-y-px">
@@ -384,27 +396,58 @@ export function WeighingSetCard({
                     onFetch={() => onFetchLiveWeight((w) => onInputChange(set.id, item.id, 'tara', w))}
                     onFocusInput={() => onWeightInputFocus({ type: 'item', setId: set.id, itemId: item.id, field: 'tara' })}
                     hasPendingCopiedWeight={hasPendingCopiedWeight}
-                    disabled={Boolean(item.locked)}
+                    disabled={Boolean(item.locked) || Boolean(item.reclassFromItemId)}
                   />
                 </div>
                 <div className="space-y-px">
-                  <Label className="text-xs text-muted-foreground">A/L (kg)</Label>
-                  <Input
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={item.descontos === 0 ? '' : formatNumber(item.descontos)}
-                    onChange={(e) => onInputChange(set.id, item.id, 'descontos', e.target.value)}
-                    disabled={Boolean(item.locked)}
-                    className="text-right h-8 print:hidden w-full"
-                  />
-                  <span className="hidden print:block text-right print:text-black">{formatNumber(item.descontos)}</span>
+                  {item.reclassFromItemId ? (
+                    <>
+                      <Label className="text-xs text-muted-foreground">Reclass. (kg)</Label>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0"
+                        value={item.reclassWeight === 0 || item.reclassWeight === undefined ? '' : formatNumber(item.reclassWeight)}
+                        onChange={(e) => onReclassWeightChange(set.id, item.id, e.target.value)}
+                        disabled={Boolean(item.locked)}
+                        className="text-right h-8 print:hidden w-full"
+                      />
+                      <span className="hidden print:block text-right print:text-black">{formatNumber(item.reclassWeight || 0)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Label className="text-xs text-muted-foreground">A/L (kg)</Label>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0"
+                        value={item.descontos === 0 ? '' : formatNumber(item.descontos)}
+                        onChange={(e) => onInputChange(set.id, item.id, 'descontos', e.target.value)}
+                        disabled={Boolean(item.locked)}
+                        className="text-right h-8 print:hidden w-full"
+                      />
+                      <span className="hidden print:block text-right print:text-black">{formatNumber(item.descontos)}</span>
+                    </>
+                  )}
                 </div>
                 <div className="space-y-px">
                   <Label className="text-xs text-muted-foreground">Líquido (kg)</Label>
                   <div className="h-8 flex items-center justify-end font-semibold">
                     <span className="print:text-black">{formatNumber(item.liquido)}</span>
                   </div>
+                  {item.locked && !item.reclassFromItemId && item.liquido > 0 && (
+                    <div className="mt-1 flex justify-end print:hidden">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-2 text-[10px]"
+                        onClick={() => onReclassifyMaterial(set.id, item.id)}
+                      >
+                        Reclass.
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -419,7 +462,7 @@ export function WeighingSetCard({
               <TableHead className="text-right w-[16%]">Bruto (kg)</TableHead>
               <TableHead className="text-right w-[16%]">Tara (kg)</TableHead>
               <TableHead className="text-right w-[16%]">A/L (kg)</TableHead>
-              <TableHead className="text-right font-semibold w-[16%]">Líquido (kg)</TableHead>
+              <TableHead className="text-right font-semibold w-[16%]">Reclass.</TableHead>
               <TableHead className="w-[5%] print:hidden"></TableHead>
             </TableRow>
           </TableHeader>
@@ -437,20 +480,26 @@ export function WeighingSetCard({
               return (
               <TableRow key={item.id} className="material-accent-row print:text-black" style={materialRowStyle as CSSProperties | undefined}>
                 <TableCell className="font-medium p-0 sm:p-px">
-                  {(() => {
-                    const brutoId = `bruto-${set.id}-${item.id}`;
-                    const taraId = `tara-${set.id}-${item.id}`;
-                    const nextTargetId = operationType === 'loading' ? brutoId : taraId;
-                    return (
-                  <MaterialAutocompleteInput
-                    inputId={`material-${set.id}-${item.id}`}
-                    placeholder="SUCATA"
-                    value={item.material}
-                    onChange={(value) => onMaterialChange(set.id, item.id, value)}
-                    nextTargetId={nextTargetId}
-                    disabled={Boolean(item.locked)}
-                    className="w-full justify-between h-8"
-                  />
+                  <div className="flex items-center gap-2">
+                    {item.reclassFromItemId && (
+                      <span className="inline-block px-2 py-0.5 text-[10px] font-semibold text-white bg-blue-600 rounded whitespace-nowrap print:hidden">
+                        RECLASS
+                      </span>
+                    )}
+                    {(() => {
+                      const brutoId = `bruto-${set.id}-${item.id}`;
+                      const taraId = `tara-${set.id}-${item.id}`;
+                      const nextTargetId = operationType === 'loading' ? brutoId : taraId;
+                      return (
+                    <MaterialAutocompleteInput
+                      inputId={`material-${set.id}-${item.id}`}
+                      placeholder="SUCATA"
+                      value={item.material}
+                      onChange={(value) => onMaterialChange(set.id, item.id, value)}
+                      nextTargetId={nextTargetId}
+                      disabled={Boolean(item.locked)}
+                      className="w-full justify-between h-8"
+                    />
                     );
                   })()}
                 </TableCell>
@@ -462,7 +511,7 @@ export function WeighingSetCard({
                     onFetch={() => onFetchLiveWeight((w) => onInputChange(set.id, item.id, 'bruto', w))}
                     onFocusInput={() => onWeightInputFocus({ type: 'item', setId: set.id, itemId: item.id, field: 'bruto' })}
                     hasPendingCopiedWeight={hasPendingCopiedWeight}
-                    disabled={Boolean(item.locked)}
+                    disabled={Boolean(item.locked) || Boolean(item.reclassFromItemId)}
                   />
                 </TableCell>
                 <TableCell className="p-0 sm:p-px">
@@ -473,26 +522,56 @@ export function WeighingSetCard({
                     onFetch={() => onFetchLiveWeight((w) => onInputChange(set.id, item.id, 'tara', w))}
                     onFocusInput={() => onWeightInputFocus({ type: 'item', setId: set.id, itemId: item.id, field: 'tara' })}
                     hasPendingCopiedWeight={hasPendingCopiedWeight}
-                    disabled={Boolean(item.locked)}
+                    disabled={Boolean(item.locked) || Boolean(item.reclassFromItemId)}
                   />
                 </TableCell>
                 <TableCell className="p-0 sm:p-px">
-                  <div className="flex justify-end">
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="0"
-                      value={item.descontos === 0 ? '' : formatNumber(item.descontos)}
-                      onChange={(e) => onInputChange(set.id, item.id, 'descontos', e.target.value)}
-                      disabled={Boolean(item.locked)}
-                      className="text-right h-8 print:hidden w-full"
-                    />
-                  </div>
-                  <span className="hidden print:block text-right print:text-black">{formatNumber(item.descontos)}</span>
+                  {item.reclassFromItemId ? (
+                    <>
+                      <div className="flex justify-end">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0"
+                          value={item.reclassWeight === 0 || item.reclassWeight === undefined ? '' : formatNumber(item.reclassWeight)}
+                          onChange={(e) => onReclassWeightChange(set.id, item.id, e.target.value)}
+                          disabled={Boolean(item.locked)}
+                          className="text-right h-8 print:hidden w-full"
+                        />
+                      </div>
+                      <span className="hidden print:block text-right print:text-black">{formatNumber(item.reclassWeight || 0)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-end">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0"
+                          value={item.descontos === 0 ? '' : formatNumber(item.descontos)}
+                          onChange={(e) => onInputChange(set.id, item.id, 'descontos', e.target.value)}
+                          disabled={Boolean(item.locked)}
+                          className="text-right h-8 print:hidden w-full"
+                        />
+                      </div>
+                      <span className="hidden print:block text-right print:text-black">{formatNumber(item.descontos)}</span>
+                    </>
+                  )}
                 </TableCell>
                 <TableCell className="text-right font-semibold p-0 sm:p-px">
-                  <div className="h-8 sm:h-full flex items-center justify-end">
+                  <div className="h-8 sm:h-full flex items-center justify-end gap-2">
                     <span className="print:text-black">{formatNumber(item.liquido)}</span>
+                    {item.locked && !item.reclassFromItemId && item.liquido > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-2 text-[10px] print:hidden"
+                        onClick={() => onReclassifyMaterial(set.id, item.id)}
+                      >
+                        Reclass.
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="p-0 sm:p-px text-center print:hidden">

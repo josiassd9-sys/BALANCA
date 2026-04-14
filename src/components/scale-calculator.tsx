@@ -216,6 +216,10 @@ const ScaleCalculator = forwardRef((props, ref) => {
 
           if(needsReorder) {
              for(let i=1; i<newItems.length; i++) {
+                // Skip reordering for reclassified items (they have independent tara/bruto values)
+                if (newItems[i].reclassFromItemId) {
+                  continue;
+                }
                 if (operationType === 'loading') {
                   newItems[i].tara = newItems[i-1].bruto;
                 } else {
@@ -260,12 +264,56 @@ const ScaleCalculator = forwardRef((props, ref) => {
   };
   
   const addNewMaterial = (setId: string) => {
+    const firstSet = weighingSets[0];
+    const shouldCheckInversion =
+      hasConfirmedOperationType &&
+      firstSet?.id === setId &&
+      firstSet.items.length === 1;
+
+    if (shouldCheckInversion) {
+      const firstItem = firstSet.items[0];
+      if (firstItem && firstItem.bruto > 0 && firstItem.tara > 0 && firstItem.bruto < firstItem.tara) {
+        const confirmed = window.confirm(
+          "Peso invertido detectado no primeiro material (Bruto menor que Tara). Deseja inverter o tipo de pesagem para corrigir?"
+        );
+
+        if (confirmed) {
+          setWeighingSets((prevSets) =>
+            prevSets.map((set) => ({
+              ...set,
+              items: set.items.map((item) => {
+                // Skip inversion swap for reclassified items - preserve their independent bridge values
+                if (item.reclassFromItemId) {
+                  return item;
+                }
+                const swappedBruto = item.tara;
+                const swappedTara = item.bruto;
+                return {
+                  ...item,
+                  bruto: swappedBruto,
+                  tara: swappedTara,
+                  liquido: swappedBruto - swappedTara - item.descontos,
+                };
+              }),
+            }))
+          );
+          setOperationType((prev) => (prev === 'loading' ? 'unloading' : 'loading'));
+          toast({
+            title: "Tipo de pesagem invertido",
+            description: "A inversão foi corrigida. Toque em Adicionar material novamente para continuar.",
+          });
+          return;
+        }
+      }
+    }
+
     setWeighingSets(prevSets =>
       prevSets.map(set => {
         if (set.id === setId) {
           const lastItem = set.items[set.items.length - 1];
 
-          if (lastItem) {
+          if (lastItem && !lastItem.reclassFromItemId) {
+            // Only validate full completion for non-reclassified items
             const hasMaterial = lastItem.material.trim().length > 0;
             const hasBruto = lastItem.bruto > 0;
             const hasTara = lastItem.tara > 0;
@@ -275,6 +323,16 @@ const ScaleCalculator = forwardRef((props, ref) => {
                 variant: "destructive",
                 title: "Material incompleto",
                 description: "Preencha Material, Bruto e Tara do item atual antes de adicionar outro.",
+              });
+              return set;
+            }
+          } else if (lastItem?.reclassFromItemId) {
+            // For reclassified items, only require material to be filled
+            if (!lastItem.material.trim().length) {
+              toast({
+                variant: "destructive",
+                title: "Material incompleto",
+                description: "Preencha o Material para a reclassificação antes de adicionar outro.",
               });
               return set;
             }
@@ -369,16 +427,167 @@ const ScaleCalculator = forwardRef((props, ref) => {
     setWeighingSets(prevSets =>
         prevSets.map(set => {
             if (set.id === setId) {
+                const removedItem = set.items.find(item => item.id === itemId);
+                const linkedReclassItems = set.items.filter(item => item.reclassFromItemId === itemId);
+                
+                // Warn if removing origin item with linked reclassifications
+                if (linkedReclassItems.length > 0 && !removedItem?.reclassFromItemId) {
+                  const confirmed = window.confirm(
+                    `Este material tem ${linkedReclassItems.length} reclassificação(ões) vinculada(s). Deseja remover mesmo assim?\n\nOs reclassificados serão mantidos, mas perderão a vinculação com a origem.`
+                  );
+                  if (!confirmed) return set;
+                }
+                
                 const filteredItems = set.items.filter(item => item.id !== itemId);
                 const lastIndex = filteredItems.length - 1;
-                const newItems = filteredItems.map((item, index) => ({
+                let newItems = filteredItems.map((item, index) => ({
                   ...item,
                   locked: index === lastIndex ? false : item.locked,
                 }));
+
+                if (removedItem?.reclassFromItemId) {
+                  const originIndex = newItems.findIndex((item) => item.id === removedItem.reclassFromItemId);
+                  if (originIndex >= 0) {
+                    const originItem = { ...newItems[originIndex] };
+                    originItem.tara = Math.max(0, originItem.tara - removedItem.liquido);
+                    originItem.liquido = originItem.bruto - originItem.tara - originItem.descontos;
+                    newItems[originIndex] = originItem;
+                  }
+                }
+
                 return { ...set, items: newItems };
             }
             return set;
         })
+    );
+  };
+
+  const handleReclassifyMaterial = (setId: string, itemId: string) => {
+    const targetSet = weighingSets.find((set) => set.id === setId);
+    const targetItem = targetSet?.items.find((item) => item.id === itemId);
+
+    if (!targetSet || !targetItem) {
+      toast({ variant: "destructive", title: "Material não encontrado" });
+      return;
+    }
+
+    if (!targetItem.locked) {
+      toast({
+        variant: "destructive",
+        title: "Feche o material antes",
+        description: "A reclassificação só fica disponível após o fechamento do material.",
+      });
+      return;
+    }
+
+    if (targetItem.reclassFromItemId) {
+      toast({
+        variant: "destructive",
+        title: "Ação indisponível",
+        description: "Não é possível reclassificar um item que já é de reclassificação.",
+      });
+      return;
+    }
+
+    if (targetItem.liquido <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Sem líquido para reclassificar",
+      });
+      return;
+    }
+
+    const newItemId = uuidv4();
+
+    setWeighingSets((prevSets) =>
+      prevSets.map((set) => {
+        if (set.id !== setId) return set;
+
+        const originIndex = set.items.findIndex((item) => item.id === itemId);
+        if (originIndex < 0) return set;
+
+        const originItem = set.items[originIndex];
+        if (!originItem) return set;
+
+        const alreadyHasOpenReclass = set.items.some(
+          (item) => item.reclassFromItemId === itemId && !item.locked
+        );
+
+        if (alreadyHasOpenReclass) {
+          return set;
+        }
+
+        const reclassItem: WeighingItem = {
+          id: newItemId,
+          material: "",
+          bruto: originItem.tara,
+          tara: originItem.tara,
+          descontos: 0,
+          liquido: 0,
+          locked: false,
+          reclassFromItemId: itemId,
+          reclassWeight: 0,
+        };
+
+        const nextItems = [...set.items];
+        nextItems.splice(originIndex + 1, 0, reclassItem);
+
+        return { ...set, items: nextItems, showAll: true, isCollapsed: false };
+      })
+    );
+
+    toast({
+      title: "Reclassificação iniciada",
+      description: "Preencha o material encontrado e ajuste o peso. O valor será abatido do material de origem.",
+    });
+
+    window.setTimeout(() => {
+      const input = document.getElementById(`material-${setId}-${newItemId}`) as HTMLInputElement | null;
+      if (input) {
+        input.focus();
+      }
+    }, 80);
+  };
+
+  const handleReclassWeightChange = (setId: string, itemId: string, value: string) => {
+    const requestedWeight = parseInt(value.replace(/\D/g, ''), 10) || 0;
+
+    setWeighingSets((prevSets) =>
+      prevSets.map((set) => {
+        if (set.id !== setId) return set;
+
+        const targetIndex = set.items.findIndex((item) => item.id === itemId);
+        if (targetIndex < 0) return set;
+
+        const targetItem = set.items[targetIndex];
+        if (!targetItem || !targetItem.reclassFromItemId || targetItem.locked) return set;
+
+        const originIndex = set.items.findIndex((item) => item.id === targetItem.reclassFromItemId);
+        if (originIndex < 0) return set;
+
+        const originItem = set.items[originIndex];
+        if (!originItem) return set;
+
+        const available = Math.max(0, originItem.liquido + targetItem.liquido);
+        const appliedWeight = Math.min(requestedWeight, available);
+        const baseTara = Math.max(0, originItem.tara - targetItem.liquido);
+        const updatedOriginTara = baseTara + appliedWeight;
+
+        const updatedTarget = { ...targetItem, reclassWeight: appliedWeight };
+        updatedTarget.tara = baseTara;
+        updatedTarget.bruto = updatedOriginTara;
+        updatedTarget.liquido = Math.max(0, appliedWeight);
+
+        const updatedOrigin = { ...originItem };
+        updatedOrigin.tara = updatedOriginTara;
+        updatedOrigin.liquido = updatedOrigin.bruto - updatedOrigin.tara - updatedOrigin.descontos;
+
+        const nextItems = [...set.items];
+        nextItems[targetIndex] = updatedTarget;
+        nextItems[originIndex] = updatedOrigin;
+
+        return { ...set, items: nextItems };
+      })
     );
   };
 
@@ -505,6 +714,48 @@ const handlePrint = async () => {
 };
 
 const handleFinalizeWithPdf = async () => {
+  const firstSet = weighingSets[0];
+  const firstItem = firstSet?.items[0];
+  if (
+    hasConfirmedOperationType &&
+    firstItem &&
+    firstItem.bruto > 0 &&
+    firstItem.tara > 0 &&
+    firstItem.bruto < firstItem.tara
+  ) {
+    const confirmed = window.confirm(
+      "Peso invertido detectado no primeiro material (Bruto menor que Tara). Deseja inverter o tipo de pesagem antes de finalizar?"
+    );
+
+    if (confirmed) {
+      setWeighingSets((prevSets) =>
+        prevSets.map((set) => ({
+          ...set,
+          items: set.items.map((item) => {
+            // Skip inversion swap for reclassified items - preserve their independent bridge values
+            if (item.reclassFromItemId) {
+              return item;
+            }
+            const swappedBruto = item.tara;
+            const swappedTara = item.bruto;
+            return {
+              ...item,
+              bruto: swappedBruto,
+              tara: swappedTara,
+              liquido: swappedBruto - swappedTara - item.descontos,
+            };
+          }),
+        }))
+      );
+      setOperationType((prev) => (prev === 'loading' ? 'unloading' : 'loading'));
+      toast({
+        title: "Tipo de pesagem invertido",
+        description: "Dados corrigidos. Revise e finalize novamente.",
+      });
+      return;
+    }
+  }
+
   if (!currentSessionId) {
     toast({
       variant: "destructive",
@@ -788,6 +1039,8 @@ const handleFinalizeWithPdf = async () => {
             hasPendingCopiedWeight={Boolean(pendingCopiedWeight)}
             onRemoveMaterial={removeMaterial}
             onCacambaDiscount={handleCacambaDiscount}
+            onReclassifyMaterial={handleReclassifyMaterial}
+            onReclassWeightChange={handleReclassWeightChange}
           />
         );
       })}
