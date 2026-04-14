@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { MaterialAutocompleteInput } from "@/components/scale/MaterialAutocompleteInput";
 import { WeightInput } from "@/components/scale/WeightInput";
 import { formatNumber } from "@/components/scale/format-number";
+import { sortWeighingItemsForDisplay } from "@/components/scale/sort-weighing-items";
 import type { OperationType, WeighingItem, WeighingSet } from "@/components/scale/types";
 import { useTheme } from "@/hooks/use-theme";
 import { ChevronDown, ChevronUp, CornerDownLeft, Scale as ScaleIcon, Trash2 } from "lucide-react";
@@ -187,7 +188,8 @@ export function WeighingSetCard({
   const accentForeground = getAccentForeground(accentColor);
   const subtotalLiquido = set.items.reduce((acc, item) => acc + item.liquido, 0);
   const totalLiquidoSet = subtotalLiquido - set.descontoCacamba;
-  const visibleItems = set.showAll ? set.items : set.items.slice(-1);
+  const orderedItems = sortWeighingItemsForDisplay(set.items);
+  const visibleItems = set.showAll ? orderedItems : set.items.slice(-1);
   const animationClassesByVariant = {
     none: 'transition-none',
     snappy: 'transition-all duration-150 ease-out',

@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatNumber } from '@/components/scale/format-number';
+import { sortWeighingItemsForDisplay } from '@/components/scale/sort-weighing-items';
 import type { WeighingSet } from '@/components/scale/types';
 import { defaultPrintLayoutConfig, normalizePrintLayoutConfig, type PrintLayoutConfig } from '@/services/print-settings';
 
@@ -253,7 +254,9 @@ export async function generateWeighingPdf({
     doc.text(set.name.toUpperCase(), setTitleX, y, setTitleTextOptions);
     y += printConfig.setTitle.bottomSpacing;
 
-    const tableData = set.items.map((item) => [
+    const orderedItems = sortWeighingItemsForDisplay(set.items);
+
+    const tableData = orderedItems.map((item) => [
       item.material || '-',
       formatNumber(item.bruto, true),
       formatNumber(item.tara, true),
