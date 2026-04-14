@@ -440,7 +440,7 @@ const ScaleCalculator = forwardRef((props, ref) => {
                 
                 const filteredItems = set.items.filter(item => item.id !== itemId);
                 const lastIndex = filteredItems.length - 1;
-                let newItems = filteredItems.map((item, index) => ({
+                const newItems = filteredItems.map((item, index) => ({
                   ...item,
                   locked: index === lastIndex ? false : item.locked,
                 }));

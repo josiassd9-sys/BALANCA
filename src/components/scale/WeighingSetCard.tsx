@@ -206,30 +206,8 @@ export function WeighingSetCard({
     '--set-accent-foreground': accentForeground,
   } as CSSProperties;
 
-  const focusLatestMaterialInput = (): boolean => {
-    const selector = `input[id^="material-${set.id}-"]`;
-    const candidates = Array.from(document.querySelectorAll<HTMLInputElement>(selector)).filter((input) => !input.disabled);
-    const target = candidates[candidates.length - 1];
-
-    if (!target) {
-      return false;
-    }
-
-    target.focus();
-    target.scrollIntoView({ block: "center", behavior: "smooth" });
-    return true;
-  };
-
-  const handleSetQuickAdvance = () => {
-    if (focusLatestMaterialInput()) {
-      return;
-    }
-
-    onAddMaterial(set.id);
-
-    window.setTimeout(() => {
-      void focusLatestMaterialInput();
-    }, 120);
+  const handleToggleSetHistory = () => {
+    onToggleSetVisibility(set.id);
   };
 
   return (
@@ -288,14 +266,14 @@ export function WeighingSetCard({
                   variant="ghost"
                   size="icon"
                   type="button"
-                  onClick={handleSetQuickAdvance}
+                  onClick={handleToggleSetHistory}
                   className="h-7 w-7 text-muted-foreground hover:text-foreground print:hidden"
-                  title="Avancar para material"
+                  title={set.showAll ? "Ocultar histórico" : "Mostrar histórico"}
                 >
                   <CornerDownLeft className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent><p>Avancar para material (ou criar novo)</p></TooltipContent>
+              <TooltipContent><p>{set.showAll ? "Ocultar materiais anteriores" : "Mostrar materiais anteriores"}</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
@@ -333,124 +311,124 @@ export function WeighingSetCard({
                 }
               : undefined;
 
+            const brutoId = `bruto-${set.id}-${item.id}`;
+            const taraId = `tara-${set.id}-${item.id}`;
+            const nextTargetId = operationType === 'loading' ? brutoId : taraId;
+
             return (
-            <div key={item.id} className="material-accent-row border-b p-0.5 space-y-0.5" style={materialRowStyle as CSSProperties | undefined}>
-              {(() => {
-                const brutoId = `bruto-${set.id}-${item.id}`;
-                const taraId = `tara-${set.id}-${item.id}`;
-                const nextTargetId = operationType === 'loading' ? brutoId : taraId;
-                return (
-              <div className="flex items-end gap-1">
-                <div className="space-y-px flex-grow">
-                  <Label className="text-xs text-muted-foreground">Material</Label>
-                  <MaterialAutocompleteInput
-                    inputId={`material-${set.id}-${item.id}`}
-                    placeholder="SUCATA"
-                    value={item.material}
-                    onChange={(value) => onMaterialChange(set.id, item.id, value)}
-                    nextTargetId={nextTargetId}
-                    disabled={Boolean(item.locked)}
-                    className="w-full justify-between h-8"
-                  />
-                </div>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={() => onRemoveMaterial(set.id, item.id)} disabled={Boolean(item.locked)} className="h-8 w-8 text-muted-foreground hover:text-destructive print:hidden disabled:opacity-40">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Remover Material</p></TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-                );
-              })()}
-              <div className="space-y-2">
-                {item.reclassFromItemId && (
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block px-2 py-1 text-[10px] font-semibold text-white bg-blue-600 rounded">
-                      RECLASS
-                    </span>
+              <div key={item.id} className="material-accent-row border-b p-0.5 space-y-0.5" style={materialRowStyle as CSSProperties | undefined}>
+                <div className="flex items-end gap-1">
+                  <div className="space-y-px flex-grow">
+                    <Label className="text-xs text-muted-foreground">Material</Label>
+                    <MaterialAutocompleteInput
+                      inputId={`material-${set.id}-${item.id}`}
+                      placeholder="SUCATA"
+                      value={item.material}
+                      onChange={(value) => onMaterialChange(set.id, item.id, value)}
+                      nextTargetId={nextTargetId}
+                      disabled={Boolean(item.locked)}
+                      className="w-full justify-between h-8"
+                    />
                   </div>
-                )}
-              <div className="grid grid-cols-4 gap-0.5">
-                <div className="space-y-px">
-                  <Label className="text-xs text-muted-foreground">Bruto (kg)</Label>
-                  <WeightInput
-                    inputId={`bruto-${set.id}-${item.id}`}
-                    value={item.bruto}
-                    onChange={(value) => onInputChange(set.id, item.id, 'bruto', value)}
-                    onFetch={() => onFetchLiveWeight((w) => onInputChange(set.id, item.id, 'bruto', w))}
-                    onFocusInput={() => onWeightInputFocus({ type: 'item', setId: set.id, itemId: item.id, field: 'bruto' })}
-                    hasPendingCopiedWeight={hasPendingCopiedWeight}
-                    disabled={Boolean(item.locked) || Boolean(item.reclassFromItemId)}
-                  />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={() => onRemoveMaterial(set.id, item.id)} disabled={Boolean(item.locked)} className="h-8 w-8 text-muted-foreground hover:text-destructive print:hidden disabled:opacity-40">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent><p>Remover Material</p></TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-                <div className="space-y-px">
-                  <Label className="text-xs text-muted-foreground">Tara (kg)</Label>
-                  <WeightInput
-                    inputId={`tara-${set.id}-${item.id}`}
-                    value={item.tara}
-                    onChange={(value) => onInputChange(set.id, item.id, 'tara', value)}
-                    onFetch={() => onFetchLiveWeight((w) => onInputChange(set.id, item.id, 'tara', w))}
-                    onFocusInput={() => onWeightInputFocus({ type: 'item', setId: set.id, itemId: item.id, field: 'tara' })}
-                    hasPendingCopiedWeight={hasPendingCopiedWeight}
-                    disabled={Boolean(item.locked) || Boolean(item.reclassFromItemId)}
-                  />
-                </div>
-                <div className="space-y-px">
-                  {item.reclassFromItemId ? (
-                    <>
-                      <Label className="text-xs text-muted-foreground">Reclass. (kg)</Label>
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="0"
-                        value={item.reclassWeight === 0 || item.reclassWeight === undefined ? '' : formatNumber(item.reclassWeight)}
-                        onChange={(e) => onReclassWeightChange(set.id, item.id, e.target.value)}
-                        disabled={Boolean(item.locked)}
-                        className="text-right h-8 print:hidden w-full"
-                      />
-                      <span className="hidden print:block text-right print:text-black">{formatNumber(item.reclassWeight || 0)}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Label className="text-xs text-muted-foreground">A/L (kg)</Label>
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="0"
-                        value={item.descontos === 0 ? '' : formatNumber(item.descontos)}
-                        onChange={(e) => onInputChange(set.id, item.id, 'descontos', e.target.value)}
-                        disabled={Boolean(item.locked)}
-                        className="text-right h-8 print:hidden w-full"
-                      />
-                      <span className="hidden print:block text-right print:text-black">{formatNumber(item.descontos)}</span>
-                    </>
-                  )}
-                </div>
-                <div className="space-y-px">
-                  <Label className="text-xs text-muted-foreground">Líquido (kg)</Label>
-                  <div className="h-8 flex items-center justify-end font-semibold">
-                    <span className="print:text-black">{formatNumber(item.liquido)}</span>
-                  </div>
-                  {item.locked && !item.reclassFromItemId && item.liquido > 0 && (
-                    <div className="mt-1 flex justify-end print:hidden">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-6 px-2 text-[10px]"
-                        onClick={() => onReclassifyMaterial(set.id, item.id)}
-                      >
-                        Reclass.
-                      </Button>
+
+                <div className="space-y-2">
+                  {item.reclassFromItemId && (
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block px-2 py-1 text-[10px] font-semibold text-white bg-blue-600 rounded">
+                        RECLASS
+                      </span>
                     </div>
                   )}
+
+                  <div className="grid grid-cols-4 gap-0.5">
+                    <div className="space-y-px">
+                      <Label className="text-xs text-muted-foreground">Bruto (kg)</Label>
+                      <WeightInput
+                        inputId={`bruto-${set.id}-${item.id}`}
+                        value={item.bruto}
+                        onChange={(value) => onInputChange(set.id, item.id, 'bruto', value)}
+                        onFetch={() => onFetchLiveWeight((w) => onInputChange(set.id, item.id, 'bruto', w))}
+                        onFocusInput={() => onWeightInputFocus({ type: 'item', setId: set.id, itemId: item.id, field: 'bruto' })}
+                        hasPendingCopiedWeight={hasPendingCopiedWeight}
+                        disabled={Boolean(item.locked) || Boolean(item.reclassFromItemId)}
+                      />
+                    </div>
+                    <div className="space-y-px">
+                      <Label className="text-xs text-muted-foreground">Tara (kg)</Label>
+                      <WeightInput
+                        inputId={`tara-${set.id}-${item.id}`}
+                        value={item.tara}
+                        onChange={(value) => onInputChange(set.id, item.id, 'tara', value)}
+                        onFetch={() => onFetchLiveWeight((w) => onInputChange(set.id, item.id, 'tara', w))}
+                        onFocusInput={() => onWeightInputFocus({ type: 'item', setId: set.id, itemId: item.id, field: 'tara' })}
+                        hasPendingCopiedWeight={hasPendingCopiedWeight}
+                        disabled={Boolean(item.locked) || Boolean(item.reclassFromItemId)}
+                      />
+                    </div>
+                    <div className="space-y-px">
+                      {item.reclassFromItemId ? (
+                        <>
+                          <Label className="text-xs text-muted-foreground">Reclass. (kg)</Label>
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="0"
+                            value={item.reclassWeight === 0 || item.reclassWeight === undefined ? '' : formatNumber(item.reclassWeight)}
+                            onChange={(e) => onReclassWeightChange(set.id, item.id, e.target.value)}
+                            disabled={Boolean(item.locked)}
+                            className="text-right h-8 print:hidden w-full"
+                          />
+                          <span className="hidden print:block text-right print:text-black">{formatNumber(item.reclassWeight || 0)}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Label className="text-xs text-muted-foreground">A/L (kg)</Label>
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="0"
+                            value={item.descontos === 0 ? '' : formatNumber(item.descontos)}
+                            onChange={(e) => onInputChange(set.id, item.id, 'descontos', e.target.value)}
+                            disabled={Boolean(item.locked)}
+                            className="text-right h-8 print:hidden w-full"
+                          />
+                          <span className="hidden print:block text-right print:text-black">{formatNumber(item.descontos)}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="space-y-px">
+                      <Label className="text-xs text-muted-foreground">Líquido (kg)</Label>
+                      <div className="h-8 flex items-center justify-end font-semibold">
+                        <span className="print:text-black">{formatNumber(item.liquido)}</span>
+                      </div>
+                      {item.locked && !item.reclassFromItemId && item.liquido > 0 && (
+                        <div className="mt-1 flex justify-end print:hidden">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-6 px-2 text-[10px]"
+                            onClick={() => onReclassifyMaterial(set.id, item.id)}
+                          >
+                            Reclass.
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
             );
           })}
         </div>
@@ -502,6 +480,7 @@ export function WeighingSetCard({
                     />
                     );
                   })()}
+                  </div>
                 </TableCell>
                 <TableCell className="p-0 sm:p-px">
                   <WeightInput
